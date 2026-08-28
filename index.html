@@ -117,6 +117,26 @@
   .acc{background:rgba(180,240,75,.14);color:var(--lime);border:1px solid rgba(180,240,75,.4)}
   .den{background:var(--raised);color:var(--muted);border:1px solid var(--line)}
   .req-strip{border-top:1px dashed var(--line);margin-top:4px;padding-top:10px;margin-bottom:10px}
+  /* friends: conversation list */
+  .fl-row{display:flex;gap:14px;align-items:center;width:100%;text-align:left;
+    padding:13px 4px;border-bottom:1px solid var(--line);transition:background .12s ease}
+  .fl-row:last-of-type{border-bottom:none}
+  .fl-row:active{background:rgba(139,92,246,.07)}
+  .fl-main{flex:1;min-width:0}
+  .fl-name{font-weight:700;font-size:15.5px;display:flex;align-items:center;gap:8px}
+  .fl-prev{font-size:13.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+  .fl-prev.unread{color:var(--text);font-weight:600}
+  .fl-side{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:0 0 auto}
+  .fl-time{font-size:11.5px;color:var(--faint)}
+  .unread-pill{min-width:20px;height:20px;border-radius:99px;background:var(--grad);color:#fff;
+    font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 6px;
+    box-shadow:0 0 10px rgba(255,61,138,.5)}
+  .chev{width:16px;height:16px;stroke:var(--faint);fill:none;stroke-width:2;stroke-linecap:round;flex:0 0 auto}
+  .fx-btn{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    color:var(--faint);flex:0 0 auto}
+  .fx-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .fl-empty{text-align:center;padding:26px 16px;color:var(--faint)}
+  .fl-empty .big{font-family:var(--disp);font-weight:700;font-size:15px;color:var(--muted);margin-bottom:4px}
   .empty{color:var(--faint);font-size:14px;text-align:center;padding:18px 10px}
   .auth-wrap{flex:1;display:flex;flex-direction:column;justify-content:center;padding:28px}
   /* chat */
@@ -189,7 +209,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.4</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.5</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -251,8 +271,7 @@
       <p class="eyebrow">Your people</p>
       <h2 style="font-size:22px;margin:2px 0 14px">Friends</h2>
       <div id="freq-wrap"></div>
-      <div class="panel"><h4>Your friends</h4><div id="friend-list"><p class="empty">Nobody yet — find them below.</p></div>
-        <p class="hint" style="margin-top:8px">Tap a friend to chat and share parties.</p></div>
+      <div id="friend-list" style="margin-bottom:20px"></div>
       <div class="panel"><h4>Add friends</h4>
         <input id="friend-search" placeholder="Search anyone by name" autocomplete="off" style="margin-bottom:10px">
         <div id="search-results"><p class="empty" style="padding:6px">Type a name — everyone on Turnout shows up here.</p></div>
@@ -909,20 +928,59 @@ async function loadFriends(){
     <div class="panel" style="border-color:rgba(255,180,84,.4)">
       <h4 style="color:var(--amber)">Friend requests (${pendingIn.length})</h4>
       ${pendingIn.map(p => `<div class="f-row">
-        ${avatar(p, 40)}
-        <div style="flex:1;min-width:0"><div style="font-weight:600">${esc(p.display_name)}</div>
-          <div style="font-size:12px;color:var(--faint)">wants to be friends</div></div>
-        <button class="mini-btn acc" data-fracc="${p.id}">Accept</button>
+        ${avatar(p, 44, 14)}
+        <div style="flex:1;min-width:0"><div style="font-weight:700">${esc(p.display_name)}</div>
+          <div style="font-size:12.5px;color:var(--faint)">wants to be friends</div></div>
+        <button class="mini-btn acc" data-fracc="${p.id}" style="background:var(--grad);color:#fff;border:none">Accept</button>
         <button class="mini-btn den" data-frdec="${p.id}">Decline</button>
       </div>`).join('')}
     </div>` : '';
-  $('#friend-list').innerHTML = friends.length ? friends.map(f => `
-    <button class="f-row" data-chat="${f.id}" style="width:100%;text-align:left">
-      ${avatar(f, 40)}
-      <div style="flex:1;min-width:0"><div style="font-weight:600">${esc(f.display_name)} ${unreadFrom.has(f.id) ? '<span style="color:var(--mag)">●</span>' : ''}</div>
-        <div style="font-size:12px;color:var(--faint)">${esc(f.zip || 'on Turnout')} · tap to chat</div></div>
-      <button class="mini-btn den" data-unfriend="${f.id}">Remove</button>
-    </button>`).join('') : '<p class="empty">Nobody yet — find them below.</p>';
+  // last message per friend -> preview, time, unread count
+  const prev = {};
+  if(friends.length){
+    const { data: msgs } = await db.from('messages').select('sender_id, recipient_id, text, party_id, created_at, read_at')
+      .or(`sender_id.eq.${me.id},recipient_id.eq.${me.id}`)
+      .order('created_at', { ascending: false }).limit(200);
+    (msgs || []).forEach(m => {
+      const other = m.sender_id === me.id ? m.recipient_id : m.sender_id;
+      if(!prev[other]) prev[other] = { m, unread: 0 };
+      if(m.sender_id !== me.id && !m.read_at) prev[other].unread++;
+    });
+  }
+  const ago = ts => {
+    const s = (Date.now() - new Date(ts).getTime()) / 1000;
+    if(s < 60) return 'now';
+    if(s < 3600) return Math.floor(s / 60) + 'm';
+    if(s < 86400) return Math.floor(s / 3600) + 'h';
+    return Math.floor(s / 86400) + 'd';
+  };
+  const rows = [...friends].sort((a, b) => {
+    const ta = prev[a.id] ? new Date(prev[a.id].m.created_at).getTime() : 0;
+    const tb = prev[b.id] ? new Date(prev[b.id].m.created_at).getTime() : 0;
+    return tb - ta;
+  });
+  $('#friend-list').innerHTML = rows.length ? rows.map(f => {
+    const p = prev[f.id];
+    const un = p ? p.unread : 0;
+    const line = !p ? 'Say hey — start the chat'
+      : (p.m.sender_id === me.id ? 'You: ' : '') + (p.m.party_id ? 'Shared a party 📍' : esc(p.m.text || ''));
+    return `<button class="fl-row" data-chat="${f.id}">
+      ${avatar(f, 50, 16)}
+      <div class="fl-main">
+        <div class="fl-name">${esc(f.display_name)}</div>
+        <div class="fl-prev ${un ? 'unread' : ''}">${line}</div>
+      </div>
+      <div class="fl-side">
+        ${p ? `<span class="fl-time">${ago(p.m.created_at)}</span>` : ''}
+        ${un ? `<span class="unread-pill">${un}</span>`
+             : '<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>'}
+      </div>
+      <span class="fx-btn" data-unfriend="${f.id}" role="button" aria-label="Remove friend">
+        <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
+    </button>`;
+  }).join('') : `<div class="fl-empty">
+      <div class="big">No friends yet</div>
+      Search a name below — parties are better as a crew.</div>`;
 }
 let searchTimer;
 $('#friend-search').addEventListener('input', () => {
