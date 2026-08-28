@@ -240,7 +240,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v5.3</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v5.4</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -250,6 +250,8 @@
           <div class="field"><label for="a-zip">ZIP code</label><input id="a-zip" inputmode="numeric" maxlength="5" placeholder="65401"></div>
           <div class="field"><label for="a-email">Email</label><input id="a-email" type="email" placeholder="you@email.com" autocomplete="email"></div>
         </div>
+        <div class="field"><label for="a-addr">Home address</label><input id="a-addr" placeholder="Street address" autocomplete="street-address">
+          <p class="hint">Auto-fills when you host. Locked in the database — nobody else can ever read it.</p></div>
         <div class="field"><label for="a-pass">Password</label><input id="a-pass" type="password" placeholder="6+ characters" autocomplete="new-password"></div>
         <button class="btn" id="do-signup">Create my account</button>
         <button class="btn-ghost btn" id="to-signin" style="margin-top:10px">I already have an account</button>
@@ -537,6 +539,8 @@ let pendingIn = [];        // profiles who asked me
 let pendingOut = new Set();// ids I asked
 let profMap = {};          // id -> profile (friends + requesters)
 let nickMap = {};          // id -> the nickname YOU gave them (private)
+let myHomeAddr = '';       // your home address (private table, only you can read it)
+let pendingHomeAddr = null;
 const dispName = p => p ? (nickMap[p.id] || p.display_name || '?') : 'Chat';
 let unlockedAddr = {};
 let unreadFrom = new Set();
@@ -562,6 +566,11 @@ function show(id){
       if(b) b.scrollTop = savedFindScroll; savedFindScroll = 0; }
   });
   if(id === 'map') loadParties().then(renderMap);
+  if(id === 'host' && myHomeAddr && !$('#h-addr').value.trim()){
+    $('#h-addr').value = myHomeAddr;
+    const hint = document.querySelector('#host .field:has(#h-addr) .hint') || $('#h-addr').nextElementSibling;
+    if(hint) hint.textContent = 'Your home address, pre-filled — change it if the party’s somewhere else.';
+  }
   if(id === 'friends') loadFriends();
   if(id === 'profile') renderProfile();
 }
@@ -581,6 +590,7 @@ $('#do-signup').addEventListener('click', async () => {
   if(!email || pass.length < 6){ toast('Email + a 6-character password'); return; }
   const { error } = await db.auth.signUp({ email, password: pass, options: { data: { display_name: name, zip } } });
   if(error){ toast(error.message); return; }
+  pendingHomeAddr = $('#a-addr').value.trim() || null;
   toast('Account created — welcome to Turnout');
   boot();
 });
@@ -1370,6 +1380,11 @@ async function renderProfile(){
         ? `<p class="flame" style="font-size:16px">${flameSvg(16)} ${hosted.length} parties hosted — you’ve got the flame</p>`
         : `<p style="color:var(--muted);font-size:14px">${hosted.length} of 3 parties hosted. The flame shows on your parties once people know you throw them for real.</p>`}
     </div>
+    <div class="panel"><h4>Home address</h4>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Auto-fills the host form. Locked in the database — only you can ever read it.</p>
+      <input id="home-addr" placeholder="Street address" value="${esc(myHomeAddr)}" autocomplete="street-address" style="margin-bottom:10px">
+      <button class="btn btn-ghost" id="home-addr-save" style="padding:11px">Save address</button>
+    </div>
     <div class="panel"><h4>Your Turnout so far</h4>
       <div class="meta" style="font-size:14px">
         <span><b style="color:var(--text)">${myClaims.size}</b> spots claimed</span>
@@ -1384,6 +1399,17 @@ $('#profile-body').addEventListener('click', async e => {
   if(e.target.id === 'notif-enable'){ enablePush(); return; }
   if(e.target.closest('#av-open')){ openPfpSheet(); return; }
   if(e.target.closest('#bn-open')){ openBnSheet(); return; }
+  if(e.target.id === 'home-addr-save'){
+    const v = $('#home-addr').value.trim();
+    if(!v){
+      await db.from('home_addresses').delete().eq('user_id', me.id);
+      myHomeAddr = ''; toast('Address cleared'); return;
+    }
+    const { error } = await db.from('home_addresses').upsert({ user_id: me.id, address: v });
+    if(error){ toast(error.message.includes('home_addresses') ? 'One sec — run migration12 first' : error.message); return; }
+    myHomeAddr = v; toast('Saved — hosting just got faster');
+    return;
+  }
   if(e.target.id === 'vip-toggle'){
     const next = !me.is_vip;
     const { error } = await db.from('profiles').update({ is_vip: next }).eq('id', me.id);
@@ -1683,6 +1709,15 @@ async function boot(){
   if(!configured){ $('#config-warn').hidden = false; return; }
   me = await loadMe();
   if(!me){ show('auth'); return; }
+  try{
+    if(pendingHomeAddr){
+      await db.from('home_addresses').upsert({ user_id: me.id, address: pendingHomeAddr });
+      myHomeAddr = pendingHomeAddr; pendingHomeAddr = null;
+    } else {
+      const { data: ha } = await db.from('home_addresses').select('address').eq('user_id', me.id).maybeSingle();
+      myHomeAddr = ha?.address || '';
+    }
+  }catch(e){}
   startRealtime();
   // unread dots survive reloads now that read state lives in the database
   try{
