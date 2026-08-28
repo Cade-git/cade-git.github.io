@@ -87,6 +87,31 @@
     aspect-ratio:16/11;display:block;background:#191630;box-shadow:0 10px 30px -12px rgba(0,0,0,.8);
     transition:transform .32s var(--spring)}
   .card:active{transform:scale(.975)}
+  /* one press feel for everything you can tap */
+  .btn,.mini-btn,.chip,.fl-row,.f-row button,.icon-btn,.map-fab,.tab,.cover-pick,.grad-pick,.pin-o{
+    transition:transform .28s var(--spring)}
+  .btn:active,.mini-btn:active,.chip:active,.fl-row:active,.cover-pick:active,.grad-pick:active{transform:scale(.965)}
+  .tab:active{transform:scale(.9)}
+  /* skeletons while the feed loads */
+  .skel{border-radius:22px;aspect-ratio:16/11;margin-bottom:16px;
+    background:linear-gradient(100deg,#161331 32%,#221E3C 50%,#161331 68%);background-size:220% 100%;
+    animation:shimmer 1.25s linear infinite}
+  @keyframes shimmer{to{background-position:-120% 0}}
+  /* the claim moment */
+  #claimpop{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
+    pointer-events:none;opacity:0}
+  #claimpop.on{animation:claimflash 1.7s var(--spring) forwards}
+  @keyframes claimflash{
+    0%{opacity:0;transform:scale(.82)}
+    14%{opacity:1;transform:scale(1)}
+    76%{opacity:1;transform:scale(1)}
+    100%{opacity:0;transform:scale(1.04)}}
+  .cp-card{background:var(--grad);padding:24px 30px;border-radius:26px;text-align:center;
+    box-shadow:0 24px 70px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.14) inset;max-width:78%}
+  .cp-card svg{width:38px;height:38px;stroke:#fff;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;
+    margin-bottom:8px}
+  .cp-card b{display:block;font-family:var(--disp);font-size:22px;color:#fff;letter-spacing:-.01em}
+  .cp-card span{display:block;font-size:13.5px;color:rgba(255,255,255,.82);margin-top:3px}
   .cover-pick{width:100%;height:132px;border-radius:16px;border:1.5px dashed rgba(255,255,255,.18);
     background:var(--raised);background-size:cover;background-position:center;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:7px;color:var(--muted);font-size:13px;font-weight:600;position:relative;overflow:hidden}
@@ -315,7 +340,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.4</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.5</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -346,8 +371,7 @@
     <div class="top"><span class="wordmark">TURNOUT</span><span class="loc-pill">near <b id="loc-zip"></b></span></div>
     <div class="ptr" id="ptr">Release to refresh</div>
     <div class="scroll">
-      <p class="eyebrow">This weekend</p>
-      <h2 id="find-greet" style="font-size:22px;margin:2px 0 14px">Parties near you</h2>
+      <h2 id="find-greet" style="font-size:19px;margin:0 0 12px">Parties near you</h2>
       <div id="party-list"><p class="empty">Loading parties…</p></div>
     </div>
   </section>
@@ -522,6 +546,10 @@
     <div id="user-card"></div>
   </div>
 </div>
+<div id="claimpop"><div class="cp-card">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5 10-11"/></svg>
+  <b id="cp-title">You’re in</b><span id="cp-sub"></span>
+</div></div>
 <div id="lightbox" hidden><button class="lb-close" id="lb-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><img id="lb-img" alt=""></div>
 <div class="toast" id="toast"></div>
 
@@ -585,6 +613,15 @@ async function enablePush(){
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function haptic(pattern){ try { navigator.vibrate && navigator.vibrate(pattern); } catch(_){} }
+function celebrate(title, sub){
+  $('#cp-title').textContent = title;
+  $('#cp-sub').textContent = sub || '';
+  const el = $('#claimpop');
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  haptic([12, 45, 22]);
+  setTimeout(() => el.classList.remove('on'), 1800);
+}
 function toast(msg){
   const t = $('#toast'); t.textContent = msg; t.classList.add('show');
   clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2600);
@@ -819,6 +856,8 @@ async function refreshData(){
 
 /* ── find ── */
 async function loadParties(){
+  if(!$('#party-list').children.length)
+    $('#party-list').innerHTML = '<div class="skel"></div><div class="skel" style="opacity:.6"></div>';
   $('#loc-zip').textContent = me.zip || '—';
   $('#find-greet').textContent = 'Parties near you, ' + me.display_name.split(' ')[0];
   await refreshData();
@@ -869,7 +908,7 @@ async function loadParties(){
         <div class="card-when">${esc(whenLabel(p.starts_at))}${p.town ? ' · ' + esc(p.town) : ''}</div>
         <div class="card-row">
           ${fIds.length ? faceStack(fIds, 3) : '<span style="font-size:12.5px;color:rgba(255,255,255,.6);font-weight:600">hosted by ' + esc(mine ? 'you' : (nickMap[p.host_id] || p.profiles?.display_name || 'someone')) + '</span>'}
-          <span class="spots-n spots-${cls}">${full ? 'Full' : (p.max_people - claimed)}${full ? '' : '<small>spots left</small>'}</span>
+          <span class="spots-n spots-${cls}">${full ? 'Full' : (p.max_people - claimed)}${full ? '' : `<small>spot${p.max_people - claimed === 1 ? '' : 's'} left</small>`}</span>
         </div>
       </div>
       <div class="card-bar"><i class="fill-${cls}" style="width:${pct}%"></i></div>
@@ -990,9 +1029,15 @@ $('#detail-body').addEventListener('click', async e => {
   if(g('[data-close]')){ closeOverlay($('#detail'), detailFrom || 'find'); return; }
   if(el = g('[data-viewuser]')){ openUserCard(el.dataset.viewuser); return; }
   if(el = g('[data-claim]')){
+    const party = parties.find(x => x.id === el.dataset.claim);
+    el.disabled = true; el.textContent = 'Claiming…';
     const { error } = await db.from('claims').insert({ party_id: el.dataset.claim, user_id: me.id });
-    toast(error ? (error.message.includes('party_full') ? 'Beat you to it — party just filled' : error.message)
-                : 'Spot claimed — address unlocked');
+    if(error){
+      el.disabled = false;
+      toast(error.message.includes('party_full') ? 'Beat you to it — party just filled' : error.message);
+    } else {
+      celebrate('You’re in', party ? party.name + ' · address unlocked' : 'Address unlocked');
+    }
     refreshAfterAction(); return;
   }
   if(el = g('[data-request]')){
@@ -1405,6 +1450,7 @@ $('#friends').addEventListener('click', async e => {
   if(el = e.target.closest('[data-fracc]')){
     const { error } = await db.from('friendships').update({ status: 'accepted' })
       .eq('user_id', el.dataset.fracc).eq('friend_id', me.id);
+    if(!error) haptic([10, 40, 18]);
     toast(error ? error.message : 'You’re friends now');
     await loadFriends(); $('#friend-search').dispatchEvent(new Event('input'));
     return;
@@ -1484,6 +1530,7 @@ async function sendMsg(){
   inp.value = '';
   const { error } = await db.from('messages').insert({ sender_id: me.id, recipient_id: chatId, text });
   if(error){ toast(error.message); inp.value = text; return; }
+  haptic(8);
   renderChat();
 }
 /* photos: shrink on the phone first so it sends fast on data */
@@ -1525,6 +1572,7 @@ $('#msg-file').addEventListener('change', async e => {
     const { error: e2 } = await db.from('messages').insert({
       sender_id: me.id, recipient_id: chatId, text: 'Photo', image_url: url });
     if(e2) throw e2;
+    haptic(10);
     renderChat();
   } catch(err){
     const el = document.getElementById('pending-img'); if(el) el.remove();
@@ -1700,8 +1748,8 @@ $('#h-post').addEventListener('click', async () => {
     lat: pt ? pt.lat : null, lon: pt ? pt.lon : null
   });
   if(pt) exactPt[p.id] = pt;
-  toast(e2 ? 'Party posted, but the address failed to save'
-           : (hPriv === 'private' ? 'Posted — you approve who gets in' : 'Party posted — it’s live for everyone'));
+  if(e2) toast('Party posted, but the address failed to save');
+  else celebrate('Party posted', hPriv === 'private' ? 'You approve who gets in' : 'It’s live for everyone right now');
   hostGPS = null; hostPhoto = null;
   $('#h-photo').classList.remove('has');
   $('#h-photo').style.backgroundImage = '';
@@ -1910,6 +1958,7 @@ $('#user-sheet').addEventListener('click', async e => {
   if(el = e.target.closest('[data-ucacc]')){
     const { error } = await db.from('friendships').update({ status: 'accepted' })
       .eq('user_id', el.dataset.ucacc).eq('friend_id', me.id);
+    if(!error) haptic([10, 40, 18]);
     toast(error ? error.message : 'You’re friends now');
     await loadFriendRows(); openUserCard(el.dataset.ucacc); return;
   }
