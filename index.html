@@ -112,6 +112,29 @@
     margin-bottom:8px}
   .cp-card b{display:block;font-family:var(--disp);font-size:22px;color:#fff;letter-spacing:-.01em}
   .cp-card span{display:block;font-size:13.5px;color:rgba(255,255,255,.82);margin-top:3px}
+  /* the live layer */
+  .sec-h{display:flex;align-items:center;gap:8px;margin:2px 0 10px;font-size:12px;font-weight:800;
+    letter-spacing:.07em;text-transform:uppercase;color:var(--faint)}
+  .sec-h.now{color:var(--red)}
+  .sec-h i{width:7px;height:7px;border-radius:99px;background:currentColor;
+    box-shadow:0 0 8px currentColor;animation:blip 1.6s ease-in-out infinite}
+  .card.islive{box-shadow:0 10px 30px -12px rgba(0,0,0,.8),0 0 0 1.5px rgba(255,92,92,.65)}
+  .live-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(255,92,92,.92);color:#fff;
+    font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px;letter-spacing:.03em}
+  .live-pill i{width:6px;height:6px;border-radius:99px;background:#fff;animation:blip 1.4s ease-in-out infinite}
+  .here-n{font-family:var(--disp);font-weight:800;font-size:16.5px;color:#fff;
+    text-shadow:0 1px 10px rgba(0,0,0,.7);white-space:nowrap}
+  .here-n small{font-family:var(--body);font-weight:600;font-size:11.5px;opacity:.8;margin-left:3px}
+  /* host console */
+  .hc{margin:16px 0 6px;padding:16px;border-radius:20px;background:var(--surface);
+    border:1px solid rgba(139,92,246,.4)}
+  .hc h4{font-family:var(--disp);font-size:15.5px;margin:0 0 2px;color:#fff}
+  .hc .sub{font-size:12.5px;color:var(--muted);margin-bottom:13px}
+  .hc-row{display:flex;gap:8px;margin-top:10px}
+  .hc-row .btn{padding:11px;font-size:14px}
+  .hc-list{margin-top:12px;max-height:210px;overflow-y:auto}
+  .hc-list .f-row{padding:7px 0}
+  .hc-when{font-size:11.5px;color:var(--faint);font-weight:600}
   /* ── checking in ── */
   .ci{margin:16px 0 6px;padding:16px;border-radius:20px;background:linear-gradient(150deg,rgba(180,240,75,.1),rgba(53,214,237,.06));
     border:1px solid rgba(180,240,75,.3)}
@@ -461,7 +484,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.1</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.2</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -933,6 +956,32 @@ function clockLabel(d){
   return m ? h + ':' + String(m).padStart(2, '0') + ap : h + ap;   // 9PM, not 9:00 PM
 }
 /* people don't say "Fri, Aug 28 · 12:55 PM" — they say "tonight" */
+function isLive(p){
+  if(!p.starts_at) return false;
+  const t = new Date(p.starts_at).getTime(), now = Date.now();
+  return now >= t - 30 * 60000 && now <= t + 6 * 3600000;
+}
+/* the feed reads differently at 9pm Friday than 2pm Tuesday */
+function bucketOf(p){
+  if(isLive(p)) return 0;                                  // happening now
+  if(!p.starts_at) return 3;
+  const d = new Date(p.starts_at), now = new Date();
+  const day = new Date(now); day.setHours(0,0,0,0);
+  const days = Math.round((new Date(d).setHours(0,0,0,0) - day) / 864e5);
+  if(days <= 0) return 1;                                  // tonight
+  if(days === 1) return 2;                                 // tomorrow
+  if(days < 7) return 3;                                   // this week
+  return 4;
+}
+const BUCKETS = ['Happening now', 'Tonight', 'Tomorrow', 'This week', 'Later'];
+function timeGreeting(){
+  const h = new Date().getHours(), d = new Date().getDay();
+  const weekend = d === 5 || d === 6;
+  if(h >= 21) return weekend ? 'It’s going right now' : 'Late night';
+  if(h >= 17) return weekend ? 'Friday night' : 'Tonight';
+  if(h >= 12) return weekend ? 'Tonight’s lineup' : 'Coming up';
+  return 'Coming up';
+}
 function whenLabel(ts){
   if(!ts) return 'Date TBA';
   const d = new Date(ts), now = new Date(), diff = d - now, hrs = diff / 3600000;
@@ -966,6 +1015,7 @@ function friendLine(names){
 }
 
 let hostScores = {};   // host id -> { avg, votes }
+let liveHere = {};     // party id -> how many are inside right now
 async function loadHostScores(){
   try {
     const { data } = await db.from('party_ratings').select('flames, parties!inner(host_id)');
@@ -1012,6 +1062,11 @@ async function refreshData(){
   });
   await loadFriendRows();
   await loadHostScores();
+  try {
+    const { data: lc } = await db.rpc('live_counts');
+    liveHere = {};
+    (lc || []).forEach(r => liveHere[r.party_id] = r.here);
+  } catch(_){ }
   // addresses you have a right to: fetch them up front, no extra tap
   const need = parties.filter(p => (myClaims.has(p.id) || p.host_id === me.id) && !unlockedAddr[p.id]);
   await Promise.all(need.map(async p => {
@@ -1025,7 +1080,7 @@ async function loadParties(){
   if(!$('#party-list').children.length)
     $('#party-list').innerHTML = '<div class="skel"></div><div class="skel" style="opacity:.6"></div>';
   $('#loc-zip').textContent = me.zip || '—';
-  $('#find-greet').textContent = 'Parties near you, ' + me.display_name.split(' ')[0];
+  $('#find-greet').textContent = timeGreeting() + ', ' + me.display_name.split(' ')[0];
   await refreshData();
   const friendIds = new Set(friends.map(f => f.id));
   const nameOf = {}; friends.forEach(f => nameOf[f.id] = dispName(f));
@@ -1050,7 +1105,14 @@ async function loadParties(){
   }
   const _sb = document.querySelector('#find .scroll');
   const _st = _sb ? _sb.scrollTop : 0;
-  $('#party-list').innerHTML = parties.map(p => {
+  const sorted = parties.slice().sort((a, b) => bucketOf(a) - bucketOf(b)
+      || (a.starts_at ? new Date(a.starts_at) : Infinity) - (b.starts_at ? new Date(b.starts_at) : Infinity));
+  let lastBucket = -1;
+  $('#party-list').innerHTML = sorted.map(p => {
+    const bk = bucketOf(p);
+    const header = bk !== lastBucket
+      ? `<div class="sec-h ${bk === 0 ? 'now' : ''}">${bk === 0 ? '<i></i>' : ''}${esc(BUCKETS[bk])}</div>` : '';
+    lastBucket = bk;
     const claimers = (p.claims || []).map(c => c.user_id);
     const claimed = claimers.length;
     const mine = p.host_id === me.id;
@@ -1069,11 +1131,14 @@ async function loadParties(){
       : requested ? '<div class="friendsline" style="color:var(--amber)">Request sent — waiting on the host</div>'
       : reqCount ? `<div class="friendsline" style="color:var(--amber)">${reqCount} request${reqCount > 1 ? 's' : ''} waiting — tap to review</div>`
       : '';
-    return `<button class="card" data-open="${p.id}">
+    const live = isLive(p);
+    const here = liveHere[p.id] || 0;
+    return header + `<button class="card ${live ? 'islive' : ''}" data-open="${p.id}">
       <div class="card-img" style="background:${p.photo_url ? `url('${esc(p.photo_url)}')` : gradFor(p.id)};background-size:cover;background-position:center"></div>
       <div class="card-scrim"></div>
       <div class="card-top">
         ${mine ? '<span class="tag yours">Your party</span>' : ''}
+        ${live ? '<span class="live-pill"><i></i>LIVE</span>' : ''}
         ${going ? '<span class="tag going">You’re in</span>' : ''}
         ${priv && !mine && !going ? '<span class="tag priv">Private</span>' : ''}
         ${flames ? `<span class="tag">${flames}</span>` : ''}
@@ -1085,7 +1150,9 @@ async function loadParties(){
         <div class="card-when">${esc(whenLabel(p.starts_at))}${p.town ? ' · ' + esc(p.town) : ''}</div>
         <div class="card-row">
           ${fIds.length ? faceStack(fIds, 3) : '<span style="font-size:12.5px;color:rgba(255,255,255,.6);font-weight:600">hosted by ' + esc(mine ? 'you' : (nickMap[p.host_id] || p.profiles?.display_name || 'someone')) + '</span>'}
-          <span class="spots-n spots-${cls}">${full ? 'Full' : (p.max_people - claimed)}${full ? '' : `<small>spot${p.max_people - claimed === 1 ? '' : 's'} left</small>`}</span>
+          ${live && here
+            ? `<span class="here-n">${here}<small>here now</small></span>`
+            : `<span class="spots-n spots-${cls}">${full ? 'Full' : (p.max_people - claimed)}${full ? '' : `<small>spot${p.max_people - claimed === 1 ? '' : 's'} left</small>`}</span>`}
         </div>
       </div>
       <div class="card-bar"><i class="fill-${cls}" style="width:${pct}%"></i></div>
@@ -1099,6 +1166,43 @@ $('#party-list').addEventListener('click', e => {
   if(c) openDetail(c.dataset.open, 'find');
 });
 
+/* ── the host's door: who's inside, one message to everyone, more room ── */
+let hcRoster = {};
+async function loadRoster(pid){
+  try {
+    const { data } = await db.from('check_ins').select('user_id, at').eq('party_id', pid).order('at', { ascending: false });
+    hcRoster[pid] = data || [];
+    const ids = (data || []).map(r => r.user_id).filter(id => !profMap[id]);
+    if(ids.length){
+      const { data: profs } = await db.from('profiles').select('*').in('id', ids);
+      (profs || []).forEach(pr => profMap[pr.id] = pr);
+    }
+  } catch(_){ hcRoster[pid] = hcRoster[pid] || []; }
+}
+function hostConsoleHtml(p){
+  const roster = hcRoster[p.id] || [];
+  const claimed = (p.claims || []).length;
+  const ago = ts => {
+    const s = (Date.now() - new Date(ts).getTime()) / 1000;
+    if(s < 90) return 'just now';
+    if(s < 3600) return Math.floor(s / 60) + 'm ago';
+    return Math.floor(s / 3600) + 'h ago';
+  };
+  return `<div class="hc">
+    <h4>Your door</h4>
+    <div class="sub">${roster.length} of ${claimed} claimed ${roster.length === 1 ? 'has' : 'have'} checked in.</div>
+    <div class="hc-row">
+      <button class="btn" data-hcmsg="${p.id}">Message everyone</button>
+      <button class="btn btn-ghost" data-hcroom="${p.id}" style="width:auto;padding:11px 14px;white-space:nowrap">+10 spots</button>
+    </div>
+    ${roster.length ? `<div class="hc-list">${roster.map(r => {
+      const u = profMap[r.user_id] || { id: r.user_id, display_name: 'Someone' };
+      return `<div class="f-row">${avatar(u, 32)}
+        <span style="flex:1;font-weight:600;font-size:14px">${esc(nickMap[u.id] || u.display_name)}</span>
+        <span class="hc-when">${esc(ago(r.at))}</span></div>`;
+    }).join('')}</div>` : '<p class="empty" style="padding:8px 0 0">Nobody has checked in yet.</p>'}
+  </div>`;
+}
 /* ── checking in: you have to actually be there ── */
 const CHECKIN_FT = 250;
 let checkIns = {}, myCheckIn = {}, ciDist = null, ciWatch = null;
@@ -1231,6 +1335,8 @@ async function renderDetail(){
   const showCheckin = invited && checkinOpen(p);
   if(showRecap && !recapPhotos[p.id]) await loadRecap(p.id);
   if((showCheckin || showRecap) && !checkIns[p.id]) await loadCheckIns(p.id);
+  const showHostConsole = mine && (checkinOpen(p) || recapOpen(p));
+  if(showHostConsole && !hcRoster[p.id]) await loadRoster(p.id);
   const claimers = (p.claims || []).map(c => c.user_id);
   const claimed = claimers.length;
   const mine = p.host_id === me.id;
@@ -1306,6 +1412,7 @@ async function renderDetail(){
             <button class="mini-btn den" data-deny="${p.id}" data-uid="${r.user_id}">Deny</button>
           </div>`).join('')}
         </div>` : (mine && priv ? '<div class="panel"><h4>Requests</h4><p class="empty" style="padding:6px">Requests to get in show up here.</p></div>' : '')}
+      ${showHostConsole ? hostConsoleHtml(p) : ''}
       ${showCheckin ? checkinHtml(p) : ''}
       ${showRecap ? recapHtml(p, mine) : ''}
       ${showRecap ? '' : mine ? `<button class="btn btn-danger" data-cancel="${p.id}">Cancel this party</button>`
@@ -1355,6 +1462,28 @@ $('#detail-body').addEventListener('change', async e => {
 $('#detail-body').addEventListener('click', async e => {
   const g = sel => e.target.closest(sel);
   let el;
+  if(el = g('[data-hcmsg]')){
+    const pid = el.dataset.hcmsg;
+    const body = prompt('Message everyone who claimed a spot:');
+    if(!body || !body.trim()) return;
+    el.disabled = true; el.textContent = 'Sending…';
+    const { data, error } = await db.rpc('host_broadcast', { pid, body: body.trim() });
+    el.disabled = false; el.textContent = 'Message everyone';
+    if(error){ toast(error.message.includes('host_broadcast') ? 'One sec — this needs migration 19' : error.message); return; }
+    haptic([10, 40, 18]);
+    toast('Sent to ' + (data || 0) + ' ' + ((data === 1) ? 'guest' : 'guests'));
+    return;
+  }
+  if(el = g('[data-hcroom]')){
+    const pid = el.dataset.hcroom;
+    const party = allParties.find(x => x.id === pid); if(!party) return;
+    const next = party.max_people + 10;
+    const { error } = await db.from('parties').update({ max_people: next }).eq('id', pid);
+    if(error){ toast(error.message); return; }
+    party.max_people = next; haptic(12);
+    toast('Room for ' + next + ' now');
+    renderDetail(); return;
+  }
   if(el = g('[data-repin]')){
     repinId = el.dataset.repin;
     const cur = exactPt[repinId];
@@ -2724,6 +2853,10 @@ function startRealtime(){
       const who = profMap[m.sender_id];
       toast('New message' + (who ? ' from ' + who.display_name : '') + ' — check Friends');
       if($('#friends').classList.contains('on')) loadFriends();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'check_ins' }, () => {
+      if($('#find').classList.contains('on')) loadParties();
+      if(detailId && $('#detail').classList.contains('on')){ loadCheckIns(detailId).then(renderDetail); }
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, () => {
       if(chatId && $('#chat').classList.contains('on')) renderChat();
