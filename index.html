@@ -61,6 +61,7 @@
   .screen.swiping{transition:none}
   #chat, #detail{position:absolute;inset:0;z-index:20;background:var(--ink);
     box-shadow:-24px 0 48px rgba(0,0,0,.45)}
+  .screen.peek{display:flex;position:absolute;inset:0;z-index:15;background:var(--ink)}
   #chat.on, #detail.on{animation:slideIn .22s ease}
   @keyframes slideIn{from{transform:translateX(100%)}to{transform:none}}
   .screen.on{display:flex}
@@ -188,7 +189,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.3</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.4</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1179,8 +1180,9 @@ function addSwipeBack(el, onBack){
       if(Math.abs(dy) > Math.abs(dx) || dx < 0){ dragging = false; return; }
       el.classList.add('swiping');
     }
+    e.preventDefault();   // the swipe owns this gesture — no scrolling underneath
     if(dx > 0) el.style.transform = 'translateX(' + dx + 'px)';
-  }, { passive: true });
+  }, { passive: false });
   el.addEventListener('touchend', () => {
     el.classList.remove('swiping');
     if(!dragging) return;
@@ -1201,6 +1203,67 @@ function closeOverlay(el, target){
   setTimeout(() => { el.style.transform = ''; el.style.transition = ''; show(target); }, 170);
 }
 addSwipeBack($('#chat'), () => show('friends'));
+
+/* swipe left/right anywhere to move between the five tabs */
+const TAB_ORDER = ['find','map','friends','host','profile'];
+(function tabSwipe(){
+  const shell = document.querySelector('.shell');
+  let sx = 0, sy = 0, dx = 0, cur = null, nb = null, dir = 0, dragging = false, decided = false;
+  shell.addEventListener('touchstart', e => {
+    if(e.touches.length !== 1) return;
+    if($('#chat').classList.contains('on') || $('#detail').classList.contains('on') || $('#auth').classList.contains('on')) return;
+    if(e.target.closest('.tabbar') || e.target.closest('input,textarea,select')) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    dx = 0; dragging = true; decided = false; cur = null; nb = null;
+  }, { passive: true });
+  shell.addEventListener('touchmove', e => {
+    if(!dragging) return;
+    dx = e.touches[0].clientX - sx;
+    const dy = e.touches[0].clientY - sy;
+    if(!decided){
+      if(Math.abs(dx) < 14 && Math.abs(dy) < 14) return;
+      decided = true;
+      if(Math.abs(dy) >= Math.abs(dx)){ dragging = false; return; }   // vertical wins: scroll normally
+      const curId = TAB_ORDER.find(id => $('#' + id).classList.contains('on'));
+      if(!curId){ dragging = false; return; }
+      dir = dx < 0 ? 1 : -1;
+      const ni = TAB_ORDER.indexOf(curId) + dir;
+      if(ni < 0 || ni >= TAB_ORDER.length){ dragging = false; return; }
+      cur = $('#' + curId); nb = $('#' + TAB_ORDER[ni]);
+      nb.classList.add('peek');
+      cur.classList.add('swiping'); nb.classList.add('swiping');
+    }
+    if(cur){
+      e.preventDefault();   // page swipe owns the gesture — no scrolling mid-swipe
+      cur.style.transform = 'translateX(' + dx + 'px)';
+      nb.style.transform = 'translateX(calc(' + (dir > 0 ? '100%' : '-100%') + ' + ' + dx + 'px))';
+    }
+  }, { passive: false });
+  shell.addEventListener('touchend', () => {
+    dragging = false;
+    if(!cur) return;
+    const commit = Math.abs(dx) > 80;
+    cur.classList.remove('swiping'); nb.classList.remove('swiping');
+    cur.style.transition = 'transform .18s ease'; nb.style.transition = 'transform .18s ease';
+    const c0 = cur, n0 = nb, d0 = dir, nbId = nb.id;
+    cur = null; nb = null;
+    if(commit){
+      c0.style.transform = 'translateX(' + (d0 > 0 ? '-100%' : '100%') + ')';
+      n0.style.transform = 'translateX(0)';
+      setTimeout(() => {
+        [c0, n0].forEach(el => { el.style.transform = ''; el.style.transition = ''; el.classList.remove('peek'); });
+        show(nbId);
+      }, 170);
+    } else {
+      c0.style.transform = '';
+      n0.style.transform = 'translateX(' + (d0 > 0 ? '100%' : '-100%') + ')';
+      setTimeout(() => {
+        [c0, n0].forEach(el => { el.style.transform = ''; el.style.transition = ''; });
+        n0.classList.remove('peek');
+      }, 200);
+    }
+  });
+})();
 addSwipeBack($('#detail'), () => show(detailFrom || 'find'));
 
 (function pullToRefresh(){
