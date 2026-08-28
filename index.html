@@ -83,8 +83,8 @@
   .tab.on{color:#fff}
   .tab .dot{position:absolute;top:3px;right:calc(50% - 17px);width:8px;height:8px;border-radius:99px;
     background:var(--mag);box-shadow:0 0 8px var(--mag)}
-  .card{position:relative;border-radius:22px;overflow:hidden;margin-bottom:16px;width:100%;text-align:left;
-    aspect-ratio:16/11;display:block;background:#191630;box-shadow:0 10px 30px -12px rgba(0,0,0,.8);
+  .card{position:relative;border-radius:20px;overflow:hidden;margin-bottom:12px;width:100%;text-align:left;
+    aspect-ratio:16/8.6;display:block;background:#191630;box-shadow:0 10px 30px -12px rgba(0,0,0,.8);
     transition:transform .32s var(--spring)}
   .card:active{transform:scale(.975)}
   /* one press feel for everything you can tap */
@@ -112,6 +112,17 @@
     margin-bottom:8px}
   .cp-card b{display:block;font-family:var(--disp);font-size:22px;color:#fff;letter-spacing:-.01em}
   .cp-card span{display:block;font-size:13.5px;color:rgba(255,255,255,.82);margin-top:3px}
+  /* ── checking in ── */
+  .ci{margin:16px 0 6px;padding:16px;border-radius:20px;background:linear-gradient(150deg,rgba(180,240,75,.1),rgba(53,214,237,.06));
+    border:1px solid rgba(180,240,75,.3)}
+  .ci.far{background:var(--surface);border-color:var(--line)}
+  .ci.done{background:linear-gradient(150deg,rgba(180,240,75,.18),rgba(180,240,75,.05));border-color:rgba(180,240,75,.5)}
+  .ci h4{font-family:var(--disp);font-size:15.5px;margin:0 0 3px;color:#fff}
+  .ci p{font-size:12.5px;color:var(--muted);margin-bottom:12px}
+  .ci .btn[disabled]{opacity:.45}
+  .ci-here{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--lime);font-weight:700}
+  .ci-here .stack{margin-left:2px}
+  .ci-dist{font-variant-numeric:tabular-nums;font-weight:700;color:var(--amber)}
   /* ── the recap ── */
   .recap{margin:18px 0 6px;padding:16px;border-radius:20px;background:var(--surface);border:1px solid var(--line)}
   .recap-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:3px}
@@ -147,6 +158,22 @@
   .rs-txt b{display:block;font-family:var(--disp);font-size:12px;color:#fff;line-height:1.2;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .rs-txt span{font-size:10px;color:var(--amber);font-weight:700}
+  /* drag-the-map location picker */
+  #loc-sheet{position:fixed;inset:0;z-index:55;background:var(--ink);display:flex;flex-direction:column}
+  #loc-sheet[hidden]{display:none}
+  #loc-map{flex:1;position:relative;background:#0E0C1A}
+  .loc-cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:500;pointer-events:none;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,.7))}
+  .loc-cross svg{width:44px;height:44px}
+  .loc-dot{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:99px;
+    background:rgba(255,255,255,.85);z-index:499;pointer-events:none;box-shadow:0 0 0 2px rgba(0,0,0,.5)}
+  .loc-bar{padding:14px 18px calc(16px + env(safe-area-inset-bottom));background:var(--surface);
+    border-top:1px solid var(--line)}
+  .loc-bar h4{font-family:var(--disp);font-size:15px;margin:0 0 3px;color:#fff}
+  .loc-bar p{font-size:12.5px;color:var(--muted);margin-bottom:12px}
+  .loc-top{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:12px;right:12px;z-index:500;display:flex;gap:8px}
+  .loc-top button{background:rgba(14,12,26,.85);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.16);
+    color:#fff;border-radius:12px;padding:9px 13px;font-size:13px;font-weight:600}
   .cover-pick{width:100%;height:132px;border-radius:16px;border:1.5px dashed rgba(255,255,255,.18);
     background:var(--raised);background-size:cover;background-position:center;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:7px;color:var(--muted);font-size:13px;font-weight:600;position:relative;overflow:hidden}
@@ -159,15 +186,15 @@
   .card-scrim{position:absolute;inset:0;background:linear-gradient(to top,
     rgba(8,7,16,.94) 0%, rgba(8,7,16,.72) 26%, rgba(8,7,16,.12) 55%, rgba(8,7,16,.3) 100%)}
   .card-top{position:absolute;top:12px;left:12px;right:12px;display:flex;gap:6px;align-items:flex-start}
-  .card-foot{position:absolute;left:0;right:0;bottom:0;padding:0 16px 15px}
+  .card-foot{position:absolute;left:0;right:0;bottom:0;padding:0 15px 13px}
   .tag{font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px;background:rgba(8,7,16,.6);
     backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.16);color:#fff;white-space:nowrap}
   .tag.yours{background:rgba(180,240,75,.92);color:#12210A;border-color:transparent}
   .tag.going{background:rgba(180,240,75,.92);color:#12210A;border-color:transparent}
   .tag.priv{background:rgba(255,180,84,.9);color:#241503;border-color:transparent}
-  .card h3{font-family:var(--disp);font-weight:800;font-size:20px;margin:0 0 3px;color:#fff;line-height:1.15;
+  .card h3{font-family:var(--disp);font-weight:800;font-size:18px;margin:0 0 3px;color:#fff;line-height:1.15;
     text-shadow:0 2px 14px rgba(0,0,0,.65);letter-spacing:-.01em}
-  .card-when{font-size:12.5px;color:rgba(255,255,255,.72);font-weight:500;margin-bottom:11px;
+  .card-when{font-size:12px;color:rgba(255,255,255,.72);font-weight:500;margin-bottom:9px;
     text-shadow:0 1px 8px rgba(0,0,0,.6)}
   .card-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .spots-n{font-family:var(--disp);font-weight:800;font-size:16.5px;font-variant-numeric:tabular-nums;
@@ -434,7 +461,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.0</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.1</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -543,7 +570,7 @@
         <input id="h-photo-file" type="file" accept="image/*" hidden></div>
       <div class="field"><label for="h-when">When</label><input id="h-when" type="datetime-local"></div>
       <div class="field"><label for="h-addr">Address</label><input id="h-addr" placeholder="Street address">
-        <button class="btn btn-ghost" id="h-gps" style="padding:9px;margin-top:8px;font-size:13.5px"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.2-6.5-10.2a6.5 6.5 0 0 1 13 0C18.5 15.8 12 21 12 21z"/><circle cx="12" cy="10.6" r="2.3"/></svg>Pin my exact spot</button>
+        <button class="btn btn-ghost" id="h-gps" style="padding:9px;margin-top:8px;font-size:13.5px"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.2-6.5-10.2a6.5 6.5 0 0 1 13 0C18.5 15.8 12 21 12 21z"/><circle cx="12" cy="10.6" r="2.3"/></svg>Set the spot on a map</button>
         <p class="hint" id="h-addr-hint">Locked in the database — only your guests can ever read it.</p></div>
       <div class="row2">
         <div class="field"><label for="h-town">Town</label><input id="h-town" placeholder="Town"></div>
@@ -642,6 +669,22 @@
 <div id="user-sheet" hidden>
   <div class="sheet" style="padding-top:14px">
     <div id="user-card"></div>
+  </div>
+</div>
+<div id="loc-sheet" hidden>
+  <div id="loc-map">
+    <div class="loc-top">
+      <button id="loc-cancel">Cancel</button>
+      <span style="flex:1"></span>
+      <button id="loc-gps">Use my location</button>
+    </div>
+    <span class="loc-dot"></span>
+    <span class="loc-cross"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s-7-6.1-7-12a7 7 0 0 1 14 0c0 5.9-7 12-7 12z" fill="#FF3D8A" stroke="#fff" stroke-width="1.6"/><circle cx="12" cy="10" r="2.6" fill="#fff"/></svg></span>
+  </div>
+  <div class="loc-bar">
+    <h4>Drop the pin on the party</h4>
+    <p id="loc-hint">Drag the map so the pin sits on the house. This is what guests navigate to.</p>
+    <button class="btn" id="loc-confirm">Use this spot</button>
   </div>
 </div>
 <div id="rxbar"></div>
@@ -771,6 +814,8 @@ let detailFrom = 'find';
 let savedFindScroll = 0;
 
 function show(id){
+  ['chat','detail'].forEach(o => { const el = document.getElementById(o);
+    if(el){ el.style.transform = ''; el.style.transition = ''; el.classList.remove('swiping'); } });
   const overlays = ['chat','detail'];
   if(overlays.includes(id)){
     const base = id === 'chat' ? 'friends' : (detailFrom || 'find');
@@ -1054,6 +1099,65 @@ $('#party-list').addEventListener('click', e => {
   if(c) openDetail(c.dataset.open, 'find');
 });
 
+/* ── checking in: you have to actually be there ── */
+const CHECKIN_FT = 250;
+let checkIns = {}, myCheckIn = {}, ciDist = null, ciWatch = null;
+function feetBetween(a, b){
+  const R = 20903520, p = Math.PI / 180;
+  const dl = (b.lat - a.lat) * p, dg = (b.lon - a.lon) * p;
+  const x = Math.sin(dl / 2) ** 2 + Math.cos(a.lat * p) * Math.cos(b.lat * p) * Math.sin(dg / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
+function checkinOpen(p){
+  const t = new Date(p.starts_at || p.created_at).getTime();
+  return Date.now() >= t - 36e5 && Date.now() < t + 12 * 36e5;   // an hour early through 12 hours after
+}
+async function loadCheckIns(pid){
+  try {
+    const { data } = await db.from('check_ins').select('user_id').eq('party_id', pid);
+    checkIns[pid] = (data || []).map(r => r.user_id);
+    myCheckIn[pid] = checkIns[pid].includes(me.id);
+  } catch(_){ checkIns[pid] = checkIns[pid] || []; }
+}
+/* watch how far away they are, so the button turns on the moment they arrive */
+function watchDistance(pid){
+  stopDistance();
+  const pt = exactPt[pid];
+  if(!pt || !navigator.geolocation) return;
+  ciWatch = navigator.geolocation.watchPosition(pos => {
+    ciDist = feetBetween({ lat: pos.coords.latitude, lon: pos.coords.longitude }, pt);
+    const btn = document.getElementById('ci-btn');
+    if(!btn) return;
+    const close = ciDist <= CHECKIN_FT;
+    btn.disabled = !close;
+    btn.textContent = close ? 'Check in' : 'Get closer to check in';
+    const d = document.getElementById('ci-dist');
+    if(d) d.textContent = close ? 'You’re here' : Math.round(ciDist) + ' ft away';
+    document.querySelector('.ci')?.classList.toggle('far', !close);
+  }, () => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+}
+function stopDistance(){ if(ciWatch !== null){ navigator.geolocation.clearWatch(ciWatch); ciWatch = null; } ciDist = null; }
+function checkinHtml(p){
+  const here = checkIns[p.id] || [];
+  const mineIn = myCheckIn[p.id];
+  const known = here.filter(id => profMap[id]);
+  if(mineIn){
+    return `<div class="ci done">
+      <h4>You’re checked in</h4>
+      <p>You can rate the night and add to the album when it’s over.</p>
+      ${here.length ? `<div class="ci-here">${here.length} here now ${known.length ? faceStack(known, 4) : ''}</div>` : ''}
+    </div>`;
+  }
+  const noPoint = !exactPt[p.id];
+  return `<div class="ci far">
+    <h4>Check in when you get there</h4>
+    <p>${noPoint ? 'Waiting on the exact spot from the host…'
+        : 'Turnout checks your location — you have to be within ' + CHECKIN_FT + ' feet of the party.'}</p>
+    <button class="btn" id="ci-btn" data-checkin="${p.id}" disabled>${noPoint ? 'Location not set' : 'Finding you…'}</button>
+    <div style="text-align:center;margin-top:9px;font-size:12px" class="ci-dist" id="ci-dist">${noPoint ? '' : 'Checking your distance…'}</div>
+    ${here.length ? `<div class="ci-here">${here.length} here now ${known.length ? faceStack(known, 4) : ''}</div>` : ''}
+  </div>`;
+}
 /* ── the recap: albums that die on Friday ── */
 let recapPhotos = {}, myRating = {}, recapBusy = false;
 function recapUntil(ts){
@@ -1089,13 +1193,15 @@ async function loadRecap(pid){
 function recapHtml(p, mine){
   const photos = recapPhotos[p.id] || [];
   const rated = myRating[p.id] || 0;
+  const canRate = mine || myCheckIn[p.id];
   const flame = n => `<button data-rate="${p.id}" data-n="${n}" class="${n <= rated ? 'lit' : ''}" aria-label="${n} flames">${flameSvg(19)}</button>`;
   return `<div class="recap">
     <div class="recap-h"><b>The Recap</b><span>${esc(diesIn(p))}</span></div>
     <div class="recap-sub">Only people who were there can see this.</div>
-    <div style="font-size:13px;color:var(--muted);font-weight:600;margin-bottom:6px">How was it?</div>
+    ${canRate ? `<div style="font-size:13px;color:var(--muted);font-weight:600;margin-bottom:6px">How was it?</div>
     <div class="rate-row">${[1,2,3,4,5].map(flame).join('')}</div>
-    ${rated ? `<div class="rate-done">Rated ${rated}/5 — counts toward ${esc(mine ? 'your' : 'the host’s')} flame</div>` : ''}
+    ${rated ? `<div class="rate-done">Rated ${rated}/5 — counts toward ${esc(mine ? 'your' : 'the host’s')} flame</div>` : ''}`
+    : '<div style="font-size:12.5px;color:var(--faint);margin-bottom:4px">You didn’t check in, so you can’t rate this one — but you can still see the album.</div>'}
     <div class="album">
       <button class="album-add" data-addphoto="${p.id}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg>
@@ -1120,8 +1226,11 @@ async function renderDetail(){
   const p = allParties.find(x => x.id === detailId);
   const body = $('#detail-body');
   if(!p){ show(detailFrom); return; }
-  const showRecap = recapOpen(p) && (myClaims.has(p.id) || p.host_id === me.id);
+  const invited = myClaims.has(p.id) || p.host_id === me.id;
+  const showRecap = recapOpen(p) && invited;
+  const showCheckin = invited && checkinOpen(p);
   if(showRecap && !recapPhotos[p.id]) await loadRecap(p.id);
+  if((showCheckin || showRecap) && !checkIns[p.id]) await loadCheckIns(p.id);
   const claimers = (p.claims || []).map(c => c.user_id);
   const claimed = claimers.length;
   const mine = p.host_id === me.id;
@@ -1182,6 +1291,7 @@ async function renderDetail(){
       </div>
       <div class="panel">
         <h4>${showRecap ? 'Where it was' : 'Location'}</h4>
+        ${mine ? `<button class="btn btn-ghost" data-repin="${p.id}" style="padding:9px;margin-bottom:10px;font-size:13px">${PIN_IC}${exactPt[p.id] ? 'Fix the map pin' : 'Set the map pin'}</button>` : ''}
         ${(going || mine)
           ? (addr ? `<p class="addr" style="margin:0">${esc(addr)}</p>` : '<p class="hint" style="margin:0">Unlocking…</p>')
           : `<p class="hint" style="margin:0">Address unlocks ${priv ? 'when the host accepts you' : 'when you claim a spot'}. For now: <b style="color:var(--text)">${esc(p.town || 'nearby')}</b>.</p>`}
@@ -1196,6 +1306,7 @@ async function renderDetail(){
             <button class="mini-btn den" data-deny="${p.id}" data-uid="${r.user_id}">Deny</button>
           </div>`).join('')}
         </div>` : (mine && priv ? '<div class="panel"><h4>Requests</h4><p class="empty" style="padding:6px">Requests to get in show up here.</p></div>' : '')}
+      ${showCheckin ? checkinHtml(p) : ''}
       ${showRecap ? recapHtml(p, mine) : ''}
       ${showRecap ? '' : mine ? `<button class="btn btn-danger" data-cancel="${p.id}">Cancel this party</button>`
         : going ? `<button class="btn btn-danger" data-unclaim="${p.id}">Give up my spot</button>`
@@ -1205,6 +1316,10 @@ async function renderDetail(){
         : `<button class="btn" data-claim="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Claim my spot'}</button>`}
       ${showRecap ? '' : `<button class="btn btn-ghost" data-shareparty="${p.id}" style="margin-top:10px">Share with friends</button>`}
     </div>`;
+  afterDetailRender(p, showCheckin);
+}
+function afterDetailRender(p, showCheckin){
+  if(showCheckin && !myCheckIn[p.id] && exactPt[p.id]) watchDistance(p.id); else stopDistance();
 }
 async function refreshAfterAction(){
   await loadParties();
@@ -1240,6 +1355,32 @@ $('#detail-body').addEventListener('change', async e => {
 $('#detail-body').addEventListener('click', async e => {
   const g = sel => e.target.closest(sel);
   let el;
+  if(el = g('[data-repin]')){
+    repinId = el.dataset.repin;
+    const cur = exactPt[repinId];
+    hostGPS = cur ? { lat: cur.lat, lon: cur.lon } : null;
+    $('#h-addr').value = unlockedAddr[repinId] || '';
+    $('#h-town').value = (allParties.find(x => x.id === repinId) || {}).town || '';
+    openLocPicker();
+    return;
+  }
+  if(el = g('[data-checkin]')){
+    const pid = el.dataset.checkin, pt = exactPt[pid];
+    if(!pt) return;
+    if(ciDist === null || ciDist > CHECKIN_FT){ toast('You need to be within ' + CHECKIN_FT + ' feet'); return; }
+    el.disabled = true; el.textContent = 'Checking in…';
+    const { error } = await db.from('check_ins').insert({ party_id: pid, user_id: me.id });
+    if(error){
+      el.disabled = false; el.textContent = 'Check in';
+      toast(error.message.includes('check_ins') ? 'One sec — check-in needs migration 18' : error.message);
+      return;
+    }
+    myCheckIn[pid] = true;
+    await loadCheckIns(pid);
+    stopDistance();
+    celebrate('Checked in', 'You’re on the list for tonight’s recap');
+    renderDetail(); return;
+  }
   if(el = g('[data-rate]')){
     const pid = el.dataset.rate, n = +el.dataset.n;
     myRating[pid] = n; haptic(12); renderDetail();
@@ -2056,7 +2197,72 @@ $('#msgs').addEventListener('click', e => {
 });
 
 /* ── host ── */
-let hostGPS = null;   // set when they tap "pin my exact spot"
+let hostGPS = null;   // the confirmed party location {lat, lon}
+let locMap = null, locSeeded = false;
+function openLocPicker(){
+  $('#loc-sheet').hidden = false;
+  const start = hostGPS || (liveLoc ? { lat: liveLoc[0], lon: liveLoc[1] } : null);
+  if(!locMap){
+    locMap = L.map('loc-map', { zoomControl: false, attributionControl: false });
+    const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
+    L.tileLayer(ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(locMap);
+    L.tileLayer(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, opacity: .85 }).addTo(locMap);
+    locMap.setView(start ? [start.lat, start.lon] : [37.9514, -91.7713], start ? 18 : 13);
+  }
+  setTimeout(() => locMap.invalidateSize(), 120);
+  if(start) locMap.setView([start.lat, start.lon], 18);
+  else if(!locSeeded){
+    locSeeded = true;
+    // start from whatever they typed, or their ZIP — they'll drag from there
+    (async () => {
+      const addr = $('#h-addr').value.trim(), town = $('#h-town').value.trim();
+      let g = addr ? await geocode(addr + (town ? ', ' + town : '') + ', USA') : null;
+      if(!g){ const z = await zipPoint(me.zip); if(z) g = z; }
+      if(g && locMap) locMap.setView([g.lat, g.lon], addr ? 17 : 14);
+    })();
+  }
+  navigator.geolocation && navigator.geolocation.getCurrentPosition(pos => {
+    if(!hostGPS && !start && locMap) locMap.setView([pos.coords.latitude, pos.coords.longitude], 18);
+  }, () => {}, { enableHighAccuracy: true, timeout: 12000 });
+}
+$('#loc-cancel').addEventListener('click', () => { $('#loc-sheet').hidden = true; repinId = null; });
+$('#loc-gps').addEventListener('click', () => {
+  if(!navigator.geolocation) return;
+  $('#loc-hint').textContent = 'Finding you…';
+  navigator.geolocation.getCurrentPosition(pos => {
+    locMap.setView([pos.coords.latitude, pos.coords.longitude], 19);
+    $('#loc-hint').textContent = 'That’s you. Nudge the pin if the party is next door.';
+  }, () => { $('#loc-hint').textContent = 'Couldn’t get your location — drag the map instead.'; },
+     { enableHighAccuracy: true, timeout: 15000 });
+});
+let repinId = null;
+$('#loc-confirm').addEventListener('click', async () => {
+  if(!locMap) return;
+  const c = locMap.getCenter();
+  const pt = { lat: c.lat, lon: c.lng };
+  $('#loc-sheet').hidden = true;
+  haptic(12);
+  if(repinId){
+    const pid = repinId; repinId = null;
+    const f = fuzzPoint(pt.lat, pt.lon, pid);
+    const [a, b] = await Promise.all([
+      db.from('party_addresses').update({ lat: pt.lat, lon: pt.lon }).eq('party_id', pid),
+      db.from('parties').update({ approx_lat: f.lat, approx_lon: f.lon }).eq('id', pid)
+    ]);
+    if(a.error || b.error){ toast((a.error || b.error).message); return; }
+    exactPt[pid] = pt;
+    const party = allParties.find(x => x.id === pid);
+    if(party){ party.approx_lat = f.lat; party.approx_lon = f.lon; }
+    hostGPS = null;
+    mapCentered = false;
+    toast('Pin moved — the map is right now');
+    renderDetail();
+    return;
+  }
+  hostGPS = pt;
+  $('#h-gps').innerHTML = PIN_IC + 'Location set — tap to adjust';
+  $('#h-addr-hint').textContent = 'Pin placed by you. Guests get this exact spot once they’re in.';
+});
 let hostPhoto = null; // cover photo url once uploaded
 $('#h-photo').addEventListener('click', () => $('#h-photo-file').click());
 $('#h-photo-file').addEventListener('change', async e => {
@@ -2080,18 +2286,7 @@ $('#h-photo-file').addEventListener('change', async e => {
   }
 });
 const PIN_IC = '<svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.2-6.5-10.2a6.5 6.5 0 0 1 13 0C18.5 15.8 12 21 12 21z"/><circle cx="12" cy="10.6" r="2.3"/></svg>';
-$('#h-gps').addEventListener('click', () => {
-  if(!navigator.geolocation){ toast('This phone can’t share location — the address still works'); return; }
-  $('#h-gps').innerHTML = PIN_IC + 'Getting your spot…';
-  navigator.geolocation.getCurrentPosition(pos => {
-    hostGPS = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-    $('#h-gps').innerHTML = PIN_IC + 'Spot pinned — tap to redo';
-    $('#h-addr-hint').textContent = 'Pinned exactly where you are. Still type the address so guests know where to knock.';
-  }, () => {
-    $('#h-gps').innerHTML = PIN_IC + 'Pin my exact spot';
-    toast('Couldn’t get your location — we’ll use the address instead');
-  }, { enableHighAccuracy: true, timeout: 15000 });
-});
+$('#h-gps').addEventListener('click', openLocPicker);
 /* town auto-fill: use the town written in their home address, else look it up from their ZIP */
 async function fillTown(){
   let t = '';
@@ -2164,7 +2359,7 @@ $('#h-post').addEventListener('click', async () => {
   $('#h-photo').classList.remove('has');
   $('#h-photo').style.backgroundImage = '';
   $('#h-photo').querySelector('.cp-label').textContent = 'Add a photo — it becomes the card';
-  $('#h-gps').innerHTML = PIN_IC + 'Pin my exact spot';
+  $('#h-gps').innerHTML = PIN_IC + 'Set the spot on a map';
   $('#h-addr-hint').textContent = 'Locked in the database — only your guests can ever read it.';
   ['h-name','h-addr','h-town','h-desc','h-when','h-fee'].forEach(id => $('#' + id).value = '');
   hPriv = 'public'; hDrinks = 'byob';
@@ -2397,19 +2592,24 @@ function addSwipeBack(el, onBack){
     e.preventDefault();   // the swipe owns this gesture — no scrolling underneath
     if(dx > 0) el.style.transform = 'translateX(' + dx + 'px)';
   }, { passive: false });
-  el.addEventListener('touchend', () => {
+  const settle = (commit) => {
     el.classList.remove('swiping');
-    if(!dragging) return;
-    dragging = false;
-    el.style.transition = 'transform .18s ease';
-    if(dx > 90){
+    const wasDragging = dragging;
+    dragging = false; decided = false;
+    if(commit && wasDragging && dx > 90){
+      el.style.transition = 'transform .18s ease';
       el.style.transform = 'translateX(110%)';
       setTimeout(() => { el.style.transform = ''; el.style.transition = ''; onBack(); }, 170);
-    } else {
-      el.style.transform = '';
-      setTimeout(() => { el.style.transition = ''; }, 200);
+      return;
     }
-  });
+    // always snap back — an interrupted swipe must never leave the screen stranded
+    el.style.transition = 'transform .18s ease';
+    el.style.transform = '';
+    setTimeout(() => { el.style.transition = ''; }, 200);
+    dx = 0;
+  };
+  el.addEventListener('touchend', () => settle(true));
+  el.addEventListener('touchcancel', () => settle(false));
 }
 function closeOverlay(el, target){
   el.style.transition = 'transform .18s ease';
