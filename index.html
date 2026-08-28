@@ -376,6 +376,11 @@
   .d-cover{height:calc(120px + env(safe-area-inset-top, 0px));position:relative;display:flex;align-items:flex-end;padding:12px 20px}
   .d-back{position:absolute;top:calc(12px + env(safe-area-inset-top, 0px));left:12px;z-index:2;background:rgba(11,10,20,.65)}
   /* share sheet */
+  #report-sheet{position:fixed;inset:0;z-index:58;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.6)}
+  #report-sheet[hidden]{display:none}
+  .rp-opt{width:100%;text-align:left;padding:13px 15px;border-radius:14px;border:1px solid var(--line);
+    background:var(--raised);margin-bottom:8px;font-size:14.5px;font-weight:600;transition:all .2s var(--spring)}
+  .rp-opt.on{border-color:var(--mag);background:rgba(255,61,138,.14)}
   #share-sheet,#nick-sheet,#pfp-sheet,#user-sheet,#bn-sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;
     background:rgba(0,0,0,.55)}
   #share-sheet[hidden],#nick-sheet[hidden],#pfp-sheet[hidden],#user-sheet[hidden],#bn-sheet[hidden]{display:none}
@@ -484,7 +489,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.2</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.3</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -708,6 +713,17 @@
     <h4>Drop the pin on the party</h4>
     <p id="loc-hint">Drag the map so the pin sits on the house. This is what guests navigate to.</p>
     <button class="btn" id="loc-confirm">Use this spot</button>
+  </div>
+</div>
+<div id="report-sheet" hidden>
+  <div class="sheet">
+    <h3 id="rp-title">Report</h3>
+    <p class="sub">This goes straight to Turnout. Nobody is told you reported them.</p>
+    <div id="rp-opts"></div>
+    <input id="rp-note" placeholder="Anything else we should know? (optional)" style="margin:6px 0 14px">
+    <button class="btn" id="rp-send">Send report</button>
+    <button class="danger-link" id="rp-block" hidden>Block this person</button>
+    <button class="btn btn-ghost" id="rp-cancel" style="margin-top:8px">Cancel</button>
   </div>
 </div>
 <div id="rxbar"></div>
@@ -1041,7 +1057,7 @@ async function refreshData(){
     db.from('claims').select('party_id').eq('user_id', me.id),
     db.from('requests').select('party_id, user_id, profiles(display_name, avatar_url)')
   ]);
-  allParties = pRes.data || [];
+  allParties = (pRes.data || []).filter(x => !blocked.has(x.host_id));
   // hide parties that ended more than 6 hours ago
   const cutoff = Date.now() - 6 * 3600 * 1000;
   parties = allParties.filter(p => !p.starts_at || new Date(p.starts_at).getTime() > cutoff);
@@ -1060,6 +1076,7 @@ async function refreshData(){
         .push({ user_id: r.user_id, name: r.profiles?.display_name || 'Someone', av: r.profiles?.avatar_url || null });
     }
   });
+  await loadBlocks();
   await loadFriendRows();
   await loadHostScores();
   try {
@@ -1166,6 +1183,56 @@ $('#party-list').addEventListener('click', e => {
   if(c) openDetail(c.dataset.open, 'find');
 });
 
+/* ── report and block ── */
+let blocked = new Set(), rpTarget = null, rpParty = null, rpReason = null;
+const RP_USER = ['Harassment or bullying', 'Fake profile', 'Inappropriate photos', 'Someone under 18', 'Something else'];
+const RP_PARTY = ['Not a real party', 'Unsafe or dangerous', 'Inappropriate content', 'Something else'];
+async function loadBlocks(){
+  try {
+    const { data } = await db.from('blocks').select('blocked_id').eq('blocker_id', me.id);
+    blocked = new Set((data || []).map(r => r.blocked_id));
+  } catch(_){ blocked = new Set(); }
+}
+function openReport(opts){
+  rpTarget = opts.user || null; rpParty = opts.party || null; rpReason = null;
+  const list = rpTarget ? RP_USER : RP_PARTY;
+  $('#rp-title').textContent = opts.name ? 'Report ' + opts.name : 'Report this party';
+  $('#rp-opts').innerHTML = list.map(r => `<button class="rp-opt" data-rp="${esc(r)}">${esc(r)}</button>`).join('');
+  $('#rp-note').value = '';
+  $('#rp-block').hidden = !rpTarget;
+  $('#rp-block').textContent = 'Block ' + (opts.name || 'this person');
+  $('#report-sheet').hidden = false;
+}
+$('#rp-cancel').addEventListener('click', () => { $('#report-sheet').hidden = true; });
+$('#report-sheet').addEventListener('click', e => { if(e.target.id === 'report-sheet') e.target.hidden = true; });
+$('#rp-opts').addEventListener('click', e => {
+  const b = e.target.closest('[data-rp]'); if(!b) return;
+  rpReason = b.dataset.rp;
+  $$('#rp-opts .rp-opt').forEach(x => x.classList.toggle('on', x === b));
+});
+$('#rp-send').addEventListener('click', async () => {
+  if(!rpReason){ toast('Pick a reason first'); return; }
+  const { error } = await db.from('reports').insert({
+    reporter_id: me.id, target_user: rpTarget, party_id: rpParty,
+    reason: rpReason, note: $('#rp-note').value.trim() || null });
+  if(error){ toast(error.message.includes('reports') ? 'One sec — this needs migration 20' : error.message); return; }
+  $('#report-sheet').hidden = true;
+  haptic(14);
+  toast('Reported — thank you. We look at every one.');
+});
+$('#rp-block').addEventListener('click', async () => {
+  if(!rpTarget) return;
+  if(!confirm('Block them? They won’t be able to message you, and you won’t see each other’s parties.')) return;
+  const { error } = await db.rpc('block_user', { target: rpTarget });
+  if(error){ toast(error.message.includes('block_user') ? 'One sec — this needs migration 20' : error.message); return; }
+  blocked.add(rpTarget);
+  $('#report-sheet').hidden = true;
+  $('#user-sheet').hidden = true;
+  haptic([12, 40, 18]);
+  toast('Blocked');
+  await loadFriendRows();
+  loadParties();
+});
 /* ── the host's door: who's inside, one message to everyone, more room ── */
 let hcRoster = {};
 async function loadRoster(pid){
@@ -1422,6 +1489,7 @@ async function renderDetail(){
         : priv ? `<button class="btn" data-request="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Request a spot'}</button>`
         : `<button class="btn" data-claim="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Claim my spot'}</button>`}
       ${showRecap ? '' : `<button class="btn btn-ghost" data-shareparty="${p.id}" style="margin-top:10px">Share with friends</button>`}
+      ${mine ? '' : `<button class="danger-link" data-rpparty="${p.id}">Report this party</button>`}
     </div>`;
   afterDetailRender(p, showCheckin);
 }
@@ -1462,6 +1530,7 @@ $('#detail-body').addEventListener('change', async e => {
 $('#detail-body').addEventListener('click', async e => {
   const g = sel => e.target.closest(sel);
   let el;
+  if(el = g('[data-rpparty]')){ openReport({ party: el.dataset.rpparty }); return; }
   if(el = g('[data-hcmsg]')){
     const pid = el.dataset.hcmsg;
     const body = prompt('Message everyone who claimed a spot:');
@@ -1933,7 +2002,8 @@ $('#friend-search').addEventListener('input', () => {
   searchTimer = setTimeout(async () => {
     const q = $('#friend-search').value.trim();
     if(q.length < 2){ $('#search-results').innerHTML = '<p class="empty" style="padding:6px">Type a name — everyone on Turnout shows up here.</p>'; return; }
-    const { data } = await db.from('profiles').select('*').ilike('display_name', '%' + q + '%').neq('id', me.id).limit(10);
+    let { data } = await db.from('profiles').select('*').ilike('display_name', '%' + q + '%').neq('id', me.id).limit(10);
+    data = (data || []).filter(x => !blocked.has(x.id));
     const fids = new Set(friends.map(f => f.id));
     const inIds = new Set(pendingIn.map(p => p.id));
     $('#search-results').innerHTML = (data || []).length ? data.map(p => `
@@ -2535,6 +2605,10 @@ async function renderProfile(){
         ? `<p class="flame" style="font-size:16px">${flameSvg(16)} ${hosted.length} parties hosted — rate a couple of recaps and your real score shows up here</p>`
         : `<p style="color:var(--muted);font-size:14px">${hosted.length} of 3 parties hosted. Once guests start rating your recaps, your flame score lands here.</p>`}
     </div>
+    <div class="panel"><h4>Bring people in</h4>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Parties only work when your people are here. One tap sends them the app.</p>
+      <button class="btn" id="invite-btn">Invite friends</button>
+    </div>
     <div class="panel"><h4>Home address</h4>
       <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Auto-fills the host form. Locked in the database — only you can ever read it.</p>
       <input id="home-addr" placeholder="Street address" value="${esc(myHomeAddr)}" autocomplete="street-address" style="margin-bottom:10px">
@@ -2548,7 +2622,8 @@ async function renderProfile(){
       </div></div>
     <div class="panel"><h4>Coming next</h4>
       <p style="font-size:13.5px;color:var(--muted)">VIP perks going live · covers charged in-app · recap albums that disappear Friday · the real map with real distances. One drop at a time.</p></div>
-    <button class="btn btn-ghost" id="signout">Sign out</button>`;
+    <button class="btn btn-ghost" id="signout">Sign out</button>
+    <button class="danger-link" id="delete-acct" style="margin-top:14px">Delete my account</button>`;
 }
 $('#profile-body').addEventListener('click', async e => {
   if(e.target.id === 'notif-enable'){ enablePush(); return; }
@@ -2572,6 +2647,26 @@ $('#profile-body').addEventListener('click', async e => {
     me.is_vip = next;
     toast(next ? 'VIP is on — gold badge unlocked' : 'VIP turned off');
     renderProfile(); return;
+  }
+  if(e.target.id === 'invite-btn'){
+    const text = me.display_name.split(' ')[0] + ' is on Turnout — find the party, claim your spot.';
+    const url = 'https://jointurnout.app';
+    try {
+      if(navigator.share){ await navigator.share({ title: 'Turnout', text, url }); haptic(10); return; }
+      await navigator.clipboard.writeText(text + ' ' + url);
+      toast('Link copied — paste it anywhere');
+      haptic(10);
+    } catch(_){ toast('Share it: jointurnout.app'); }
+    return;
+  }
+  if(e.target.id === 'delete-acct'){
+    if(!confirm('Delete your account?\n\nYour parties, photos, messages and friends are all permanently erased. This cannot be undone.')) return;
+    if(!confirm('Last check — this is permanent. Delete everything?')) return;
+    const { error } = await db.rpc('delete_my_account');
+    if(error){ toast(error.message.includes('delete_my_account') ? 'One sec — this needs migration 20' : error.message); return; }
+    await db.auth.signOut();
+    location.reload();
+    return;
   }
   if(e.target.id === 'signout'){ await db.auth.signOut(); location.reload(); }
 });
@@ -2672,7 +2767,8 @@ async function openUserCard(uid){
       ${mut !== null ? `<span><b>${mut}</b> mutual friend${mut === 1 ? '' : 's'}</span>` : ''}
       ${isFriend ? '<span style="color:#FF9CC4;font-weight:600">Friends ✓</span>' : ''}
     </div>
-    ${action}`;
+    ${action}
+    ${uid === me.id ? '' : `<button class="danger-link" data-ucreport="${uid}" data-ucname="${esc(p.display_name)}">Report or block</button>`}`;
   $('#user-sheet').hidden = false;
 }
 $('#user-sheet').addEventListener('click', async e => {
@@ -2680,6 +2776,7 @@ $('#user-sheet').addEventListener('click', async e => {
   let el;
   if(el = e.target.closest('[data-ucchat]')){ $('#user-sheet').hidden = true; openChat(el.dataset.ucchat); return; }
   if(el = e.target.closest('[data-ucnick]')){ $('#user-sheet').hidden = true; openNickSheet(el.dataset.ucnick); return; }
+  if(el = e.target.closest('[data-ucreport]')){ openReport({ user: el.dataset.ucreport, name: el.dataset.ucname }); return; }
   if(el = e.target.closest('[data-ucremove]')){
     $('#user-sheet').hidden = true;
     nickTarget = el.dataset.ucremove;
