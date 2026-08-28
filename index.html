@@ -24,7 +24,7 @@
     --body:'Outfit',system-ui,sans-serif;
   }
   *{box-sizing:border-box;margin:0}
-  html,body{height:100%}
+  html,body{height:100%;overflow-x:hidden}
   body{background:var(--ink);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.5;
     display:flex;justify-content:center;min-height:100dvh}
   body::before{content:"";position:fixed;inset:0;pointer-events:none;
@@ -34,7 +34,7 @@
     display:flex;flex-direction:column;border-left:1px solid var(--line);border-right:1px solid var(--line)}
   @media (max-width:480px){.shell{border:none}}
   button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
-  input,select,textarea{font:inherit;color:var(--text);width:100%;background:var(--raised);
+  input,select,textarea{font:inherit;color:var(--text);width:100%;min-width:0;max-width:100%;background:var(--raised);
     border:1px solid var(--line);border-radius:12px;padding:12px 14px;outline:none}
   input:focus,select:focus,textarea:focus{border-color:var(--vio);box-shadow:0 0 0 3px rgba(139,92,246,.25)}
   :is(button,a):focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:8px}
@@ -59,8 +59,12 @@
   .seg button.on{background:var(--grad);color:#fff}
   .screen{display:none;flex:1;flex-direction:column;min-height:0;touch-action:pan-y}
   .screen.swiping{transition:none}
+  #chat, #detail{position:absolute;inset:0;z-index:20;background:var(--ink);
+    box-shadow:-24px 0 48px rgba(0,0,0,.45)}
+  #chat.on, #detail.on{animation:slideIn .22s ease}
+  @keyframes slideIn{from{transform:translateX(100%)}to{transform:none}}
   .screen.on{display:flex}
-  .scroll{flex:1;overflow-y:auto;padding:20px 20px 96px;-webkit-overflow-scrolling:touch}
+  .scroll{flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:20px 20px 96px;-webkit-overflow-scrolling:touch}
   .top{display:flex;align-items:center;justify-content:space-between;padding:calc(16px + env(safe-area-inset-top, 0px)) 20px 12px;
     border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,10,20,.85);backdrop-filter:blur(10px);z-index:5}
   .top .wordmark{font-size:20px}
@@ -102,6 +106,7 @@
   .panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
   .panel h4{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 10px}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row2 > .field{min-width:0}
   .f-row{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
   .f-row:first-of-type{border-top:none;padding-top:0}
   .f-av{border-radius:13px;display:flex;align-items:center;justify-content:center;
@@ -168,7 +173,7 @@
   .toast.show{opacity:1;transform:translate(-50%,0)}
   #config-warn{background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.4);color:#FFB4B4;
     border-radius:12px;padding:14px;font-size:14px;margin-bottom:16px}
-  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
@@ -183,7 +188,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.2</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.3</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -435,7 +440,13 @@ let detailFrom = 'find';
 let savedFindScroll = 0;
 
 function show(id){
-  $$('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  const overlays = ['chat','detail'];
+  if(overlays.includes(id)){
+    const base = id === 'chat' ? 'friends' : (detailFrom || 'find');
+    $$('.screen').forEach(s => s.classList.toggle('on', s.id === base || s.id === id));
+  } else {
+    $$('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  }
   $('#tabbar').hidden = ['auth','chat','detail'].includes(id);
   const tabFor = id === 'chat' ? 'friends' : id === 'detail' ? detailFrom : id;
   $$('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tabFor));
@@ -744,7 +755,7 @@ async function refreshAfterAction(){
 $('#detail-body').addEventListener('click', async e => {
   const g = sel => e.target.closest(sel);
   let el;
-  if(g('[data-close]')){ show(detailFrom); return; }
+  if(g('[data-close]')){ closeOverlay($('#detail'), detailFrom || 'find'); return; }
   if(el = g('[data-claim]')){
     const { error } = await db.from('claims').insert({ party_id: el.dataset.claim, user_id: me.id });
     toast(error ? (error.message.includes('party_full') ? 'Beat you to it — party just filled' : error.message)
@@ -1024,7 +1035,7 @@ async function sendMsg(){
 }
 $('#msg-send').addEventListener('click', sendMsg);
 $('#msg-in').addEventListener('keydown', e => { if(e.key === 'Enter') sendMsg(); });
-$('#chat-back').addEventListener('click', () => show('friends'));
+$('#chat-back').addEventListener('click', () => closeOverlay($('#chat'), 'friends'));
 $('#msgs').addEventListener('click', e => {
   const c = e.target.closest('[data-msgparty]');
   if(c) show('find');
@@ -1183,6 +1194,11 @@ function addSwipeBack(el, onBack){
       setTimeout(() => { el.style.transition = ''; }, 200);
     }
   });
+}
+function closeOverlay(el, target){
+  el.style.transition = 'transform .18s ease';
+  el.style.transform = 'translateX(100%)';
+  setTimeout(() => { el.style.transform = ''; el.style.transition = ''; show(target); }, 170);
 }
 addSwipeBack($('#chat'), () => show('friends'));
 addSwipeBack($('#detail'), () => show(detailFrom || 'find'));
