@@ -209,7 +209,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.5</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.6</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -972,11 +972,8 @@ async function loadFriends(){
       </div>
       <div class="fl-side">
         ${p ? `<span class="fl-time">${ago(p.m.created_at)}</span>` : ''}
-        ${un ? `<span class="unread-pill">${un}</span>`
-             : '<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>'}
+        ${un ? `<span class="unread-pill">${un}</span>` : ''}
       </div>
-      <span class="fx-btn" data-unfriend="${f.id}" role="button" aria-label="Remove friend">
-        <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
     </button>`;
   }).join('') : `<div class="fl-empty">
       <div class="big">No friends yet</div>
