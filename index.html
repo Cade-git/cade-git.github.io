@@ -434,7 +434,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.9</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.0</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1162,13 +1162,13 @@ async function renderDetail(){
       </div>
       ${p.description ? `<div class="panel"><h4>The rundown</h4><p style="font-size:14.5px">${esc(p.description)}</p></div>` : ''}
       <div class="panel">
-        <h4>Capacity</h4>
-        <div class="capline" style="margin-top:0"><b>${claimed} / ${p.max_people} going</b>
-          <b class="spots-${cls}">${capLabel(claimed, p.max_people)}</b></div>
+        <h4>${showRecap ? 'Turnout' : 'Capacity'}</h4>
+        <div class="capline" style="margin-top:0"><b>${claimed} / ${p.max_people} ${showRecap ? 'showed up' : 'going'}</b>
+          ${showRecap ? '' : `<b class="spots-${cls}">${capLabel(claimed, p.max_people)}</b>`}</div>
         <div class="capbar" style="margin-bottom:0"><i class="fill-${cls}" style="width:${pct}%"></i></div>
       </div>
       <div class="panel">
-        <h4>Who&rsquo;s going (${claimed})</h4>
+        <h4>${showRecap ? 'Who was there' : 'Who&rsquo;s going'} (${claimed})</h4>
         ${(going || mine)
           ? (guests.length
               ? guests.map(gp => `<div class="f-row">
@@ -1176,12 +1176,12 @@ async function renderDetail(){
                   <span style="flex:1;font-weight:600">${esc(nickMap[gp.id] || gp.display_name)}${gp.id === me.id ? ' (you)' : ''}</span></button>
                   ${friendIds.has(gp.id) ? '<span style="font-size:12px;color:#FF9CC4;font-weight:600">friend</span>' : ''}
                 </div>`).join('')
-              : '<p class="empty" style="padding:6px">Nobody yet — first claim gets bragging rights.</p>')
+              : `<p class="empty" style="padding:6px">${showRecap ? 'Nobody claimed a spot.' : 'Nobody yet — first claim gets bragging rights.'}</p>`)
           : `${fNames.length ? `<div class="friendsline" style="margin:0 0 8px">${esc(friendLine(fNames))}</div>` : ''}
              <p class="hint" style="margin:0">${priv ? 'Get accepted and the whole guest list opens up.' : 'Claim a spot to see everyone going.'}</p>`}
       </div>
       <div class="panel">
-        <h4>Location</h4>
+        <h4>${showRecap ? 'Where it was' : 'Location'}</h4>
         ${(going || mine)
           ? (addr ? `<p class="addr" style="margin:0">${esc(addr)}</p>` : '<p class="hint" style="margin:0">Unlocking…</p>')
           : `<p class="hint" style="margin:0">Address unlocks ${priv ? 'when the host accepts you' : 'when you claim a spot'}. For now: <b style="color:var(--text)">${esc(p.town || 'nearby')}</b>.</p>`}
