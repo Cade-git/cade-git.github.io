@@ -159,13 +159,18 @@
   .bub.imgb.up{position:relative;opacity:.55}
   .bub.imgb.up::after{content:'Sending…';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.8);line-height:1}
-  .icon-btn{flex:0 0 auto;width:44px;border-radius:14px;border:1px solid var(--line);background:var(--raised);
-    display:flex;align-items:center;justify-content:center;font-size:18px}
-  .icon-btn:active{transform:scale(.94)}
+  .icon-btn{flex:0 0 auto;width:46px;border-radius:14px;border:1px solid var(--line);background:var(--raised);
+    display:flex;align-items:center;justify-content:center;color:var(--muted);transition:color .15s,border-color .15s}
+  .btn-ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;
+    stroke-linejoin:round;vertical-align:-3px;margin-right:7px}
+  .icon-btn svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .icon-btn:active{transform:scale(.94);color:#fff;border-color:rgba(255,255,255,.28)}
+  .prev-ic{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+    vertical-align:-2px;margin-right:3px}
   #lightbox{position:fixed;inset:0;z-index:60;background:rgba(6,5,12,.94);display:flex;align-items:center;justify-content:center;padding:20px}
   #lightbox[hidden]{display:none}
   #lightbox img{max-width:100%;max-height:86dvh;border-radius:14px}
-  #lightbox .lb-close{position:absolute;top:calc(14px + env(safe-area-inset-top, 0px));right:16px;width:38px;height:38px;
+  #lightbox .lb-close{display:flex;align-items:center;justify-content:center;position:absolute;top:calc(14px + env(safe-area-inset-top, 0px));right:16px;width:38px;height:38px;
     border-radius:12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:17px}
   .composer{display:flex;gap:8px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));
     border-top:1px solid var(--line);background:rgba(16,14,26,.92)}
@@ -224,6 +229,9 @@
   @keyframes sonar{0%{transform:scale(1);opacity:.85}70%{opacity:0}100%{transform:scale(2.1);opacity:0}}
   .pin-cnt{position:absolute;bottom:-5px;right:-9px;background:#0E0C1A;border:2px solid var(--ring);color:#fff;
     border-radius:99px;font-size:10px;font-weight:700;line-height:1;padding:3px 5px;font-family:'Outfit',sans-serif;white-space:nowrap}
+  .live-dot{display:inline-block;width:7px;height:7px;border-radius:99px;background:#FF5C5C;margin-right:5px;
+    vertical-align:1px;box-shadow:0 0 7px #FF5C5C;animation:blip 1.6s ease-in-out infinite}
+  @keyframes blip{0%,100%{opacity:1}50%{opacity:.3}}
   .pin-name{margin-top:6px;font-family:'Outfit',sans-serif;font-size:11.5px;font-weight:700;color:#fff;
     background:rgba(11,10,20,.88);padding:3px 9px;border-radius:99px;border:1px solid rgba(255,255,255,.13);
     white-space:nowrap;max-width:134px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 2px 10px rgba(0,0,0,.6)}
@@ -232,8 +240,10 @@
   /* floating controls */
   .map-fab{position:absolute;right:12px;z-index:5;width:42px;height:42px;border-radius:14px;display:flex;align-items:center;
     justify-content:center;background:rgba(14,12,26,.82);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14);
-    color:#fff;font-size:16px;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+    color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+  .map-fab svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
   .map-fab:active{transform:scale(.94)}
+  .map-fab.on{background:var(--grad);border-color:transparent}
   #map-layer{top:calc(12px + env(safe-area-inset-top, 0px))}
   #map-locate{top:calc(62px + env(safe-area-inset-top, 0px))}
   .map-hud{position:absolute;left:12px;top:calc(12px + env(safe-area-inset-top, 0px));z-index:5;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
@@ -277,7 +287,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.2</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.3</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -322,8 +332,8 @@
         <b id="map-home">Turnout map</b>
         <small id="map-note">tap a face to see the party</small>
       </div>
-      <button class="map-fab" id="map-layer" aria-label="Satellite view" title="Satellite">🛰️</button>
-      <button class="map-fab" id="map-locate" aria-label="Center on me" title="Find me">◎</button>
+      <button class="map-fab" id="map-layer" aria-label="Toggle satellite view" title="Satellite"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2 21 8l-9 4.8L3 8z"/><path d="M3.2 12.4 12 17.1l8.8-4.7"/><path d="M3.2 16.3 12 21l8.8-4.7"/></svg></button>
+      <button class="map-fab" id="map-locate" aria-label="Center on me" title="Find me"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.6"/><path d="M12 2.2v3M12 18.8v3M2.2 12h3M18.8 12h3"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg></button>
       <div id="map-sheet">
         <div class="sheet-grab"></div>
         <div id="map-sheet-body"></div>
@@ -363,7 +373,7 @@
     </div>
     <div class="msgs" id="msgs"></div>
     <div class="composer">
-      <button class="icon-btn" id="msg-photo" aria-label="Send a photo">📷</button>
+      <button class="icon-btn" id="msg-photo" aria-label="Send a photo" title="Send a photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg></button>
       <input id="msg-file" type="file" accept="image/*" hidden>
       <input id="msg-in" placeholder="Message&hellip;" autocomplete="off">
       <button class="btn" id="msg-send" style="width:auto;padding:12px 18px">Send</button>
@@ -380,7 +390,7 @@
       <div class="field"><label for="h-name">Party name</label><input id="h-name" placeholder="e.g. End of Summer Blowout"></div>
       <div class="field"><label for="h-when">When</label><input id="h-when" type="datetime-local"></div>
       <div class="field"><label for="h-addr">Address</label><input id="h-addr" placeholder="Street address">
-        <button class="btn btn-ghost" id="h-gps" style="padding:9px;margin-top:8px;font-size:13.5px">📍 Pin my exact spot</button>
+        <button class="btn btn-ghost" id="h-gps" style="padding:9px;margin-top:8px;font-size:13.5px"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.2-6.5-10.2a6.5 6.5 0 0 1 13 0C18.5 15.8 12 21 12 21z"/><circle cx="12" cy="10.6" r="2.3"/></svg>Pin my exact spot</button>
         <p class="hint" id="h-addr-hint">Locked in the database — only your guests can ever read it.</p></div>
       <div class="row2">
         <div class="field"><label for="h-town">Town</label><input id="h-town" placeholder="Town"></div>
@@ -481,7 +491,7 @@
     <div id="user-card"></div>
   </div>
 </div>
-<div id="lightbox" hidden><button class="lb-close" id="lb-close" aria-label="Close">✕</button><img id="lb-img" alt=""></div>
+<div id="lightbox" hidden><button class="lb-close" id="lb-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><img id="lb-img" alt=""></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1072,7 +1082,7 @@ function pinIcon(p, host, claimed){
     html: `<div class="pin-o" style="--ring:${ring}">
       <div class="pin-av ${live ? 'live' : ''} ${mine ? 'mine' : ''}" style="${bg}">${face}
         <span class="pin-cnt">${claimed}/${p.max_people}</span></div>
-      <span class="pin-name">${live ? '🔴 ' : ''}${esc(label)}</span>
+      <span class="pin-name">${live ? '<i class="live-dot"></i>' : ''}${esc(label)}</span>
     </div>` });
 }
 function youIcon(){
@@ -1205,7 +1215,7 @@ $('#map-layer').addEventListener('click', () => {
   satOn = !satOn;
   if(satOn){ lmap.removeLayer(tileStreet); tileSat.addTo(lmap); }
   else { lmap.removeLayer(tileSat); tileStreet.addTo(lmap); }
-  $('#map-layer').textContent = satOn ? '🗺️' : '🛰️';
+  $('#map-layer').classList.toggle('on', satOn);
 });
 
 /* ── the slide-up party sheet ── */
@@ -1224,7 +1234,7 @@ function openMapSheet(pid){
     <div class="ms-head">
       ${avatar({ id: p.host_id, display_name: host.display_name, avatar_url: host.avatar_url }, 46, 16)}
       <div style="flex:1;min-width:0">
-        <h3>${live ? '🔴 ' : ''}${esc(p.name)}</h3>
+        <h3>${live ? '<i class="live-dot"></i>' : ''}${esc(p.name)}</h3>
         <div class="ms-sub">${esc(whenLabel(p.starts_at))} · hosted by ${esc(mine ? 'you' : (nickMap[p.host_id] || host.display_name || 'someone'))}</div>
       </div>
       ${p.privacy === 'private' ? '<span class="tag" style="color:var(--amber);border:1px solid rgba(255,180,84,.45);background:rgba(255,180,84,.1)">Private</span>' : ''}
@@ -1263,7 +1273,7 @@ async function loadFriends(){
   // last message per friend -> preview, time, unread count
   const prev = {};
   if(friends.length){
-    const { data: msgs } = await db.from('messages').select('sender_id, recipient_id, text, party_id, created_at, read_at')
+    const { data: msgs } = await db.from('messages').select('sender_id, recipient_id, text, party_id, image_url, created_at, read_at')
       .or(`sender_id.eq.${me.id},recipient_id.eq.${me.id}`)
       .order('created_at', { ascending: false }).limit(200);
     (msgs || []).forEach(m => {
@@ -1288,7 +1298,8 @@ async function loadFriends(){
     const p = prev[f.id];
     const un = p ? p.unread : 0;
     const line = !p ? 'Say hey — start the chat'
-      : (p.m.sender_id === me.id ? 'You: ' : '') + (p.m.party_id ? 'Shared a party 📍' : esc(p.m.text || ''));
+      : (p.m.sender_id === me.id ? 'You: ' : '')
+        + (p.m.image_url ? CAM_GLYPH + 'Photo' : p.m.party_id ? 'Shared a party' : esc(p.m.text || ''));
     return `<button class="fl-row" data-chat="${f.id}">
       <span data-viewuser="${f.id}" style="display:flex">${avatar(f, 50, 16)}</span>
       <div class="fl-main">
@@ -1359,6 +1370,7 @@ $('#friends').addEventListener('click', async e => {
 });
 
 /* ── chat ── */
+const CAM_GLYPH = '<svg class="prev-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg>';
 function msgHtml(m){
   const side = m.sender_id === me.id ? 'me' : 'them';
   if(m.image_url){
@@ -1456,7 +1468,7 @@ $('#msg-file').addEventListener('change', async e => {
     if(error) throw error;
     const url = db.storage.from('avatars').getPublicUrl(path).data.publicUrl;
     const { error: e2 } = await db.from('messages').insert({
-      sender_id: me.id, recipient_id: chatId, text: '📷 Photo', image_url: url });
+      sender_id: me.id, recipient_id: chatId, text: 'Photo', image_url: url });
     if(e2) throw e2;
     renderChat();
   } catch(err){
@@ -1532,15 +1544,16 @@ $('#msgs').addEventListener('click', e => {
 
 /* ── host ── */
 let hostGPS = null;   // set when they tap "pin my exact spot"
+const PIN_IC = '<svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.2-6.5-10.2a6.5 6.5 0 0 1 13 0C18.5 15.8 12 21 12 21z"/><circle cx="12" cy="10.6" r="2.3"/></svg>';
 $('#h-gps').addEventListener('click', () => {
   if(!navigator.geolocation){ toast('This phone can’t share location — the address still works'); return; }
-  $('#h-gps').textContent = 'Getting your spot…';
+  $('#h-gps').innerHTML = PIN_IC + 'Getting your spot…';
   navigator.geolocation.getCurrentPosition(pos => {
     hostGPS = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-    $('#h-gps').textContent = '📍 Spot pinned — tap to redo';
+    $('#h-gps').innerHTML = PIN_IC + 'Spot pinned — tap to redo';
     $('#h-addr-hint').textContent = 'Pinned exactly where you are. Still type the address so guests know where to knock.';
   }, () => {
-    $('#h-gps').textContent = '📍 Pin my exact spot';
+    $('#h-gps').innerHTML = PIN_IC + 'Pin my exact spot';
     toast('Couldn’t get your location — we’ll use the address instead');
   }, { enableHighAccuracy: true, timeout: 15000 });
 });
@@ -1612,7 +1625,7 @@ $('#h-post').addEventListener('click', async () => {
   toast(e2 ? 'Party posted, but the address failed to save'
            : (hPriv === 'private' ? 'Posted — you approve who gets in' : 'Party posted — it’s live for everyone'));
   hostGPS = null;
-  $('#h-gps').textContent = '📍 Pin my exact spot';
+  $('#h-gps').innerHTML = PIN_IC + 'Pin my exact spot';
   $('#h-addr-hint').textContent = 'Locked in the database — only your guests can ever read it.';
   ['h-name','h-addr','h-town','h-desc','h-when','h-fee'].forEach(id => $('#' + id).value = '');
   hPriv = 'public'; hDrinks = 'byob';
