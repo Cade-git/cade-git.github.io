@@ -191,15 +191,16 @@
   .chip.on{background:rgba(255,61,138,.15);border-color:var(--mag);color:#fff}
   /* map */
   #map .map-wrap{flex:1;position:relative;overflow:hidden;background:#0E0C1A}
-  #realmap{position:absolute;inset:0;z-index:0;background:#0E0C1A}
+  #realmap{position:absolute;inset:0;z-index:0;background:#0E0C1A;touch-action:none}
   #realmap .leaflet-control-attribution{background:rgba(11,10,20,.6);color:#66607E;font-size:9px}
   #realmap .leaflet-control-attribution a{color:#9C95B8}
   .lpin-wrap{background:none;border:none}
-  .lpin{display:flex;flex-direction:column;align-items:center;gap:3px;width:120px}
-  .lpin-dot{width:14px;height:14px;border-radius:99px;border:2.5px solid #0E0C1A;display:block}
-  .lpin-dot.you{background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.22)}
-  .lpin-name{font-family:'Outfit',sans-serif;font-size:10.5px;font-weight:700;color:#fff;background:rgba(11,10,20,.78);
-    padding:2px 7px;border-radius:99px;border:1px solid var(--line);white-space:nowrap;max-width:118px;overflow:hidden;text-overflow:ellipsis}
+  .lpin{display:flex;flex-direction:column;align-items:center;gap:4px;width:130px}
+  .lpin-dot{width:17px;height:17px;border-radius:99px;border:3px solid #0E0C1A;display:block}
+  .lpin-dot.you{background:#fff;box-shadow:0 0 0 5px rgba(255,255,255,.25),0 2px 10px rgba(255,255,255,.5)}
+  .lpin-name{font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:#fff;background:rgba(11,10,20,.85);
+    padding:3px 9px;border-radius:99px;border:1px solid rgba(255,255,255,.14);white-space:nowrap;max-width:128px;overflow:hidden;text-overflow:ellipsis;
+    box-shadow:0 2px 8px rgba(0,0,0,.5)}
   .map-legend,.map-note,.map-mini,.map-layerbtn{z-index:5}
   .map-layerbtn{position:absolute;right:12px;top:calc(10px + env(safe-area-inset-top, 0px));font-size:11px;font-weight:600;
     color:var(--muted);background:rgba(11,10,20,.7);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
@@ -239,7 +240,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v5.2</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v5.3</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -941,8 +942,8 @@ $('#share-send').addEventListener('click', async () => {
 /* ── map ── */
 const CAPHEX = {open:'#B4F04B', low:'#FFB454', full:'#FF5C5C'};
 /* the real map: Leaflet + free dark tiles (CARTO) / satellite (Esri), geocoding via Nominatim */
-let lmap = null, tileStreet = null, tileSat = null, satOn = false, markerLayer = null, youMarker = null, mapRun = 0;
-const GEOCACHE = (() => { try { return JSON.parse(localStorage.getItem('turnout-geo') || '{}'); } catch(_){ return {}; } })();
+let lmap = null, tileStreet = null, tileSat = null, satOn = false, markerLayer = null, youMarker = null, mapRun = 0, mapFitted = false;
+const GEOCACHE = (() => { try { return JSON.parse(localStorage.getItem('turnout-geo2') || '{}'); } catch(_){ return {}; } })();
 let geoChain = Promise.resolve();
 function geocode(q){
   if(!q) return Promise.resolve(null);
@@ -952,19 +953,28 @@ function geocode(q){
     if(k in GEOCACHE) return GEOCACHE[k];
     try {
       const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=' + encodeURIComponent(q));
+      if(!r.ok) return null; // rate-limited or down: don't cache, retry next render
       const j = await r.json();
       GEOCACHE[k] = (j && j[0]) ? { lat: +j[0].lat, lon: +j[0].lon } : null;
-      try { localStorage.setItem('turnout-geo', JSON.stringify(GEOCACHE)); } catch(_){}
+      try { localStorage.setItem('turnout-geo2', JSON.stringify(GEOCACHE)); } catch(_){}
       await new Promise(res => setTimeout(res, 1100)); // nominatim rule: 1 lookup/sec
     } catch(_){ return null; } // network hiccup: don't cache, try again next render
     return GEOCACHE[k];
   });
   return geoChain;
 }
+async function geoFirst(tries, run){
+  for(const q of tries){
+    const loc = await geocode(q);
+    if(run !== mapRun) return 'stale';
+    if(loc) return loc;
+  }
+  return null;
+}
 function jitter(id, salt){ return (hashN(id + salt, 1000) / 1000 - 0.5) * 0.012; } // ~±0.4mi so locked pins never sit on the house
 function pinIcon(col, label, mine){
-  return L.divIcon({ className: 'lpin-wrap', iconSize: [120, 44], iconAnchor: [60, 12],
-    html: `<div class="lpin"><span class="lpin-dot" style="background:${col};box-shadow:0 0 10px ${col}${mine ? ',0 0 0 3px rgba(255,255,255,.4)' : ''}"></span><span class="lpin-name">${esc(label)}</span></div>` });
+  return L.divIcon({ className: 'lpin-wrap', iconSize: [130, 48], iconAnchor: [65, 14],
+    html: `<div class="lpin"><span class="lpin-dot" style="background:${col};box-shadow:0 2px 12px ${col}${mine ? ',0 0 0 3px rgba(255,255,255,.45)' : ''}"></span><span class="lpin-name">${esc(label)}</span></div>` });
 }
 async function renderMap(){
   $('#map-home').innerHTML = 'near <b>' + esc(me.zip || 'you') + '</b>';
@@ -977,26 +987,33 @@ async function renderMap(){
     markerLayer = L.layerGroup().addTo(lmap);
     lmap.setView([37.9514, -91.7713], 12);
     lmap.on('click', () => { $('#map-mini').hidden = true; });
+    window.addEventListener('resize', () => lmap && lmap.invalidateSize());
   }
-  setTimeout(() => lmap.invalidateSize(), 80);
+  // the container just became visible — Leaflet must re-measure or tiles render broken
+  [100, 400, 900].forEach(t => setTimeout(() => lmap.invalidateSize(), t));
   const run = ++mapRun;
   const snapshot = parties.slice();
-  const home = await geocode(me.zip ? me.zip + ', USA' : null);
-  if(run !== mapRun) return;
+  const pts = [];
+  if(snapshot.length) $('#map-note').textContent = 'placing parties…';
+  const home = await geoFirst(me.zip ? [me.zip + ', USA'] : [], run);
+  if(home === 'stale') return;
   if(home){
+    pts.push([home.lat, home.lon]);
     if(!youMarker){
-      youMarker = L.marker([home.lat, home.lon], { interactive: false, icon: L.divIcon({ className: 'lpin-wrap', iconSize: [60, 40], iconAnchor: [30, 10],
+      youMarker = L.marker([home.lat, home.lon], { interactive: false, zIndexOffset: 500, icon: L.divIcon({ className: 'lpin-wrap', iconSize: [60, 44], iconAnchor: [30, 12],
         html: '<div class="lpin"><span class="lpin-dot you"></span><span class="lpin-name">You</span></div>' }) }).addTo(lmap);
-      lmap.setView([home.lat, home.lon], 12);
+      if(!mapFitted) lmap.setView([home.lat, home.lon], 12);
     } else youMarker.setLatLng([home.lat, home.lon]);
   }
   markerLayer.clearLayers();
   for(const p of snapshot){
     const exact = !!unlockedAddr[p.id];
-    const q = exact ? unlockedAddr[p.id] + ', ' + (p.town || '')
-                    : (p.town || (p.profiles?.zip ? p.profiles.zip + ', USA' : null));
-    const loc = await geocode(q);
-    if(run !== mapRun) return;
+    const tries = [];
+    if(exact) tries.push(unlockedAddr[p.id] + (p.town ? ', ' + p.town : '') + ', USA');
+    if(p.profiles?.zip) tries.push(p.profiles.zip + ', USA'); // host ZIP: always the right area
+    if(p.town) tries.push(p.town + ', USA');
+    const loc = await geoFirst(tries, run);
+    if(loc === 'stale') return;
     if(!loc) continue;
     const lat = exact ? loc.lat : loc.lat + jitter(p.id, 'a');
     const lon = exact ? loc.lon : loc.lon + jitter(p.id, 'b');
@@ -1006,6 +1023,13 @@ async function renderMap(){
     const m = L.marker([lat, lon], { icon: pinIcon(col, label, p.host_id === me.id) });
     m.on('click', () => showMapMini(p.id));
     markerLayer.addLayer(m);
+    pts.push([lat, lon]);
+  }
+  if(run !== mapRun) return;
+  $('#map-note').textContent = 'pins are approximate — exact once you’re in';
+  if(!mapFitted && pts.length){
+    mapFitted = true;
+    lmap.fitBounds(L.latLngBounds(pts).pad(0.3), { maxZoom: 14 });
   }
 }
 $('#map-layer').addEventListener('click', () => {
