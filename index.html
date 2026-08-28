@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Turnout</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0B0A14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Turnout">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Outfit:wght@400;500;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --ink:#0B0A14; --surface:#16141F; --raised:#1E1B2B; --line:#2A2639;
+    --text:#F4F1FC; --muted:#9C95B8; --faint:#6E6788;
+    --mag:#FF3D8A; --vio:#8B5CF6; --cyan:#35D6ED; --lime:#B4F04B;
+    --amber:#FFB454; --red:#FF5C5C;
+    --grad:linear-gradient(100deg,var(--mag),var(--vio));
+    --disp:'Unbounded',system-ui,sans-serif;
+    --body:'Outfit',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:var(--ink);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.5;
+    display:flex;justify-content:center;min-height:100dvh}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(520px 420px at 18% 8%, rgba(255,61,138,.14), transparent 65%),
+               radial-gradient(600px 480px at 85% 20%, rgba(139,92,246,.16), transparent 65%)}
+  .shell{position:relative;width:min(440px,100%);min-height:100dvh;background:rgba(11,10,20,.6);
+    display:flex;flex-direction:column;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+  @media (max-width:480px){.shell{border:none}}
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  input,select,textarea{font:inherit;color:var(--text);width:100%;background:var(--raised);
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;outline:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--vio);box-shadow:0 0 0 3px rgba(139,92,246,.25)}
+  :is(button,a):focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:8px}
+  label{display:block;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+  .field{margin-bottom:14px}
+  .hint{font-size:13px;color:var(--faint);margin-top:6px}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--cyan)}
+  h1,h2{font-family:var(--disp);line-height:1.12}
+  .wordmark{font-family:var(--disp);font-weight:800;font-size:26px;
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .wt-badge{display:inline-block;margin-left:8px;transform:translateY(-6px);font-size:10px;font-weight:700;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--faint);border:1px solid var(--line);border-radius:999px;padding:3px 8px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px 18px;
+    border-radius:14px;font-weight:700;font-size:16px;background:var(--grad);color:#fff;
+    box-shadow:0 6px 24px rgba(255,61,138,.35);transition:transform .12s ease}
+  .btn:active{transform:scale(.98)}
+  .btn[disabled]{filter:grayscale(.7);opacity:.5;box-shadow:none;cursor:not-allowed}
+  .btn-ghost{background:var(--raised);color:var(--text);box-shadow:none;border:1px solid var(--line)}
+  .btn-danger{background:var(--raised);color:var(--red);box-shadow:none;border:1px solid var(--line)}
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:5px;background:var(--raised);border:1px solid var(--line);border-radius:14px;padding:5px}
+  .seg button{padding:10px;border-radius:10px;font-weight:600;color:var(--muted)}
+  .seg button.on{background:var(--grad);color:#fff}
+  .screen{display:none;flex:1;flex-direction:column;min-height:0}
+  .screen.on{display:flex}
+  .scroll{flex:1;overflow-y:auto;padding:20px 20px 96px;-webkit-overflow-scrolling:touch}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,10,20,.85);backdrop-filter:blur(10px);z-index:5}
+  .top .wordmark{font-size:20px}
+  .loc-pill{font-size:13px;color:var(--muted);background:var(--raised);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+  .loc-pill b{color:var(--cyan);font-weight:600}
+  .tabbar{position:absolute;bottom:0;left:0;right:0;display:flex;z-index:6;background:rgba(16,14,26,.92);
+    backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:8px 10px calc(10px + env(safe-area-inset-bottom))}
+  .tabbar[hidden]{display:none}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 0;border-radius:12px;
+    color:var(--faint);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;position:relative}
+  .tab svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .tab.on{color:#fff}
+  .tab .dot{position:absolute;top:3px;right:calc(50% - 17px);width:8px;height:8px;border-radius:99px;
+    background:var(--mag);box-shadow:0 0 8px var(--mag)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;
+    margin-bottom:14px;width:100%;text-align:left}
+  .cover{height:70px;position:relative;display:flex;align-items:flex-end;padding:10px 16px}
+  .tag{font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:rgba(11,10,20,.55);color:#fff}
+  .cover .tag{position:absolute;top:10px;right:10px}
+  .tag.yours{background:rgba(180,240,75,.9);color:#12210A}
+  .card-body{padding:14px 16px 16px}
+  .card h3{font-family:var(--disp);font-weight:700;font-size:16px;margin:0 0 5px;color:#fff}
+  .meta{display:flex;flex-wrap:wrap;gap:5px 14px;font-size:13px;color:var(--muted)}
+  .meta .drive{color:var(--cyan);font-weight:600}
+  .flame{display:inline-flex;align-items:center;gap:3px;color:var(--amber);font-weight:700}
+  .friendsline{color:#FF9CC4;font-weight:600;font-size:13px;margin-top:5px}
+  .capline{display:flex;justify-content:space-between;font-size:12.5px;margin:8px 0 6px}
+  .capline b{font-variant-numeric:tabular-nums;font-weight:600}
+  .spots-open{color:var(--lime)} .spots-low{color:var(--amber)} .spots-full{color:var(--red)}
+  .capbar{height:6px;border-radius:99px;background:var(--raised);overflow:hidden;margin-bottom:12px}
+  .capbar i{display:block;height:100%;border-radius:99px}
+  .fill-open{background:linear-gradient(90deg,var(--cyan),var(--lime))}
+  .fill-low{background:linear-gradient(90deg,var(--amber),var(--mag))}
+  .fill-full{background:var(--red)}
+  .addr{font-weight:600;color:var(--lime);font-size:14px;margin-bottom:10px}
+  .desc{font-size:14px;color:var(--muted);margin-bottom:10px}
+  .waiting{display:flex;align-items:center;gap:8px;justify-content:center;font-weight:700;color:var(--amber);
+    background:rgba(255,180,84,.08);border:1px solid rgba(255,180,84,.35);border-radius:14px;padding:12px;margin-bottom:10px}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+  .panel h4{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 10px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .f-row{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+  .f-row:first-of-type{border-top:none;padding-top:0}
+  .f-av{border-radius:13px;display:flex;align-items:center;justify-content:center;
+    font-family:var(--disp);font-weight:700;color:#fff;flex:0 0 auto}
+  .avimg{border-radius:13px;object-fit:cover;flex:0 0 auto}
+  .mini-btn{padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700}
+  .acc{background:rgba(180,240,75,.14);color:var(--lime);border:1px solid rgba(180,240,75,.4)}
+  .den{background:var(--raised);color:var(--muted);border:1px solid var(--line)}
+  .req-strip{border-top:1px dashed var(--line);margin-top:4px;padding-top:10px;margin-bottom:10px}
+  .empty{color:var(--faint);font-size:14px;text-align:center;padding:18px 10px}
+  .auth-wrap{flex:1;display:flex;flex-direction:column;justify-content:center;padding:28px}
+  /* chat */
+  .chat-top{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:rgba(11,10,20,.85);backdrop-filter:blur(10px);z-index:5}
+  .back-btn{width:38px;height:38px;border-radius:12px;background:var(--raised);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .back-btn svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .msgs{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:8px}
+  .bub{max-width:78%;padding:10px 14px;border-radius:16px;font-size:14.5px;line-height:1.4;overflow-wrap:break-word}
+  .bub.me{align-self:flex-end;background:var(--grad);color:#fff;border-bottom-right-radius:4px}
+  .bub.them{align-self:flex-start;background:var(--raised);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .bub.pcard{padding:0;overflow:hidden;background:var(--surface);border:1px solid var(--line);max-width:85%}
+  .bub.pcard button{display:block;text-align:left;width:100%}
+  .composer{display:flex;gap:8px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);background:rgba(16,14,26,.92)}
+  .read-tag{font-size:11px;color:var(--faint);align-self:flex-end;margin-top:-2px;margin-right:4px}
+  /* party detail */
+  .d-cover{height:110px;position:relative;display:flex;align-items:flex-end;padding:12px 20px}
+  .d-back{position:absolute;top:12px;left:12px;z-index:2;background:rgba(11,10,20,.6)}
+  /* share sheet */
+  #share-sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(0,0,0,.55)}
+  #share-sheet[hidden]{display:none}
+  .sheet{width:min(440px,100%);background:var(--surface);border:1px solid var(--line);
+    border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));
+    max-height:70dvh;overflow-y:auto}
+  .sheet h3{font-family:var(--disp);font-size:16px;margin:0 0 4px;color:#fff}
+  .sheet .sub{color:var(--muted);font-size:13.5px;margin-bottom:14px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{padding:9px 14px;border-radius:999px;border:1px solid var(--line);
+    background:var(--raised);font-weight:500;font-size:14px;color:var(--text)}
+  .chip.on{background:rgba(255,61,138,.15);border-color:var(--mag);color:#fff}
+  /* map */
+  #map .map-wrap{flex:1;position:relative;overflow:hidden;background:#0E0C1A}
+  #map svg{position:absolute;inset:0;width:100%;height:100%}
+  .map-legend{position:absolute;top:10px;left:12px;display:flex;gap:12px;font-size:11px;color:var(--muted);
+    background:rgba(11,10,20,.7);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+  .map-legend i{display:inline-block;width:8px;height:8px;border-radius:99px;margin-right:4px}
+  .map-note{position:absolute;top:48px;left:12px;font-size:11px;color:var(--faint);
+    background:rgba(11,10,20,.7);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+  .map-mini{position:absolute;left:12px;right:12px;bottom:86px;background:var(--surface);
+    border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.55)}
+  .map-mini h3{font-family:var(--disp);font-size:15px;margin:0 0 4px;color:#fff}
+  .map-mini .row{display:flex;gap:10px;margin-top:10px}
+  .pin{cursor:pointer}
+  .pin text{pointer-events:none}
+  .toast{position:fixed;left:50%;bottom:92px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+    background:#221E33;border:1px solid var(--vio);color:#fff;font-weight:600;font-size:14px;
+    padding:11px 18px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.5);transition:all .25s ease;z-index:50}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  #config-warn{background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.4);color:#FFB4B4;
+    border-radius:12px;padding:14px;font-size:14px;margin-bottom:16px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs><linearGradient id="gradstroke" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#FF3D8A"/><stop offset="1" stop-color="#8B5CF6"/>
+  </linearGradient></defs>
+</svg>
+<div class="shell">
+
+  <!-- ══ AUTH ══ -->
+  <section class="screen on" id="auth">
+    <div class="auth-wrap">
+      <div style="margin-bottom:20px">
+        <span class="wordmark">TURNOUT</span><span class="wt-badge>live v3.1</span>
+        <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
+      </div>
+      <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
+      <div id="auth-signup">
+        <div class="field"><label for="a-name">Your name</label><input id="a-name" placeholder="e.g. Cade" autocomplete="name"></div>
+        <div class="row2">
+          <div class="field"><label for="a-zip">ZIP code</label><input id="a-zip" inputmode="numeric" maxlength="5" placeholder="65401"></div>
+          <div class="field"><label for="a-email">Email</label><input id="a-email" type="email" placeholder="you@email.com" autocomplete="email"></div>
+        </div>
+        <div class="field"><label for="a-pass">Password</label><input id="a-pass" type="password" placeholder="6+ characters" autocomplete="new-password"></div>
+        <button class="btn" id="do-signup">Create my account</button>
+        <button class="btn-ghost btn" id="to-signin" style="margin-top:10px">I already have an account</button>
+      </div>
+      <div id="auth-signin" hidden>
+        <div class="field"><label for="s-email">Email</label><input id="s-email" type="email" autocomplete="email"></div>
+        <div class="field"><label for="s-pass">Password</label><input id="s-pass" type="password" autocomplete="current-password"></div>
+        <button class="btn" id="do-signin">Sign in</button>
+        <button class="btn-ghost btn" id="to-signup" style="margin-top:10px">Make a new account</button>
+        <button id="forgot" style="margin-top:14px;color:var(--cyan);font-size:14px;font-weight:600;width:100%">Forgot my password</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FIND ══ -->
+  <section class="screen" id="find">
+    <div class="top"><span class="wordmark">TURNOUT</span><span class="loc-pill">near <b id="loc-zip"></b></span></div>
+    <div class="scroll">
+      <p class="eyebrow">This weekend</p>
+      <h2 id="find-greet" style="font-size:22px;margin:2px 0 14px">Parties near you</h2>
+      <div id="party-list"><p class="empty">Loading parties…</p></div>
+    </div>
+  </section>
+
+  <!-- ══ MAP ══ -->
+  <section class="screen" id="map">
+    <div class="top"><span class="wordmark">TURNOUT</span><span class="loc-pill" id="map-home">your map</span></div>
+    <div class="map-wrap">
+      <svg id="map-svg" viewBox="0 0 400 620" preserveAspectRatio="xMidYMid slice" aria-label="Party map"></svg>
+      <div class="map-legend">
+        <span><i style="background:var(--lime)"></i>open</span>
+        <span><i style="background:var(--amber)"></i>almost full</span>
+        <span><i style="background:var(--red)"></i>full</span>
+      </div>
+      <div class="map-note">pin spots are approximate until GPS lands</div>
+      <div class="map-mini" id="map-mini" hidden></div>
+    </div>
+  </section>
+
+  <!-- ══ PARTY DETAIL ══ -->
+  <section class="screen" id="detail">
+    <div class="scroll" id="detail-body" style="padding:0 0 96px"></div>
+  </section>
+
+  <!-- ══ FRIENDS ══ -->
+  <section class="screen" id="friends">
+    <div class="top"><span class="wordmark">TURNOUT</span></div>
+    <div class="scroll">
+      <p class="eyebrow">Your people</p>
+      <h2 style="font-size:22px;margin:2px 0 14px">Friends</h2>
+      <div id="freq-wrap"></div>
+      <div class="panel"><h4>Your friends</h4><div id="friend-list"><p class="empty">Nobody yet — find them below.</p></div>
+        <p class="hint" style="margin-top:8px">Tap a friend to chat and share parties.</p></div>
+      <div class="panel"><h4>Add friends</h4>
+        <input id="friend-search" placeholder="Search anyone by name" autocomplete="off" style="margin-bottom:10px">
+        <div id="search-results"><p class="empty" style="padding:6px">Type a name — everyone on Turnout shows up here.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CHAT ══ -->
+  <section class="screen" id="chat">
+    <div class="chat-top">
+      <button class="back-btn" id="chat-back" aria-label="Back">
+        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span id="chat-av"></span>
+      <div style="font-weight:700" id="chat-name"></div>
+    </div>
+    <div class="msgs" id="msgs"></div>
+    <div class="composer">
+      <input id="msg-in" placeholder="Message&hellip;" autocomplete="off">
+      <button class="btn" id="msg-send" style="width:auto;padding:12px 18px">Send</button>
+    </div>
+  </section>
+
+  <!-- ══ HOST ══ -->
+  <section class="screen" id="host">
+    <div class="top"><span class="wordmark">TURNOUT</span></div>
+    <div class="scroll">
+      <p class="eyebrow">Host a party</p>
+      <h2 style="font-size:22px;margin:2px 0 4px">Throw something.</h2>
+      <p style="color:var(--muted);margin-bottom:18px;font-size:14.5px">Post it and everyone on here sees it live, instantly.</p>
+      <div class="field"><label for="h-name">Party name</label><input id="h-name" placeholder="e.g. End of Summer Blowout"></div>
+      <div class="field"><label for="h-when">When</label><input id="h-when" type="datetime-local"></div>
+      <div class="field"><label for="h-addr">Address</label><input id="h-addr" placeholder="Street address">
+        <p class="hint">Locked in the database — only your guests can ever read it.</p></div>
+      <div class="row2">
+        <div class="field"><label for="h-town">Town</label><input id="h-town" placeholder="Rolla, MO"></div>
+        <div class="field"><label for="h-max">Max people</label><input id="h-max" type="number" min="2" max="500" value="50" inputmode="numeric"></div>
+      </div>
+      <div class="field"><label>Who gets in?</label>
+        <div class="seg" id="h-priv">
+          <button class="on" data-priv="public">Public</button>
+          <button data-priv="private">Private</button>
+        </div>
+        <p class="hint" id="h-priv-hint">Anyone who claims a spot instantly gets the address.</p>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="h-fee">Entry fee ($)</label><input id="h-fee" type="number" min="0" inputmode="decimal" placeholder="Blank = free"></div>
+        <div class="field"><label>Drinks</label>
+          <div class="seg" id="h-drinks">
+            <button class="on" data-drinks="byob">BYOB</button>
+            <button data-drinks="provided">Provided</button>
+          </div></div>
+      </div>
+      <div class="field"><label for="h-desc">What&rsquo;s it about?</label><textarea id="h-desc" rows="3" placeholder="Set the vibe."></textarea></div>
+      <button class="btn" id="h-post">Post my party</button>
+    </div>
+  </section>
+
+  <!-- ══ YOU ══ -->
+  <section class="screen" id="profile">
+    <div class="top"><span class="wordmark">TURNOUT</span></div>
+    <div class="scroll" id="profile-body"></div>
+  </section>
+
+  <nav class="tabbar" id="tabbar" hidden>
+    <button class="tab on" data-tab="find">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/></svg>Find</button>
+    <button class="tab" data-tab="map">
+      <svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.2-6.5-10.2a6.5 6.5 0 0 1 13 0C18.5 15.8 12 21 12 21z"/><circle cx="12" cy="10.6" r="2.3"/></svg>Map</button>
+    <button class="tab" data-tab="friends">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1.2-3.4 4-5 6.5-5s5.3 1.6 6.5 5"/><circle cx="17" cy="9" r="3"/><path d="M16.5 15.5c2.3.3 4.2 1.8 5 4.5"/></svg>Friends<span class="dot" id="friends-dot" hidden></span></button>
+    <button class="tab" data-tab="host">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Host</button>
+    <button class="tab" data-tab="profile">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg>You</button>
+  </nav>
+</div>
+
+<!-- ══ SHARE SHEET ══ -->
+<div id="share-sheet" hidden>
+  <div class="sheet">
+    <h3 id="share-title">Share this party</h3>
+    <p class="sub">Pick friends — the party card lands in your chat with them.</p>
+    <div class="chips" id="share-list" style="margin-bottom:18px"></div>
+    <button class="btn" id="share-send">Send it</button>
+    <button class="btn btn-ghost" id="share-cancel" style="margin-top:10px">Cancel</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://wifbyvlypzdjsdjmktut.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpZmJ5dmx5cHpkanNkam1rdHV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3ODg5OTYsImV4cCI6MjEwMzM2NDk5Nn0.DPN5tGwYtYNgYCFFXtCC-UpmoujyIJ67gdkfviHx_hw';
+
+const VAPID_PUBLIC = 'BPN_o4vpswlgjyy8MgFpQQRDxRgx5NhyQVN6NE9r3jxauyytFTUGGmtNmpeP-OvvSe9LB-RaodJIoSZZ1tlG9uI';
+
+const configured = SUPABASE_URL.startsWith('https://');
+const db = configured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || !!navigator.standalone;
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = window.atob(base64);
+  const out = new Uint8Array(raw.length);
+  for(let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+if('serviceWorker' in navigator && location.protocol === 'https:'){
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+async function pushState(){
+  if(!('serviceWorker' in navigator) || !('PushManager' in window) || location.protocol !== 'https:') return 'unsupported';
+  if(isIOS && !isStandalone) return 'needs-install';
+  if(Notification.permission === 'denied') return 'blocked';
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    return sub ? 'on' : 'off';
+  }catch(e){ return 'off'; }
+}
+async function enablePush(){
+  const perm = await Notification.requestPermission();
+  if(perm !== 'granted'){ toast('Notifications blocked — allow them in your browser settings'); return; }
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.subscribe({ userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC) });
+  const j = sub.toJSON();
+  const { error } = await db.from('push_subscriptions')
+    .upsert({ user_id: me.id, endpoint: j.endpoint, subscription: j }, { onConflict: 'endpoint' });
+  if(error){ toast(error.message.includes('push_subscriptions') ? 'Run migration6.sql first' : error.message); return; }
+  toast('Notifications on — this phone is wired in');
+  renderProfile();
+}
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2600);
+}
+const GRADS = ['linear-gradient(120deg,#FF3D8A,#8B5CF6)','linear-gradient(120deg,#8B5CF6,#35D6ED)',
+  'linear-gradient(120deg,#FF7A3D,#FF3D8A)','linear-gradient(120deg,#35D6ED,#B4F04B)',
+  'linear-gradient(120deg,#B45CF6,#FF5C7A)','linear-gradient(120deg,#FFB454,#FF3D8A)'];
+function hashN(id, mod){ let h = 0; for(const c of id) h = (h * 31 + c.charCodeAt(0)) % 99991; return h % mod; }
+function gradFor(id){ return GRADS[hashN(id, 6)]; }
+function flameSvg(w){
+  const h = Math.round(w * 14 / 12);
+  return `<svg width="${w}" height="${h}" viewBox="0 0 12 14" fill="currentColor" aria-hidden="true" style="vertical-align:-2px"><path d="M6 0c.5 2.5 3.5 3.8 4.6 6.4 1.2 2.8-.3 6-3.1 7.1.6-1 .8-2.3.3-3.4-.4-1-1.3-1.6-1.8-2.6-.4.8-.5 1.7-.3 2.5-1-.4-1.7-1.4-1.9-2.4C3.4 5.4 5 3.9 5.6 2 5.8 1.3 6 .7 6 0z"/></svg>`;
+}
+function avatar(p, size, radius){
+  const r = radius || 13;
+  if(p && p.avatar_url)
+    return `<img class="avimg" src="${esc(p.avatar_url)}" alt="" style="width:${size}px;height:${size}px;border-radius:${r}px">`;
+  return `<div class="f-av" style="width:${size}px;height:${size}px;border-radius:${r}px;background:${gradFor(p?.id || 'x')};font-size:${Math.round(size * 0.42)}px">${esc((p?.display_name || '?').charAt(0))}</div>`;
+}
+
+let me = null;
+let allParties = [];       // everything, for chat lookups
+let parties = [];          // visible in feed/map (not ended)
+let myClaims = new Set();
+let myRequests = new Set();
+let hostRequests = {};
+let friends = [];          // accepted friend profiles
+let pendingIn = [];        // profiles who asked me
+let pendingOut = new Set();// ids I asked
+let profMap = {};          // id -> profile (friends + requesters)
+let unlockedAddr = {};
+let unreadFrom = new Set();
+let chatId = null;
+let shareId = null;
+let detailId = null;
+let detailFrom = 'find';
+
+function show(id){
+  $$('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  $('#tabbar').hidden = ['auth','chat','detail'].includes(id);
+  const tabFor = id === 'chat' ? 'friends' : id === 'detail' ? detailFrom : id;
+  $$('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tabFor));
+  if(id === 'find') loadParties();
+  if(id === 'map') loadParties().then(renderMap);
+  if(id === 'friends') loadFriends();
+  if(id === 'profile') renderProfile();
+}
+$$('.tab').forEach(t => t.addEventListener('click', () => show(t.dataset.tab)));
+function updateDot(){
+  $('#friends-dot').hidden = !(unreadFrom.size || pendingIn.length);
+}
+
+/* ── auth ── */
+$('#to-signin').addEventListener('click', () => { $('#auth-signup').hidden = true; $('#auth-signin').hidden = false; });
+$('#to-signup').addEventListener('click', () => { $('#auth-signup').hidden = false; $('#auth-signin').hidden = true; });
+$('#do-signup').addEventListener('click', async () => {
+  const name = $('#a-name').value.trim(), zip = $('#a-zip').value.trim();
+  const email = $('#a-email').value.trim(), pass = $('#a-pass').value;
+  if(!name){ toast('Tell us your name'); return; }
+  if(!/^\d{5}$/.test(zip)){ toast('Enter a 5-digit ZIP'); return; }
+  if(!email || pass.length < 6){ toast('Email + a 6-character password'); return; }
+  const { error } = await db.auth.signUp({ email, password: pass, options: { data: { display_name: name, zip } } });
+  if(error){ toast(error.message); return; }
+  toast('Account created — welcome to Turnout');
+  boot();
+});
+$('#do-signin').addEventListener('click', async () => {
+  const { error } = await db.auth.signInWithPassword({ email: $('#s-email').value.trim(), password: $('#s-pass').value });
+  if(error){ toast(error.message); return; }
+  boot();
+});
+$('#forgot').addEventListener('click', async () => {
+  const email = $('#s-email').value.trim() || prompt('Your account email:');
+  if(!email) return;
+  const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  toast(error ? error.message : 'Reset link sent — check your email');
+});
+if(configured) db.auth.onAuthStateChange(async (event) => {
+  if(event === 'PASSWORD_RECOVERY'){
+    const p = prompt('Set your new password (6+ characters):');
+    if(p && p.length >= 6){
+      const { error } = await db.auth.updateUser({ password: p });
+      toast(error ? error.message : 'Password updated — you’re signed in');
+      boot();
+    }
+  }
+});
+
+/* ── shared loads ── */
+async function loadMe(){
+  const { data: { user } } = await db.auth.getUser();
+  if(!user) return null;
+  const { data } = await db.from('profiles').select('*').eq('id', user.id).single();
+  return data;
+}
+async function loadFriendRows(){
+  const { data } = await db.from('friendships').select('user_id, friend_id, status')
+    .or(`user_id.eq.${me.id},friend_id.eq.${me.id}`);
+  const rows = data || [];
+  const acceptedIds = [], inIds = [];
+  pendingOut = new Set();
+  rows.forEach(r => {
+    const other = r.user_id === me.id ? r.friend_id : r.user_id;
+    if(r.status === 'accepted') acceptedIds.push(other);
+    else if(r.friend_id === me.id) inIds.push(other);
+    else pendingOut.add(other);
+  });
+  const all = [...new Set([...acceptedIds, ...inIds])];
+  if(all.length){
+    const { data: profs } = await db.from('profiles').select('*').in('id', all);
+    (profs || []).forEach(p => profMap[p.id] = p);
+  }
+  friends = acceptedIds.map(id => profMap[id]).filter(Boolean);
+  pendingIn = inIds.map(id => profMap[id]).filter(Boolean);
+  updateDot();
+}
+function capClass(claimed, max){
+  const left = max - claimed;
+  if(left <= 0) return 'full';
+  if(left / max <= 0.15) return 'low';
+  return 'open';
+}
+function capLabel(claimed, max){
+  const left = max - claimed;
+  if(left <= 0) return 'Full';
+  if(left === 1) return 'Only 1 spot left';
+  return left + ' spots left';
+}
+function whenLabel(ts){
+  if(!ts) return 'Date TBA';
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})
+    + ' · ' + d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+function friendLine(names){
+  if(names.length === 1) return names[0] + ' is going';
+  return names[0] + ' + ' + (names.length - 1) + (names.length === 2 ? ' other' : ' others') + ' going';
+}
+
+async function refreshData(){
+  const [pRes, cRes, rRes] = await Promise.all([
+    db.from('parties').select('*, claims(user_id), profiles!parties_host_id_fkey(display_name, zip)').order('created_at', { ascending: false }),
+    db.from('claims').select('party_id').eq('user_id', me.id),
+    db.from('requests').select('party_id, user_id, profiles(display_name)')
+  ]);
+  allParties = pRes.data || [];
+  // hide parties that ended more than 6 hours ago
+  const cutoff = Date.now() - 6 * 3600 * 1000;
+  parties = allParties.filter(p => !p.starts_at || new Date(p.starts_at).getTime() > cutoff);
+  // rough "near you": sort by host ZIP closeness, then soonest
+  const myZip = parseInt(me.zip, 10) || 0;
+  const zd = p => Math.abs((parseInt(p.profiles?.zip, 10) || myZip) - myZip);
+  parties.sort((a, b) => zd(a) - zd(b)
+    || (a.starts_at ? new Date(a.starts_at).getTime() : Infinity) - (b.starts_at ? new Date(b.starts_at).getTime() : Infinity));
+  myClaims = new Set((cRes.data || []).map(r => r.party_id));
+  myRequests = new Set();
+  hostRequests = {};
+  (rRes.data || []).forEach(r => {
+    if(r.user_id === me.id) myRequests.add(r.party_id);
+    else {
+      (hostRequests[r.party_id] = hostRequests[r.party_id] || [])
+        .push({ user_id: r.user_id, name: r.profiles?.display_name || 'Someone' });
+    }
+  });
+  await loadFriendRows();
+  // addresses you have a right to: fetch them up front, no extra tap
+  const need = parties.filter(p => (myClaims.has(p.id) || p.host_id === me.id) && !unlockedAddr[p.id]);
+  await Promise.all(need.map(async p => {
+    const { data } = await db.rpc('get_party_address', { pid: p.id });
+    if(data) unlockedAddr[p.id] = data;
+  }));
+}
+
+/* ── find ── */
+async function loadParties(){
+  $('#loc-zip').textContent = me.zip || '—';
+  $('#find-greet').textContent = 'Parties near you, ' + me.display_name.split(' ')[0];
+  await refreshData();
+  const friendIds = new Set(friends.map(f => f.id));
+  const nameOf = {}; friends.forEach(f => nameOf[f.id] = f.display_name);
+  const hostCount = {};
+  allParties.forEach(p => hostCount[p.host_id] = (hostCount[p.host_id] || 0) + 1);
+
+  if(!parties.length){
+    $('#party-list').innerHTML = '<p class="empty">No parties yet. Be the first — hit Host.</p>';
+    return;
+  }
+  $('#party-list').innerHTML = parties.map(p => {
+    const claimers = (p.claims || []).map(c => c.user_id);
+    const claimed = claimers.length;
+    const mine = p.host_id === me.id;
+    const going = myClaims.has(p.id);
+    const requested = myRequests.has(p.id);
+    const priv = p.privacy === 'private';
+    const fNames = claimers.filter(id => friendIds.has(id)).map(id => nameOf[id]);
+    const cls = capClass(claimed, p.max_people);
+    const pct = Math.min(100, claimed / p.max_people * 100);
+    const full = claimed >= p.max_people;
+    const addr = unlockedAddr[p.id];
+    const flames = hostCount[p.host_id] >= 3
+      ? `<span class="flame">${flameSvg(12)}${hostCount[p.host_id]}</span>` : '';
+    const reqCount = mine && priv ? (hostRequests[p.id] || []).length : 0;
+    const status = going ? '<div class="friendsline" style="color:var(--lime)">You’re going — tap for the address</div>'
+      : requested ? '<div class="friendsline" style="color:var(--amber)">Request sent — waiting on the host</div>'
+      : reqCount ? `<div class="friendsline" style="color:var(--amber)">${reqCount} request${reqCount > 1 ? 's' : ''} waiting — tap to review</div>`
+      : '';
+    return `<button class="card" data-open="${p.id}">
+      <div class="cover" style="background:${gradFor(p.id)}">
+        ${mine ? '<span class="tag yours" style="position:absolute;top:10px;left:10px">Your party</span>' : ''}
+        <span class="tag">${going ? 'You’re going' : esc(whenLabel(p.starts_at).split(' · ')[0])}</span>
+      </div>
+      <div class="card-body">
+        <h3>${esc(p.name)}</h3>
+        <div class="meta" style="margin-bottom:5px">
+          <span class="drive">${esc(p.town || 'nearby')}</span>
+          <span>${esc(whenLabel(p.starts_at))}</span>
+          <span style="${p.fee > 0 ? 'color:var(--lime);font-weight:700' : 'color:var(--faint)'}">${p.fee > 0 ? '$' + (+p.fee) + ' cover' : 'Free'}</span>
+        </div>
+        <div class="meta" style="font-size:12px;color:var(--faint)">
+          <span>hosted by ${esc(mine ? 'you' : (p.profiles?.display_name || 'someone'))}</span>
+          ${flames}
+          <span>${p.drinks === 'provided' ? 'Drinks provided' : 'BYOB'}</span>
+          ${priv ? '<span style="color:var(--amber);font-weight:600">Private</span>' : ''}
+        </div>
+        ${fNames.length ? `<div class="friendsline">${esc(friendLine(fNames))}</div>` : ''}
+        ${status}
+        <div class="capline"><b>${claimed} / ${p.max_people} going</b>
+          <b class="spots-${cls}">${capLabel(claimed, p.max_people)}</b></div>
+        <div class="capbar" style="margin-bottom:2px"><i class="fill-${cls}" style="width:${pct}%"></i></div>
+      </div>
+    </button>`;
+  }).join('');
+}
+
+$('#party-list').addEventListener('click', e => {
+  const c = e.target.closest('[data-open]');
+  if(c) openDetail(c.dataset.open, 'find');
+});
+
+/* ── party detail ── */
+function openDetail(pid, from){
+  detailId = pid;
+  if(from) detailFrom = from;
+  show('detail');
+  renderDetail();
+}
+async function renderDetail(){
+  const p = allParties.find(x => x.id === detailId);
+  const body = $('#detail-body');
+  if(!p){ show(detailFrom); return; }
+  const claimers = (p.claims || []).map(c => c.user_id);
+  const claimed = claimers.length;
+  const mine = p.host_id === me.id;
+  const going = myClaims.has(p.id);
+  const requested = myRequests.has(p.id);
+  const priv = p.privacy === 'private';
+  const friendIds = new Set(friends.map(f => f.id));
+  const fNames = claimers.filter(id => friendIds.has(id)).map(id => (profMap[id] || {}).display_name).filter(Boolean);
+  const cls = capClass(claimed, p.max_people);
+  const pct = Math.min(100, claimed / p.max_people * 100);
+  const full = claimed >= p.max_people;
+  const addr = unlockedAddr[p.id];
+  const hostCount = allParties.filter(x => x.host_id === p.host_id).length;
+  const reqs = mine && priv ? (hostRequests[p.id] || []) : [];
+  // guest list — RLS already limits what comes back; UI saves the full list for people who are in
+  let guests = [];
+  if(claimed){
+    const { data: gRows } = await db.from('claims')
+      .select('user_id, profiles(id, display_name, avatar_url)').eq('party_id', p.id);
+    guests = (gRows || []).map(r => r.profiles).filter(Boolean);
+  }
+  body.innerHTML = `
+    <div class="d-cover" style="background:${gradFor(p.id)}">
+      <button class="back-btn d-back" data-close aria-label="Back">
+        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span class="tag" style="position:absolute;top:12px;right:12px">${esc(whenLabel(p.starts_at))}</span>
+    </div>
+    <div style="padding:16px 20px 0">
+      <h2 style="font-size:22px;margin:0 0 4px">${esc(p.name)}</h2>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:10px">
+        Hosted by ${esc(mine ? 'you' : (p.profiles?.display_name || 'someone'))}
+        ${hostCount >= 3 ? `<span class="flame">${flameSvg(12)}${hostCount}</span>` : ''}
+        · ${esc(p.town || 'nearby')}</p>
+      <div class="meta" style="margin-bottom:14px">
+        <span style="${p.fee > 0 ? 'color:var(--lime);font-weight:700' : 'color:var(--faint)'}">${p.fee > 0 ? '$' + (+p.fee) + ' cover at the door' : 'Free entry'}</span>
+        <span>${p.drinks === 'provided' ? 'Drinks provided' : 'BYOB'}</span>
+        ${priv ? '<span style="color:var(--amber);font-weight:600">Private · host approves</span>' : ''}
+      </div>
+      ${p.description ? `<div class="panel"><h4>The rundown</h4><p style="font-size:14.5px">${esc(p.description)}</p></div>` : ''}
+      <div class="panel">
+        <h4>Capacity</h4>
+        <div class="capline" style="margin-top:0"><b>${claimed} / ${p.max_people} going</b>
+          <b class="spots-${cls}">${capLabel(claimed, p.max_people)}</b></div>
+        <div class="capbar" style="margin-bottom:0"><i class="fill-${cls}" style="width:${pct}%"></i></div>
+      </div>
+      <div class="panel">
+        <h4>Who&rsquo;s going (${claimed})</h4>
+        ${(going || mine)
+          ? (guests.length
+              ? guests.map(gp => `<div class="f-row">${avatar(gp, 34)}
+                  <span style="flex:1;font-weight:600">${esc(gp.display_name)}${gp.id === me.id ? ' (you)' : ''}</span>
+                  ${friendIds.has(gp.id) ? '<span style="font-size:12px;color:#FF9CC4;font-weight:600">friend</span>' : ''}
+                </div>`).join('')
+              : '<p class="empty" style="padding:6px">Nobody yet — first claim gets bragging rights.</p>')
+          : `${fNames.length ? `<div class="friendsline" style="margin:0 0 8px">${esc(friendLine(fNames))}</div>` : ''}
+             <p class="hint" style="margin:0">${priv ? 'Get accepted and the whole guest list opens up.' : 'Claim a spot to see everyone going.'}</p>`}
+      </div>
+      <div class="panel">
+        <h4>Location</h4>
+        ${(going || mine)
+          ? (addr ? `<p class="addr" style="margin:0">${esc(addr)}</p>` : '<p class="hint" style="margin:0">Unlocking…</p>')
+          : `<p class="hint" style="margin:0">Address unlocks ${priv ? 'when the host accepts you' : 'when you claim a spot'}. For now: <b style="color:var(--text)">${esc(p.town || 'nearby')}</b>.</p>`}
+      </div>
+      ${reqs.length ? `<div class="panel" style="border-color:rgba(255,180,84,.4)">
+          <h4 style="color:var(--amber)">Requests (${reqs.length})</h4>
+          ${reqs.map(r => `<div class="f-row">
+            ${avatar(profMap[r.user_id] || {id:r.user_id, display_name:r.name}, 34)}
+            <span style="flex:1;font-weight:600">${esc(r.name)}</span>
+            <button class="mini-btn acc" data-accept="${p.id}" data-uid="${r.user_id}">Accept</button>
+            <button class="mini-btn den" data-deny="${p.id}" data-uid="${r.user_id}">Deny</button>
+          </div>`).join('')}
+        </div>` : (mine && priv ? '<div class="panel"><h4>Requests</h4><p class="empty" style="padding:6px">Requests to get in show up here.</p></div>' : '')}
+      ${mine ? `<button class="btn btn-danger" data-cancel="${p.id}">Cancel this party</button>`
+        : going ? `<button class="btn btn-danger" data-unclaim="${p.id}">Give up my spot</button>`
+        : requested ? `<div class="waiting">Request sent — waiting on ${esc((p.profiles?.display_name || 'the host').split(' ')[0])}</div>
+            <button class="btn btn-danger" data-cancelreq="${p.id}">Cancel request</button>`
+        : priv ? `<button class="btn" data-request="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Request a spot'}</button>`
+        : `<button class="btn" data-claim="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Claim my spot'}</button>`}
+      <button class="btn btn-ghost" data-shareparty="${p.id}" style="margin-top:10px">Share with friends</button>
+    </div>`;
+}
+async function refreshAfterAction(){
+  await loadParties();
+  if(detailId && $('#detail').classList.contains('on')) renderDetail();
+}
+
+$('#detail-body').addEventListener('click', async e => {
+  const g = sel => e.target.closest(sel);
+  let el;
+  if(g('[data-close]')){ show(detailFrom); return; }
+  if(el = g('[data-claim]')){
+    const { error } = await db.from('claims').insert({ party_id: el.dataset.claim, user_id: me.id });
+    toast(error ? (error.message.includes('party_full') ? 'Beat you to it — party just filled' : error.message)
+                : 'Spot claimed — address unlocked');
+    refreshAfterAction(); return;
+  }
+  if(el = g('[data-request]')){
+    const { error } = await db.from('requests').insert({ party_id: el.dataset.request, user_id: me.id });
+    toast(error ? error.message : 'Request sent — the host will review it');
+    refreshAfterAction(); return;
+  }
+  if(el = g('[data-cancelreq]')){
+    await db.from('requests').delete().eq('party_id', el.dataset.cancelreq).eq('user_id', me.id);
+    toast('Request canceled'); refreshAfterAction(); return;
+  }
+  if(el = g('[data-accept]')){
+    const { error } = await db.rpc('accept_request', { pid: el.dataset.accept, uid: el.dataset.uid });
+    toast(error ? (error.message.includes('party_full') ? 'No room left — party is full' : error.message)
+                : 'They’re in — address unlocked for them');
+    refreshAfterAction(); return;
+  }
+  if(el = g('[data-deny]')){
+    await db.from('requests').delete().eq('party_id', el.dataset.deny).eq('user_id', el.dataset.uid);
+    toast('Denied'); refreshAfterAction(); return;
+  }
+  if(el = g('[data-unclaim]')){
+    if(!confirm('Give up your spot at this party?')) return;
+    await db.from('claims').delete().eq('party_id', el.dataset.unclaim).eq('user_id', me.id);
+    delete unlockedAddr[el.dataset.unclaim];
+    toast('Spot released'); refreshAfterAction(); return;
+  }
+  if(el = g('[data-cancel]')){
+    if(!confirm('Cancel this party? Everyone’s claims disappear and it can’t be undone.')) return;
+    await db.from('parties').delete().eq('id', el.dataset.cancel);
+    toast('Party canceled'); refreshAfterAction(); return;
+  }
+  if(el = g('[data-shareparty]')){
+    openShare(el.dataset.shareparty);
+  }
+});
+
+/* ── share sheet ── */
+function openShare(pid){
+  shareId = pid;
+  const p = allParties.find(x => x.id === pid);
+  $('#share-title').textContent = p ? 'Share “' + p.name + '”' : 'Share this party';
+  $('#share-list').innerHTML = friends.length
+    ? friends.map(f => `<button class="chip" data-fid="${f.id}">${esc(f.display_name)}</button>`).join('')
+    : '<p class="empty" style="padding:6px">No friends yet — add some on the Friends tab first.</p>';
+  $('#share-sheet').hidden = false;
+}
+$('#share-list').addEventListener('click', e => {
+  const c = e.target.closest('[data-fid]'); if(c) c.classList.toggle('on');
+});
+$('#share-cancel').addEventListener('click', () => { $('#share-sheet').hidden = true; });
+$('#share-sheet').addEventListener('click', e => { if(e.target.id === 'share-sheet') e.target.hidden = true; });
+$('#share-send').addEventListener('click', async () => {
+  const picks = $$('#share-list .chip.on').map(c => c.dataset.fid);
+  if(!picks.length){ toast('Pick at least one friend'); return; }
+  const rows = picks.map(fid => ({ sender_id: me.id, recipient_id: fid, party_id: shareId }));
+  const { error } = await db.from('messages').insert(rows);
+  $('#share-sheet').hidden = true;
+  toast(error ? error.message : 'Shared with ' + picks.length + ' friend' + (picks.length > 1 ? 's' : ''));
+});
+
+/* ── map ── */
+const CAPHEX = {open:'#B4F04B', low:'#FFB454', full:'#FF5C5C'};
+function renderMap(){
+  $('#map-home').innerHTML = 'near <b>' + esc(me.zip || 'you') + '</b>';
+  const CX = 200, CY = 300;
+  let g = '';
+  for(let x = 20; x < 400; x += 40) g += `<line x1="${x}" y1="0" x2="${x}" y2="620" stroke="#181530" stroke-width="1"/>`;
+  for(let y = 20; y < 620; y += 40) g += `<line x1="0" y1="${y}" x2="400" y2="${y}" stroke="#181530" stroke-width="1"/>`;
+  g += `<line x1="0" y1="140" x2="400" y2="220" stroke="#221E3C" stroke-width="7"/>
+        <line x1="60" y1="620" x2="330" y2="0" stroke="#221E3C" stroke-width="7"/>
+        <line x1="0" y1="470" x2="400" y2="430" stroke="#221E3C" stroke-width="5"/>`;
+  [92, 143, 180].forEach(r => {
+    g += `<circle cx="${CX}" cy="${CY}" r="${r}" fill="none" stroke="#2A2639" stroke-width="1" stroke-dasharray="3 5"/>`;
+  });
+  const pos = parties.map((p, i) => {
+    const a = i * 2.399963 + (hashN(p.id, 100) / 100) * 0.7;
+    const r = 60 + hashN(p.id, 120);
+    return {p, x: CX + r * Math.cos(a), y: CY + r * Math.sin(a)};
+  });
+  for(let iter = 0; iter < 24; iter++){
+    for(let i = 0; i < pos.length; i++) for(let j = i + 1; j < pos.length; j++){
+      const dx = pos[j].x - pos[i].x, dy = pos[j].y - pos[i].y;
+      const d = Math.hypot(dx, dy) || 1;
+      if(d < 56){
+        const push = (56 - d) / 2, ux = dx / d, uy = dy / d;
+        pos[i].x -= ux * push; pos[i].y -= uy * push;
+        pos[j].x += ux * push; pos[j].y += uy * push;
+      }
+    }
+  }
+  pos.forEach(({p, x: px, y: py}) => {
+    const x = Math.max(48, Math.min(352, px));
+    const y = Math.max(90, Math.min(545, py));
+    const claimed = (p.claims || []).length;
+    const col = CAPHEX[capClass(claimed, p.max_people)];
+    const mine = p.host_id === me.id;
+    const label = p.name.length > 14 ? p.name.slice(0, 13) + '…' : p.name;
+    g += `<g class="pin" data-pin="${p.id}">
+      <circle cx="${x}" cy="${y}" r="13" fill="${col}" opacity="0.18"/>
+      <circle cx="${x}" cy="${y}" r="5.5" fill="${col}" stroke="#0E0C1A" stroke-width="1.5"/>
+      ${mine ? `<circle cx="${x}" cy="${y}" r="9" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="2 2"/>` : ''}
+      <text x="${x}" y="${y + 18}" text-anchor="middle" font-size="9" font-weight="600" fill="#9C95B8" font-family="Outfit,sans-serif">${esc(label)}</text>
+    </g>`;
+  });
+  g += `<g>
+    <circle cx="${CX}" cy="${CY}" r="10" fill="none" stroke="url(#gradstroke)" stroke-width="2"/>
+    <circle cx="${CX}" cy="${CY}" r="4.5" fill="#fff"/>
+    <text x="${CX}" y="${CY + 24}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="Outfit,sans-serif">You</text>
+  </g>`;
+  $('#map-svg').innerHTML = g;
+  $('#map-mini').hidden = true;
+}
+$('#map-svg').addEventListener('click', e => {
+  const pin = e.target.closest('[data-pin]');
+  if(!pin) return;
+  const p = parties.find(x => x.id === pin.dataset.pin); if(!p) return;
+  const claimed = (p.claims || []).length;
+  const cls = capClass(claimed, p.max_people);
+  const going = myClaims.has(p.id);
+  const mine = p.host_id === me.id;
+  $('#map-mini').hidden = false;
+  $('#map-mini').innerHTML = `
+    <h3>${esc(p.name)}</h3>
+    <div class="meta" style="margin:0">
+      <span class="drive">${esc(p.town || 'nearby')}</span><span>${esc(whenLabel(p.starts_at))}</span>
+      <span>${p.fee > 0 ? '$' + (+p.fee) + ' cover' : 'Free'}</span>
+      <b class="spots-${cls}">${capLabel(claimed, p.max_people)}</b>
+      ${p.privacy === 'private' ? '<span style="color:var(--amber);font-weight:600">Private</span>' : ''}
+    </div>
+    <div class="row">
+      <button class="btn" data-mapopen="${p.id}" style="padding:11px">Open the party</button>
+      <button class="btn btn-ghost" data-mapclose style="padding:11px;width:auto">Close</button>
+    </div>`;
+});
+$('#map-mini').addEventListener('click', e => {
+  if(e.target.closest('[data-mapclose]')){ $('#map-mini').hidden = true; return; }
+  const o = e.target.closest('[data-mapopen]');
+  if(o){ $('#map-mini').hidden = true; openDetail(o.dataset.mapopen, 'map'); }
+});
+
+/* ── friends ── */
+async function loadFriends(){
+  await loadFriendRows();
+  $('#freq-wrap').innerHTML = pendingIn.length ? `
+    <div class="panel" style="border-color:rgba(255,180,84,.4)">
+      <h4 style="color:var(--amber)">Friend requests (${pendingIn.length})</h4>
+      ${pendingIn.map(p => `<div class="f-row">
+        ${avatar(p, 40)}
+        <div style="flex:1;min-width:0"><div style="font-weight:600">${esc(p.display_name)}</div>
+          <div style="font-size:12px;color:var(--faint)">wants to be friends</div></div>
+        <button class="mini-btn acc" data-fracc="${p.id}">Accept</button>
+        <button class="mini-btn den" data-frdec="${p.id}">Decline</button>
+      </div>`).join('')}
+    </div>` : '';
+  $('#friend-list').innerHTML = friends.length ? friends.map(f => `
+    <button class="f-row" data-chat="${f.id}" style="width:100%;text-align:left">
+      ${avatar(f, 40)}
+      <div style="flex:1;min-width:0"><div style="font-weight:600">${esc(f.display_name)} ${unreadFrom.has(f.id) ? '<span style="color:var(--mag)">●</span>' : ''}</div>
+        <div style="font-size:12px;color:var(--faint)">${esc(f.zip || 'on Turnout')} · tap to chat</div></div>
+      <button class="mini-btn den" data-unfriend="${f.id}">Remove</button>
+    </button>`).join('') : '<p class="empty">Nobody yet — find them below.</p>';
+}
+let searchTimer;
+$('#friend-search').addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async () => {
+    const q = $('#friend-search').value.trim();
+    if(q.length < 2){ $('#search-results').innerHTML = '<p class="empty" style="padding:6px">Type a name — everyone on Turnout shows up here.</p>'; return; }
+    const { data } = await db.from('profiles').select('*').ilike('display_name', '%' + q + '%').neq('id', me.id).limit(10);
+    const fids = new Set(friends.map(f => f.id));
+    const inIds = new Set(pendingIn.map(p => p.id));
+    $('#search-results').innerHTML = (data || []).length ? data.map(p => `
+      <div class="f-row">
+        ${avatar(p, 40)}
+        <div style="flex:1;min-width:0"><div style="font-weight:600">${esc(p.display_name)}</div>
+          <div style="font-size:12px;color:var(--faint)">${esc(p.zip || '')}</div></div>
+        ${fids.has(p.id) ? '<span class="mini-btn den">Friends ✓</span>'
+          : pendingOut.has(p.id) ? '<span class="mini-btn den">Requested</span>'
+          : inIds.has(p.id) ? `<button class="mini-btn acc" data-fracc="${p.id}">Accept</button>`
+          : `<button class="mini-btn acc" data-add="${p.id}" data-name="${esc(p.display_name)}">Add</button>`}
+      </div>`).join('') : '<p class="empty" style="padding:6px">Nobody by that name yet — get them to sign up.</p>';
+  }, 300);
+});
+$('#friends').addEventListener('click', async e => {
+  let el;
+  if(el = e.target.closest('[data-add]')){
+    const { error } = await db.from('friendships').insert({ user_id: me.id, friend_id: el.dataset.add });
+    if(error){ toast(error.message.includes('duplicate') ? 'Request already out' : error.message); return; }
+    toast('Request sent to ' + el.dataset.name);
+    await loadFriends(); $('#friend-search').dispatchEvent(new Event('input'));
+    return;
+  }
+  if(el = e.target.closest('[data-fracc]')){
+    const { error } = await db.from('friendships').update({ status: 'accepted' })
+      .eq('user_id', el.dataset.fracc).eq('friend_id', me.id);
+    toast(error ? error.message : 'You’re friends now');
+    await loadFriends(); $('#friend-search').dispatchEvent(new Event('input'));
+    return;
+  }
+  if(el = e.target.closest('[data-frdec]')){
+    await db.from('friendships').delete().eq('user_id', el.dataset.frdec).eq('friend_id', me.id);
+    toast('Declined'); loadFriends(); return;
+  }
+  if(el = e.target.closest('[data-unfriend]')){
+    if(!confirm('Remove this friend?')) return;
+    await db.from('friendships').delete().eq('user_id', me.id).eq('friend_id', el.dataset.unfriend);
+    await db.from('friendships').delete().eq('user_id', el.dataset.unfriend).eq('friend_id', me.id);
+    loadFriends(); return;
+  }
+  if(el = e.target.closest('[data-chat]')){
+    openChat(el.dataset.chat);
+  }
+});
+
+/* ── chat ── */
+function msgHtml(m){
+  const side = m.sender_id === me.id ? 'me' : 'them';
+  if(m.party_id){
+    const p = allParties.find(x => x.id === m.party_id);
+    if(!p) return `<div class="bub ${side}" style="color:var(--faint)">shared a party that’s gone now</div>`;
+    const claimed = (p.claims || []).length;
+    return `<div class="bub pcard" style="align-self:${side === 'me' ? 'flex-end' : 'flex-start'}">
+      <button data-msgparty="${p.id}">
+        <div style="height:40px;background:${gradFor(p.id)}"></div>
+        <div style="padding:10px 12px">
+          <div style="font-family:var(--disp);font-weight:700;font-size:13.5px;color:#fff">${esc(p.name)}</div>
+          <div style="font-size:12px;color:var(--muted)">${esc(whenLabel(p.starts_at))} · ${esc(p.town || 'nearby')} · ${capLabel(claimed, p.max_people)}</div>
+        </div>
+      </button></div>`;
+  }
+  return `<div class="bub ${side}">${esc(m.text)}</div>`;
+}
+async function openChat(fid){
+  chatId = fid;
+  unreadFrom.delete(fid); updateDot();
+  const f = profMap[fid] || friends.find(x => x.id === fid);
+  $('#chat-av').innerHTML = avatar(f, 38);
+  $('#chat-name').textContent = f ? f.display_name : 'Chat';
+  show('chat');
+  await renderChat();
+}
+async function renderChat(){
+  if(!chatId) return;
+  const { data, error } = await db.from('messages').select('*')
+    .or(`and(sender_id.eq.${me.id},recipient_id.eq.${chatId}),and(sender_id.eq.${chatId},recipient_id.eq.${me.id})`)
+    .order('created_at', { ascending: true }).limit(200);
+  const box = $('#msgs');
+  if(error){ box.innerHTML = '<p class="empty">' + esc(error.message) + '</p>'; return; }
+  const msgs = data || [];
+  // read receipt: tag the last message YOU sent
+  let lastMine = -1;
+  msgs.forEach((m, i) => { if(m.sender_id === me.id) lastMine = i; });
+  box.innerHTML = msgs.map((m, i) => msgHtml(m)
+      + (i === lastMine ? `<div class="read-tag">${m.read_at ? 'Read' : 'Sent'}</div>` : '')
+    ).join('') ||
+    '<p class="empty">No messages yet. Say something, or share a party from its card.</p>';
+  box.scrollTop = box.scrollHeight;
+  // reading the chat marks their messages read (they'll see "Read" appear live)
+  const unseen = msgs.some(m => m.sender_id === chatId && !m.read_at);
+  if(unseen){
+    await db.from('messages').update({ read_at: new Date().toISOString() })
+      .eq('recipient_id', me.id).eq('sender_id', chatId).is('read_at', null);
+  }
+}
+async function sendMsg(){
+  const inp = $('#msg-in');
+  const text = inp.value.trim(); if(!text || !chatId) return;
+  inp.value = '';
+  const { error } = await db.from('messages').insert({ sender_id: me.id, recipient_id: chatId, text });
+  if(error){ toast(error.message); inp.value = text; return; }
+  renderChat();
+}
+$('#msg-send').addEventListener('click', sendMsg);
+$('#msg-in').addEventListener('keydown', e => { if(e.key === 'Enter') sendMsg(); });
+$('#chat-back').addEventListener('click', () => show('friends'));
+$('#msgs').addEventListener('click', e => {
+  const c = e.target.closest('[data-msgparty]');
+  if(c) show('find');
+});
+
+/* ── host ── */
+let hPriv = 'public', hDrinks = 'byob';
+$('#h-priv').addEventListener('click', e => {
+  const b = e.target.closest('[data-priv]'); if(!b) return;
+  hPriv = b.dataset.priv;
+  $$('#h-priv button').forEach(x => x.classList.toggle('on', x === b));
+  $('#h-priv-hint').textContent = hPriv === 'public'
+    ? 'Anyone who claims a spot instantly gets the address.'
+    : 'You see every request and accept who gets in. Only accepted guests get the address.';
+});
+$('#h-drinks').addEventListener('click', e => {
+  const b = e.target.closest('[data-drinks]'); if(!b) return;
+  hDrinks = b.dataset.drinks;
+  $$('#h-drinks button').forEach(x => x.classList.toggle('on', x === b));
+});
+$('#h-post').addEventListener('click', async () => {
+  const name = $('#h-name').value.trim(), addr = $('#h-addr').value.trim();
+  if(!name){ toast('Give your party a name'); return; }
+  if(!addr){ toast('Add an address — it stays locked until claims'); return; }
+  if($('#h-when').value && new Date($('#h-when').value).getTime() < Date.now() - 3600e3){
+    toast('That start time already happened — pick a future one'); return;
+  }
+  const { data: p, error } = await db.from('parties').insert({
+    host_id: me.id, name,
+    town: $('#h-town').value.trim(),
+    starts_at: $('#h-when').value ? new Date($('#h-when').value).toISOString() : null,
+    max_people: Math.max(2, parseInt($('#h-max').value, 10) || 50),
+    fee: Math.max(0, parseFloat($('#h-fee').value) || 0),
+    drinks: hDrinks,
+    privacy: hPriv,
+    description: $('#h-desc').value.trim()
+  }).select().single();
+  if(error){ toast(error.message); return; }
+  const { error: e2 } = await db.from('party_addresses').insert({ party_id: p.id, address: addr });
+  toast(e2 ? 'Party posted, but the address failed to save'
+           : (hPriv === 'private' ? 'Posted — you approve who gets in' : 'Party posted — it’s live for everyone'));
+  ['h-name','h-addr','h-town','h-desc','h-when','h-fee'].forEach(id => $('#' + id).value = '');
+  hPriv = 'public'; hDrinks = 'byob';
+  $$('#h-priv button').forEach(x => x.classList.toggle('on', x.dataset.priv === 'public'));
+  $$('#h-drinks button').forEach(x => x.classList.toggle('on', x.dataset.drinks === 'byob'));
+  $('#h-priv-hint').textContent = 'Anyone who claims a spot instantly gets the address.';
+  show('find');
+});
+
+/* ── profile ── */
+async function renderProfile(){
+  await refreshData();
+  const ps = await pushState();
+  const hosted = allParties.filter(p => p.host_id === me.id);
+  $('#profile-body').innerHTML = `
+    <div style="display:flex;gap:14px;align-items:center;margin-bottom:18px">
+      <div style="position:relative">${avatar(me, 64, 20)}
+        <button id="av-change" aria-label="Change photo" style="position:absolute;right:-6px;bottom:-6px;width:26px;height:26px;border-radius:9px;background:var(--grad);display:flex;align-items:center;justify-content:center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        </button>
+        <input id="av-file" type="file" accept="image/*" hidden>
+      </div>
+      <div><h2 style="font-size:20px;margin:0">${esc(me.display_name)}
+        ${me.is_vip ? '<span class="tag" style="color:var(--amber);border:1px solid rgba(255,180,84,.45);background:rgba(255,180,84,.1);vertical-align:3px">VIP</span>' : ''}</h2>
+        <p style="color:var(--muted);font-size:14px">${esc(me.zip)}</p></div>
+    </div>
+    <div class="panel" style="border-color:rgba(255,180,84,.4)">
+      <h4 style="color:var(--amber)">Turnout VIP ${me.is_vip ? '· active' : '· $2.99/mo'}</h4>
+      <p style="font-size:13.5px;color:var(--muted);margin-bottom:12px">New parties the second they post — everyone else waits 10 minutes. Knock on full parties. First in line on waitlists. No service fees on covers. A VIP badge hosts can see.</p>
+      <button class="btn ${me.is_vip ? 'btn-ghost' : ''}" id="vip-toggle" style="${me.is_vip ? '' : 'background:linear-gradient(100deg,var(--amber),var(--mag))'}">${me.is_vip ? 'VIP is on — turn off (demo)' : 'Try VIP (demo)'}</button>
+      <p class="hint" style="margin-top:8px">The perks switch on as we ship them — the badge is live now.</p>
+    </div>
+    <div class="panel">
+      <h4>Notifications</h4>
+      ${ps === 'on' ? '<p style="color:var(--lime);font-weight:600;font-size:14px">On — new parties, messages, and acceptances hit this phone</p>'
+        : ps === 'needs-install' ? '<p style="color:var(--muted);font-size:14px">On iPhone, first add Turnout to your Home Screen: tap the <b style="color:var(--text)">Share</b> button in Safari → <b style="color:var(--text)">Add to Home Screen</b> → open Turnout from the new icon, then come back here.</p>'
+        : ps === 'blocked' ? '<p style="color:var(--muted);font-size:14px">Blocked in your browser settings — allow notifications for this site, then refresh.</p>'
+        : ps === 'unsupported' ? '<p style="color:var(--muted);font-size:14px">This browser can’t do push — use the app on your phone.</p>'
+        : '<button class="btn" id="notif-enable" style="margin-top:2px">Turn on notifications</button><p class="hint" style="margin-top:8px">New parties the moment they post, messages, and “you’re in” — straight to this phone.</p>'}
+    </div>
+    <div class="panel"><h4>Host flame</h4>
+      ${hosted.length >= 3
+        ? `<p class="flame" style="font-size:16px">${flameSvg(16)} ${hosted.length} parties hosted — you’ve got the flame</p>`
+        : `<p style="color:var(--muted);font-size:14px">${hosted.length} of 3 parties hosted. The flame shows on your parties once people know you throw them for real.</p>`}
+    </div>
+    <div class="panel"><h4>Your Turnout so far</h4>
+      <div class="meta" style="font-size:14px">
+        <span><b style="color:var(--text)">${myClaims.size}</b> spots claimed</span>
+        <span><b style="color:var(--text)">${hosted.length}</b> parties hosted</span>
+        <span><b style="color:var(--text)">${friends.length}</b> friends</span>
+      </div></div>
+    <div class="panel"><h4>Coming next</h4>
+      <p style="font-size:13.5px;color:var(--muted)">VIP perks going live · covers charged in-app · recap albums that disappear Friday · the real map with real distances. One drop at a time.</p></div>
+    <button class="btn btn-ghost" id="signout">Sign out</button>`;
+}
+$('#profile-body').addEventListener('click', async e => {
+  if(e.target.id === 'notif-enable'){ enablePush(); return; }
+  if(e.target.closest('#av-change')){ $('#av-file').click(); return; }
+  if(e.target.id === 'vip-toggle'){
+    const next = !me.is_vip;
+    const { error } = await db.from('profiles').update({ is_vip: next }).eq('id', me.id);
+    if(error){ toast(error.message); return; }
+    me.is_vip = next;
+    toast(next ? 'VIP is on — gold badge unlocked' : 'VIP turned off');
+    renderProfile(); return;
+  }
+  if(e.target.id === 'signout'){ await db.auth.signOut(); location.reload(); }
+});
+$('#profile-body').addEventListener('change', async e => {
+  if(e.target.id !== 'av-file') return;
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  if(file.size > 5 * 1024 * 1024){ toast('That photo is over 5MB — pick a smaller one'); return; }
+  toast('Uploading…');
+  const path = me.id + '/avatar';
+  const { error } = await db.storage.from('avatars').upload(path, file, { upsert: true, contentType: file.type });
+  if(error){ toast(error.message.includes('not found') ? 'Run migration4.sql first — the photo bucket is missing' : error.message); return; }
+  const url = db.storage.from('avatars').getPublicUrl(path).data.publicUrl + '?v=' + Date.now();
+  const { error: e2 } = await db.from('profiles').update({ avatar_url: url }).eq('id', me.id);
+  if(e2){ toast(e2.message); return; }
+  me.avatar_url = url;
+  toast('Looking good — photo saved');
+  renderProfile();
+});
+
+/* ── realtime ── */
+function maybeReload(){
+  if($('#find').classList.contains('on')) loadParties();
+  if($('#map').classList.contains('on')) loadParties().then(renderMap);
+  if($('#detail').classList.contains('on')) loadParties().then(renderDetail);
+}
+function startRealtime(){
+  db.channel('live')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'claims' }, maybeReload)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, maybeReload)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'parties' }, maybeReload)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+      const m = payload.new;
+      if(m.recipient_id !== me.id) { if(m.sender_id === me.id && chatId && $('#chat').classList.contains('on')) renderChat(); return; }
+      if(chatId === m.sender_id && $('#chat').classList.contains('on')){ renderChat(); return; }
+      unreadFrom.add(m.sender_id); updateDot();
+      const who = profMap[m.sender_id];
+      toast('New message' + (who ? ' from ' + who.display_name : '') + ' — check Friends');
+      if($('#friends').classList.contains('on')) loadFriends();
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, payload => {
+      // their side just read your message — flip Sent to Read live
+      if(payload.new.sender_id === me.id && chatId && $('#chat').classList.contains('on')) renderChat();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => {
+      if($('#friends').classList.contains('on')) loadFriends();
+      else loadFriendRows();
+    })
+    .subscribe();
+}
+
+/* ── boot ── */
+async function boot(){
+  if(!configured){ $('#config-warn').hidden = false; return; }
+  me = await loadMe();
+  if(!me){ show('auth'); return; }
+  startRealtime();
+  // unread dots survive reloads now that read state lives in the database
+  try{
+    const { data: un } = await db.from('messages').select('sender_id')
+      .eq('recipient_id', me.id).is('read_at', null);
+    unreadFrom = new Set((un || []).map(r => r.sender_id));
+    updateDot();
+  }catch(e){}
+  show('find');
+}
+boot();
+</script>
+</body>
+</html>
