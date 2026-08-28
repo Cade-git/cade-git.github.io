@@ -183,7 +183,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.1</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.2</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -356,7 +356,18 @@ function urlBase64ToUint8Array(base64String){
   return out;
 }
 if('serviceWorker' in navigator && location.protocol === 'https:'){
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('/sw.js').then(reg => {
+    reg.update().catch(() => {});
+    // re-check for updates whenever the app comes back to the foreground
+    document.addEventListener('visibilitychange', () => {
+      if(document.visibilityState === 'visible') reg.update().catch(() => {});
+    });
+  }).catch(() => {});
+  // a new version took over: load it once, silently
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if(hadController && !window.__swReloaded){ window.__swReloaded = true; location.reload(); }
+  });
 }
 async function pushState(){
   if(!('serviceWorker' in navigator) || !('PushManager' in window) || location.protocol !== 'https:') return 'unsupported';
