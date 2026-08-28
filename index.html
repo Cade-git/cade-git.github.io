@@ -233,9 +233,10 @@
   .pshare-gone{padding:12px 15px;border-radius:16px;background:var(--raised);border:1px solid var(--line);
     color:var(--faint);font-size:13px}
   /* photos sit clean, no frame */
-  .bub.imgb{padding:0;background:none;border:none;max-width:70%;width:fit-content;line-height:0;border-radius:17px;overflow:hidden;flex:0 0 auto}
-  .bub.imgb.me{background:none}
-  .bub.imgb img{border-radius:17px}
+  .bub.imgb{padding:0;background:none;border:none;width:min(68%,262px);line-height:0;border-radius:17px;
+    overflow:hidden;flex:0 0 auto}
+  .bub.imgb img{width:100%;height:auto;max-height:340px;object-fit:cover;border-radius:17px;display:block;
+    cursor:zoom-in;background:#191630}
   /* reactions */
   .rx{display:flex;gap:4px;margin:-1px 2px 5px;flex-wrap:wrap}
   .rx.me{align-self:flex-end} .rx.them{align-self:flex-start}
@@ -267,9 +268,6 @@
   .send-btn:disabled{opacity:.35}
   .chat-empty{margin:auto;text-align:center;color:var(--faint);font-size:13.5px;padding:30px 20px}
   .chat-empty b{display:block;font-family:var(--disp);font-size:16px;color:var(--muted);margin-bottom:5px}
-  .bub.imgb{padding:4px;background:var(--raised);border:1px solid var(--line);max-width:72%;line-height:0}
-  .bub.imgb.me{background:var(--grad)}
-  .bub.imgb img{width:100%;max-height:340px;object-fit:cover;border-radius:13px;display:block;cursor:zoom-in;background:#191630}
   .bub.imgb.up{position:relative;opacity:.55}
   .bub.imgb.up::after{content:'Sending…';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.8);line-height:1}
@@ -401,7 +399,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.7</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.8</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
