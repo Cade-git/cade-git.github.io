@@ -21,6 +21,7 @@
     --text:#F4F1FC; --muted:#9C95B8; --faint:#6E6788;
     --mag:#FF3D8A; --vio:#8B5CF6; --cyan:#35D6ED; --lime:#B4F04B;
     --amber:#FFB454; --red:#FF5C5C;
+    --spring:cubic-bezier(.22,1,.36,1);
     --grad:linear-gradient(100deg,var(--mag),var(--vio));
     --disp:'Unbounded',system-ui,sans-serif;
     --body:'Outfit',system-ui,sans-serif;
@@ -82,14 +83,41 @@
   .tab.on{color:#fff}
   .tab .dot{position:absolute;top:3px;right:calc(50% - 17px);width:8px;height:8px;border-radius:99px;
     background:var(--mag);box-shadow:0 0 8px var(--mag)}
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;
-    margin-bottom:14px;width:100%;text-align:left}
-  .cover{height:70px;position:relative;display:flex;align-items:flex-end;padding:10px 16px}
-  .tag{font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:rgba(11,10,20,.55);color:#fff}
-  .cover .tag{position:absolute;top:10px;right:10px}
-  .tag.yours{background:rgba(180,240,75,.9);color:#12210A}
-  .card-body{padding:14px 16px 16px}
-  .card h3{font-family:var(--disp);font-weight:700;font-size:16px;margin:0 0 5px;color:#fff}
+  .card{position:relative;border-radius:22px;overflow:hidden;margin-bottom:16px;width:100%;text-align:left;
+    aspect-ratio:16/11;display:block;background:#191630;box-shadow:0 10px 30px -12px rgba(0,0,0,.8);
+    transition:transform .32s var(--spring)}
+  .card:active{transform:scale(.975)}
+  .cover-pick{width:100%;height:132px;border-radius:16px;border:1.5px dashed rgba(255,255,255,.18);
+    background:var(--raised);background-size:cover;background-position:center;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:7px;color:var(--muted);font-size:13px;font-weight:600;position:relative;overflow:hidden}
+  .cover-pick svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .cover-pick.has{border-style:solid;border-color:transparent;color:#fff}
+  .cover-pick.has .cp-label{background:rgba(8,7,16,.72);backdrop-filter:blur(8px);padding:6px 13px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.18)}
+  .cover-pick.has svg{display:none}
+  .card-img{position:absolute;inset:0;background-size:cover;background-position:center}
+  .card-scrim{position:absolute;inset:0;background:linear-gradient(to top,
+    rgba(8,7,16,.94) 0%, rgba(8,7,16,.72) 26%, rgba(8,7,16,.12) 55%, rgba(8,7,16,.3) 100%)}
+  .card-top{position:absolute;top:12px;left:12px;right:12px;display:flex;gap:6px;align-items:flex-start}
+  .card-foot{position:absolute;left:0;right:0;bottom:0;padding:0 16px 15px}
+  .tag{font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px;background:rgba(8,7,16,.6);
+    backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.16);color:#fff;white-space:nowrap}
+  .tag.yours{background:rgba(180,240,75,.92);color:#12210A;border-color:transparent}
+  .tag.going{background:rgba(180,240,75,.92);color:#12210A;border-color:transparent}
+  .tag.priv{background:rgba(255,180,84,.9);color:#241503;border-color:transparent}
+  .card h3{font-family:var(--disp);font-weight:800;font-size:20px;margin:0 0 3px;color:#fff;line-height:1.15;
+    text-shadow:0 2px 14px rgba(0,0,0,.65);letter-spacing:-.01em}
+  .card-when{font-size:12.5px;color:rgba(255,255,255,.72);font-weight:500;margin-bottom:11px;
+    text-shadow:0 1px 8px rgba(0,0,0,.6)}
+  .card-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .spots-n{font-family:var(--disp);font-weight:800;font-size:16.5px;font-variant-numeric:tabular-nums;
+    letter-spacing:-.01em;text-shadow:0 1px 10px rgba(0,0,0,.7);white-space:nowrap}
+  .spots-n small{font-family:var(--body);font-weight:600;font-size:11.5px;opacity:.75;margin-left:3px}
+  .stack{display:flex;align-items:center}
+  .stack .f-av,.stack .avimg{border:2px solid rgba(10,9,18,.9);box-sizing:content-box;margin-right:-9px}
+  .stack-more{font-size:11.5px;font-weight:700;color:rgba(255,255,255,.8);margin-left:15px;white-space:nowrap}
+  .card-bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.13)}
+  .card-bar i{display:block;height:100%}
   .meta{display:flex;flex-wrap:wrap;gap:5px 14px;font-size:13px;color:var(--muted)}
   .meta .drive{color:var(--cyan);font-weight:600}
   .flame{display:inline-flex;align-items:center;gap:3px;color:var(--amber);font-weight:700}
@@ -287,7 +315,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.3</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.4</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -388,6 +416,9 @@
       <h2 style="font-size:22px;margin:2px 0 4px">Throw something.</h2>
       <p style="color:var(--muted);margin-bottom:18px;font-size:14.5px">Post it and everyone on here sees it live, instantly.</p>
       <div class="field"><label for="h-name">Party name</label><input id="h-name" placeholder="e.g. End of Summer Blowout"></div>
+      <div class="field"><label>Cover photo</label>
+        <button class="cover-pick" id="h-photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg><span class="cp-label">Add a photo — it becomes the card</span></button>
+        <input id="h-photo-file" type="file" accept="image/*" hidden></div>
       <div class="field"><label for="h-when">When</label><input id="h-when" type="datetime-local"></div>
       <div class="field"><label for="h-addr">Address</label><input id="h-addr" placeholder="Street address">
         <button class="btn btn-ghost" id="h-gps" style="padding:9px;margin-top:8px;font-size:13.5px"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.2-6.5-10.2a6.5 6.5 0 0 1 13 0C18.5 15.8 12 21 12 21z"/><circle cx="12" cy="10.6" r="2.3"/></svg>Pin my exact spot</button>
@@ -714,11 +745,38 @@ function capLabel(claimed, max){
   if(left === 1) return 'Only 1 spot left';
   return left + ' spots left';
 }
+function clockLabel(d){
+  let h = d.getHours(); const m = d.getMinutes(), ap = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return m ? h + ':' + String(m).padStart(2, '0') + ap : h + ap;   // 9PM, not 9:00 PM
+}
+/* people don't say "Fri, Aug 28 · 12:55 PM" — they say "tonight" */
 function whenLabel(ts){
   if(!ts) return 'Date TBA';
+  const d = new Date(ts), now = new Date(), diff = d - now, hrs = diff / 3600000;
+  if(diff <= 0) return hrs > -5 ? 'Happening now' : 'Wrapped up';
+  if(hrs < 1) return 'Starts in ' + Math.max(1, Math.round(diff / 60000)) + ' min';
+  if(hrs < 6) return 'Starts in ' + Math.round(hrs) + ' hours';
+  const day = new Date(now); day.setHours(0,0,0,0);
+  const days = Math.round((new Date(d).setHours(0,0,0,0) - day) / 864e5);
+  const t = clockLabel(d);
+  if(days === 0) return (d.getHours() >= 17 ? 'Tonight' : 'Today') + ' · ' + t;
+  if(days === 1) return (d.getHours() >= 17 ? 'Tomorrow night' : 'Tomorrow') + ' · ' + t;
+  if(days < 7) return d.toLocaleDateString('en-US', { weekday: 'long' }) + ' · ' + t;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' · ' + t;
+}
+function exactWhen(ts){
+  if(!ts) return 'Date TBA';
   const d = new Date(ts);
-  return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})
-    + ' · ' + d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' · ' + clockLabel(d);
+}
+/* who's going, as faces */
+function faceStack(ids, max){
+  const show = ids.slice(0, max || 3);
+  const extra = ids.length - show.length;
+  if(!show.length) return '';
+  return '<span class="stack">' + show.map(id => avatar(profMap[id] || { id }, 24, 99)).join('')
+    + (extra ? '<span class="stack-more">+' + extra + '</span>' : '<span style="width:9px"></span>') + '</span>';
 }
 function friendLine(names){
   if(names.length === 1) return names[0] + ' is going';
@@ -783,6 +841,7 @@ async function loadParties(){
     const requested = myRequests.has(p.id);
     const priv = p.privacy === 'private';
     const fNames = claimers.filter(id => friendIds.has(id)).map(id => nameOf[id]);
+    const fIds = claimers.filter(id => friendIds.has(id));
     const cls = capClass(claimed, p.max_people);
     const pct = Math.min(100, claimed / p.max_people * 100);
     const full = claimed >= p.max_people;
@@ -795,29 +854,25 @@ async function loadParties(){
       : reqCount ? `<div class="friendsline" style="color:var(--amber)">${reqCount} request${reqCount > 1 ? 's' : ''} waiting — tap to review</div>`
       : '';
     return `<button class="card" data-open="${p.id}">
-      <div class="cover" style="background:${gradFor(p.id)}">
-        ${mine ? '<span class="tag yours" style="position:absolute;top:10px;left:10px">Your party</span>' : ''}
-        <span class="tag">${going ? 'You’re going' : esc(whenLabel(p.starts_at).split(' · ')[0])}</span>
+      <div class="card-img" style="background:${p.photo_url ? `url('${esc(p.photo_url)}')` : gradFor(p.id)};background-size:cover;background-position:center"></div>
+      <div class="card-scrim"></div>
+      <div class="card-top">
+        ${mine ? '<span class="tag yours">Your party</span>' : ''}
+        ${going ? '<span class="tag going">You’re in</span>' : ''}
+        ${priv && !mine && !going ? '<span class="tag priv">Private</span>' : ''}
+        ${flames ? `<span class="tag">${flames}</span>` : ''}
+        <span style="flex:1"></span>
+        ${p.fee > 0 ? `<span class="tag">$${+p.fee}</span>` : ''}
       </div>
-      <div class="card-body">
+      <div class="card-foot">
         <h3>${esc(p.name)}</h3>
-        <div class="meta" style="margin-bottom:5px">
-          <span class="drive">${esc(p.town || 'nearby')}</span>
-          <span>${esc(whenLabel(p.starts_at))}</span>
-          <span style="${p.fee > 0 ? 'color:var(--lime);font-weight:700' : 'color:var(--faint)'}">${p.fee > 0 ? '$' + (+p.fee) + ' cover' : 'Free'}</span>
+        <div class="card-when">${esc(whenLabel(p.starts_at))}${p.town ? ' · ' + esc(p.town) : ''}</div>
+        <div class="card-row">
+          ${fIds.length ? faceStack(fIds, 3) : '<span style="font-size:12.5px;color:rgba(255,255,255,.6);font-weight:600">hosted by ' + esc(mine ? 'you' : (nickMap[p.host_id] || p.profiles?.display_name || 'someone')) + '</span>'}
+          <span class="spots-n spots-${cls}">${full ? 'Full' : (p.max_people - claimed)}${full ? '' : '<small>spots left</small>'}</span>
         </div>
-        <div class="meta" style="font-size:12px;color:var(--faint)">
-          <span>hosted by ${esc(mine ? 'you' : (nickMap[p.host_id] || p.profiles?.display_name || 'someone'))}</span>
-          ${flames}
-          <span>${p.drinks === 'provided' ? 'Drinks provided' : 'BYOB'}</span>
-          ${priv ? '<span style="color:var(--amber);font-weight:600">Private</span>' : ''}
-        </div>
-        ${fNames.length ? `<div class="friendsline">${esc(friendLine(fNames))}</div>` : ''}
-        ${status}
-        <div class="capline"><b>${claimed} / ${p.max_people} going</b>
-          <b class="spots-${cls}">${capLabel(claimed, p.max_people)}</b></div>
-        <div class="capbar" style="margin-bottom:2px"><i class="fill-${cls}" style="width:${pct}%"></i></div>
       </div>
+      <div class="card-bar"><i class="fill-${cls}" style="width:${pct}%"></i></div>
     </button>`;
   }).join('');
   if(_sb) _sb.scrollTop = _st;
@@ -1544,6 +1599,28 @@ $('#msgs').addEventListener('click', e => {
 
 /* ── host ── */
 let hostGPS = null;   // set when they tap "pin my exact spot"
+let hostPhoto = null; // cover photo url once uploaded
+$('#h-photo').addEventListener('click', () => $('#h-photo-file').click());
+$('#h-photo-file').addEventListener('change', async e => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  const btn = $('#h-photo'), label = btn.querySelector('.cp-label');
+  label.textContent = 'Uploading…';
+  try {
+    const blob = await shrinkImage(file, 1200, .8);
+    const path = me.id + '/party/' + Date.now() + '.jpg';
+    const { error } = await db.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+    if(error) throw error;
+    hostPhoto = db.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+    btn.style.backgroundImage = "url('" + hostPhoto + "')";
+    btn.classList.add('has');
+    label.textContent = 'Change photo';
+  } catch(err){
+    label.textContent = 'Add a photo — it becomes the card';
+    toast((err && err.message) || 'That photo would not upload');
+  }
+});
 const PIN_IC = '<svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.2-6.5-10.2a6.5 6.5 0 0 1 13 0C18.5 15.8 12 21 12 21z"/><circle cx="12" cy="10.6" r="2.3"/></svg>';
 $('#h-gps').addEventListener('click', () => {
   if(!navigator.geolocation){ toast('This phone can’t share location — the address still works'); return; }
@@ -1612,6 +1689,7 @@ $('#h-post').addEventListener('click', async () => {
     drinks: hDrinks,
     privacy: hPriv,
     description: $('#h-desc').value.trim(),
+    photo_url: hostPhoto,
     approx_lat: fz ? fz.lat : null,
     approx_lon: fz ? fz.lon : null
   }).select().single();
@@ -1624,7 +1702,10 @@ $('#h-post').addEventListener('click', async () => {
   if(pt) exactPt[p.id] = pt;
   toast(e2 ? 'Party posted, but the address failed to save'
            : (hPriv === 'private' ? 'Posted — you approve who gets in' : 'Party posted — it’s live for everyone'));
-  hostGPS = null;
+  hostGPS = null; hostPhoto = null;
+  $('#h-photo').classList.remove('has');
+  $('#h-photo').style.backgroundImage = '';
+  $('#h-photo').querySelector('.cp-label').textContent = 'Add a photo — it becomes the card';
   $('#h-gps').innerHTML = PIN_IC + 'Pin my exact spot';
   $('#h-addr-hint').textContent = 'Locked in the database — only your guests can ever read it.';
   ['h-name','h-addr','h-town','h-desc','h-when','h-fee'].forEach(id => $('#' + id).value = '');
