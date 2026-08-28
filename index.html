@@ -227,7 +227,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.9</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v5.0</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -302,7 +302,7 @@
     <div class="chat-top">
       <button class="back-btn" id="chat-back" aria-label="Back">
         <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
-      <div id="chat-peer" title="Tap to edit">
+      <div id="chat-peer" title="View profile">
         <span id="chat-av"></span>
         <div style="font-weight:700" id="chat-name"></div>
       </div>
@@ -1038,7 +1038,7 @@ async function loadFriends(){
     const line = !p ? 'Say hey — start the chat'
       : (p.m.sender_id === me.id ? 'You: ' : '') + (p.m.party_id ? 'Shared a party 📍' : esc(p.m.text || ''));
     return `<button class="fl-row" data-chat="${f.id}">
-      ${avatar(f, 50, 16)}
+      <span data-viewuser="${f.id}" style="display:flex">${avatar(f, 50, 16)}</span>
       <div class="fl-main">
         <div class="fl-name">${esc(dispName(f))}</div>
         <div class="fl-prev ${un ? 'unread' : ''}">${line}</div>
@@ -1168,45 +1168,52 @@ $('#msg-send').addEventListener('click', sendMsg);
 $('#msg-in').addEventListener('keydown', e => { if(e.key === 'Enter') sendMsg(); });
 $('#chat-back').addEventListener('click', () => closeOverlay($('#chat'), 'friends'));
 
-/* ── nickname sheet (tap their name in a chat, like Snapchat) ── */
-$('#chat-peer').addEventListener('click', () => {
-  if(!chatId) return;
-  const f = profMap[chatId] || friends.find(x => x.id === chatId);
+/* ── tap their name in a chat → their profile card ── */
+$('#chat-peer').addEventListener('click', () => { if(chatId) openUserCard(chatId); });
+
+/* ── nickname sheet (opened from the profile card) ── */
+let nickTarget = null;
+function openNickSheet(fid){
+  nickTarget = fid;
+  const f = profMap[fid] || friends.find(x => x.id === fid);
   $('#nick-av').innerHTML = avatar(f, 52, 16);
   $('#nick-title').textContent = dispName(f);
-  $('#nick-real').textContent = nickMap[chatId] ? 'Real name: ' + (f?.display_name || '') : 'Tap below to give them a nickname';
-  $('#nick-input').value = nickMap[chatId] || '';
+  $('#nick-real').textContent = nickMap[fid] ? 'Real name: ' + (f?.display_name || '') : 'Only you see the nickname';
+  $('#nick-input').value = nickMap[fid] || '';
   $('#nick-sheet').hidden = false;
-});
+}
 $('#nick-sheet').addEventListener('click', e => { if(e.target.id === 'nick-sheet') e.target.hidden = true; });
 $('#nick-save').addEventListener('click', async () => {
-  if(!chatId) return;
+  if(!nickTarget) return;
   const v = $('#nick-input').value.trim();
   if(v){
-    const { error } = await db.from('nicknames').upsert({ owner_id: me.id, friend_id: chatId, nickname: v });
+    const { error } = await db.from('nicknames').upsert({ owner_id: me.id, friend_id: nickTarget, nickname: v });
     if(error){ toast(error.message.includes('nicknames') ? 'One sec — the nicknames table isn’t set up yet' : error.message); return; }
-    nickMap[chatId] = v;
+    nickMap[nickTarget] = v;
   } else {
-    await db.from('nicknames').delete().eq('owner_id', me.id).eq('friend_id', chatId);
-    delete nickMap[chatId];
+    await db.from('nicknames').delete().eq('owner_id', me.id).eq('friend_id', nickTarget);
+    delete nickMap[nickTarget];
   }
-  const f = profMap[chatId];
-  $('#chat-name').textContent = dispName(f);
-  $('#chat-av').innerHTML = avatar(f, 38);
+  if(chatId === nickTarget){
+    const f = profMap[nickTarget];
+    $('#chat-name').textContent = dispName(f);
+    $('#chat-av').innerHTML = avatar(f, 38);
+  }
+  if($('#friends').classList.contains('on')) loadFriends();
   $('#nick-sheet').hidden = true;
   toast(v ? 'Nickname saved — only you see it' : 'Back to their real name');
 });
 $('#nick-remove').addEventListener('click', async () => {
-  if(!chatId) return;
-  const f = profMap[chatId];
+  if(!nickTarget) return;
+  const f = profMap[nickTarget];
   if(!confirm('Remove ' + (f?.display_name || 'this friend') + '? They won’t be notified.')) return;
-  await db.from('friendships').delete().eq('user_id', me.id).eq('friend_id', chatId);
-  await db.from('friendships').delete().eq('user_id', chatId).eq('friend_id', me.id);
-  await db.from('nicknames').delete().eq('owner_id', me.id).eq('friend_id', chatId);
-  delete nickMap[chatId];
+  await db.from('friendships').delete().eq('user_id', me.id).eq('friend_id', nickTarget);
+  await db.from('friendships').delete().eq('user_id', nickTarget).eq('friend_id', me.id);
+  await db.from('nicknames').delete().eq('owner_id', me.id).eq('friend_id', nickTarget);
+  delete nickMap[nickTarget];
   $('#nick-sheet').hidden = true;
   toast('Friend removed');
-  closeOverlay($('#chat'), 'friends');
+  if(chatId === nickTarget && $('#chat').classList.contains('on')) closeOverlay($('#chat'), 'friends');
   loadFriends();
 });
 $('#msgs').addEventListener('click', e => {
@@ -1374,7 +1381,9 @@ async function openUserCard(uid){
   try { const { data } = await db.rpc('mutual_friends', { other: uid }); if(typeof data === 'number') mut = data; } catch(_){}
   const isFriend = friends.some(f => f.id === uid);
   const action = isFriend
-      ? `<button class="btn" data-ucchat="${uid}">Message ${esc((nickMap[uid] || p.display_name).split(' ')[0])}</button>`
+      ? `<button class="btn" data-ucchat="${uid}">Message ${esc((nickMap[uid] || p.display_name).split(' ')[0])}</button>
+         <button class="btn btn-ghost" data-ucnick="${uid}" style="margin-top:10px">${nickMap[uid] ? 'Edit nickname' : 'Add a nickname'}</button>
+         <button class="danger-link" data-ucremove="${uid}">Remove friend</button>`
     : pendingOut.has(uid) ? '<button class="btn btn-ghost" disabled>Request sent</button>'
     : pendingIn.some(x => x.id === uid) ? `<button class="btn" data-ucacc="${uid}">Accept friend request</button>`
     : `<button class="btn" data-ucadd="${uid}">Add friend</button>`;
@@ -1397,6 +1406,12 @@ $('#user-sheet').addEventListener('click', async e => {
   if(e.target.id === 'user-sheet'){ e.target.hidden = true; return; }
   let el;
   if(el = e.target.closest('[data-ucchat]')){ $('#user-sheet').hidden = true; openChat(el.dataset.ucchat); return; }
+  if(el = e.target.closest('[data-ucnick]')){ $('#user-sheet').hidden = true; openNickSheet(el.dataset.ucnick); return; }
+  if(el = e.target.closest('[data-ucremove]')){
+    $('#user-sheet').hidden = true;
+    nickTarget = el.dataset.ucremove;
+    $('#nick-remove').click(); return;
+  }
   if(el = e.target.closest('[data-ucadd]')){
     const { error } = await db.from('friendships').insert({ user_id: me.id, friend_id: el.dataset.ucadd });
     toast(error ? (error.message.includes('duplicate') ? 'Request already out' : error.message) : 'Request sent');
