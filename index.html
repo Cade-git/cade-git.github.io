@@ -158,9 +158,20 @@
   .d-cover{height:calc(120px + env(safe-area-inset-top, 0px));position:relative;display:flex;align-items:flex-end;padding:12px 20px}
   .d-back{position:absolute;top:calc(12px + env(safe-area-inset-top, 0px));left:12px;z-index:2;background:rgba(11,10,20,.65)}
   /* share sheet */
-  #share-sheet,#nick-sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;
+  #share-sheet,#nick-sheet,#pfp-sheet,#user-sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;
     background:rgba(0,0,0,.55)}
-  #share-sheet[hidden],#nick-sheet[hidden]{display:none}
+  #share-sheet[hidden],#nick-sheet[hidden],#pfp-sheet[hidden],#user-sheet[hidden]{display:none}
+  .pf-banner{height:118px;border-radius:18px;background-size:cover;background-position:center;position:relative;margin-bottom:44px}
+  .pf-banner .pf-avslot{position:absolute;left:14px;bottom:-32px}
+  .pf-avslot .avimg,.pf-avslot .f-av{border:3px solid var(--bg);box-sizing:content-box}
+  .pf-bannerbtn{position:absolute;right:10px;top:10px;width:30px;height:30px;border-radius:10px;background:rgba(0,0,0,.45);
+    display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.25)}
+  .grad-grid{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 16px}
+  .grad-pick{width:52px;height:52px;border-radius:18px;display:flex;align-items:center;justify-content:center;
+    font-family:var(--disp);font-weight:800;color:#fff;font-size:20px;border:2px solid transparent;cursor:pointer}
+  .grad-pick.on{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+  .uc-stats{display:flex;gap:16px;margin:12px 0 16px;font-size:13.5px;color:var(--muted)}
+  .uc-stats b{color:var(--text);font-size:15px}
   #chat-peer{display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;
     -webkit-tap-highlight-color:transparent}
   .nick-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
@@ -216,7 +227,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.8</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.9</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -384,6 +395,24 @@
     <button class="danger-link" id="nick-remove">Remove friend</button>
   </div>
 </div>
+
+<div id="pfp-sheet" hidden>
+  <div class="sheet">
+    <div style="display:flex;justify-content:center;margin-bottom:14px" id="pfp-preview"></div>
+    <h3 style="text-align:center">Your profile pic</h3>
+    <p class="sub" style="text-align:center">Everyone sees this one.</p>
+    <button class="btn" id="pfp-upload">Choose from camera roll</button>
+    <p class="sub" style="margin:16px 0 4px">…or grab a Turnout default:</p>
+    <div class="grad-grid" id="pfp-grads"></div>
+    <p class="hint">Heads up: default pics don’t count for private parties — hosts want to see a real face before they let you in.</p>
+  </div>
+</div>
+
+<div id="user-sheet" hidden>
+  <div class="sheet" style="padding-top:14px">
+    <div id="user-card"></div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -452,7 +481,10 @@ function toast(msg){
 }
 const GRADS = ['linear-gradient(120deg,#FF3D8A,#8B5CF6)','linear-gradient(120deg,#8B5CF6,#35D6ED)',
   'linear-gradient(120deg,#FF7A3D,#FF3D8A)','linear-gradient(120deg,#35D6ED,#B4F04B)',
-  'linear-gradient(120deg,#B45CF6,#FF5C7A)','linear-gradient(120deg,#FFB454,#FF3D8A)'];
+  'linear-gradient(120deg,#B45CF6,#FF5C7A)','linear-gradient(120deg,#FFB454,#FF3D8A)',
+  'linear-gradient(120deg,#B4F04B,#35D6ED)','linear-gradient(120deg,#FF5C5C,#FFB454)'];
+const isDefaultAv = u => !!u && u.startsWith('grad:');
+const gradOfAv = (u, id) => GRADS[(parseInt(u.slice(5), 10) || 0) % GRADS.length] || gradFor(id || 'x');
 function hashN(id, mod){ let h = 0; for(const c of id) h = (h * 31 + c.charCodeAt(0)) % 99991; return h % mod; }
 function gradFor(id){ return GRADS[hashN(id, 6)]; }
 function flameSvg(w){
@@ -461,9 +493,11 @@ function flameSvg(w){
 }
 function avatar(p, size, radius){
   const r = radius || 13;
-  if(p && p.avatar_url)
-    return `<img class="avimg" src="${esc(p.avatar_url)}" alt="" style="width:${size}px;height:${size}px;border-radius:${r}px">`;
-  return `<div class="f-av" style="width:${size}px;height:${size}px;border-radius:${r}px;background:${gradFor(p?.id || 'x')};font-size:${Math.round(size * 0.42)}px">${esc((nickMap[p?.id] || p?.display_name || '?').charAt(0))}</div>`;
+  const au = p && p.avatar_url;
+  if(au && !isDefaultAv(au))
+    return `<img class="avimg" src="${esc(au)}" alt="" style="width:${size}px;height:${size}px;border-radius:${r}px">`;
+  const bg = au ? gradOfAv(au, p?.id) : gradFor(p?.id || 'x');
+  return `<div class="f-av" style="width:${size}px;height:${size}px;border-radius:${r}px;background:${bg};font-size:${Math.round(size * 0.42)}px">${esc((nickMap[p?.id] || p?.display_name || '?').charAt(0))}</div>`;
 }
 
 let me = null;
@@ -765,8 +799,9 @@ async function renderDetail(){
         <h4>Who&rsquo;s going (${claimed})</h4>
         ${(going || mine)
           ? (guests.length
-              ? guests.map(gp => `<div class="f-row">${avatar(gp, 34)}
-                  <span style="flex:1;font-weight:600">${esc(nickMap[gp.id] || gp.display_name)}${gp.id === me.id ? ' (you)' : ''}</span>
+              ? guests.map(gp => `<div class="f-row">
+                  <button data-viewuser="${gp.id}" style="display:flex;flex:1;gap:10px;align-items:center;background:none;border:none;padding:0;min-width:0;text-align:left;color:inherit;font-family:inherit">${avatar(gp, 34)}
+                  <span style="flex:1;font-weight:600">${esc(nickMap[gp.id] || gp.display_name)}${gp.id === me.id ? ' (you)' : ''}</span></button>
                   ${friendIds.has(gp.id) ? '<span style="font-size:12px;color:#FF9CC4;font-weight:600">friend</span>' : ''}
                 </div>`).join('')
               : '<p class="empty" style="padding:6px">Nobody yet — first claim gets bragging rights.</p>')
@@ -782,8 +817,9 @@ async function renderDetail(){
       ${reqs.length ? `<div class="panel" style="border-color:rgba(255,180,84,.4)">
           <h4 style="color:var(--amber)">Requests (${reqs.length})</h4>
           ${reqs.map(r => `<div class="f-row">
+            <button data-viewuser="${r.user_id}" style="display:flex;flex:1;gap:10px;align-items:center;background:none;border:none;padding:0;min-width:0;text-align:left;color:inherit;font-family:inherit">
             ${avatar(profMap[r.user_id] || {id:r.user_id, display_name:r.name, avatar_url:r.av}, 34)}
-            <span style="flex:1;font-weight:600">${esc(nickMap[r.user_id] || r.name)}</span>
+            <span style="flex:1;font-weight:600">${esc(nickMap[r.user_id] || r.name)}</span></button>
             <button class="mini-btn acc" data-accept="${p.id}" data-uid="${r.user_id}">Accept</button>
             <button class="mini-btn den" data-deny="${p.id}" data-uid="${r.user_id}">Deny</button>
           </div>`).join('')}
@@ -806,6 +842,7 @@ $('#detail-body').addEventListener('click', async e => {
   const g = sel => e.target.closest(sel);
   let el;
   if(g('[data-close]')){ closeOverlay($('#detail'), detailFrom || 'find'); return; }
+  if(el = g('[data-viewuser]')){ openUserCard(el.dataset.viewuser); return; }
   if(el = g('[data-claim]')){
     const { error } = await db.from('claims').insert({ party_id: el.dataset.claim, user_id: me.id });
     toast(error ? (error.message.includes('party_full') ? 'Beat you to it — party just filled' : error.message)
@@ -813,8 +850,8 @@ $('#detail-body').addEventListener('click', async e => {
     refreshAfterAction(); return;
   }
   if(el = g('[data-request]')){
-    if(!me.avatar_url){
-      toast('Private parties need a face — add a profile pic first');
+    if(!me.avatar_url || isDefaultAv(me.avatar_url)){
+      toast('Private parties need a real photo — hosts want to see a face');
       closeOverlay($('#detail'), 'profile'); return;
     }
     const { error } = await db.from('requests').insert({ party_id: el.dataset.request, user_id: me.id });
@@ -963,9 +1000,10 @@ async function loadFriends(){
     <div class="panel" style="border-color:rgba(255,180,84,.4)">
       <h4 style="color:var(--amber)">Friend requests (${pendingIn.length})</h4>
       ${pendingIn.map(p => `<div class="f-row">
+        <button data-viewuser="${p.id}" style="display:flex;flex:1;gap:10px;align-items:center;background:none;border:none;padding:0;min-width:0;text-align:left;color:inherit;font-family:inherit">
         ${avatar(p, 44, 14)}
         <div style="flex:1;min-width:0"><div style="font-weight:700">${esc(p.display_name)}</div>
-          <div style="font-size:12.5px;color:var(--faint)">wants to be friends</div></div>
+          <div style="font-size:12.5px;color:var(--faint)">wants to be friends</div></div></button>
         <button class="mini-btn acc" data-fracc="${p.id}" style="background:var(--grad);color:#fff;border:none">Accept</button>
         <button class="mini-btn den" data-frdec="${p.id}">Decline</button>
       </div>`).join('')}
@@ -1025,9 +1063,10 @@ $('#friend-search').addEventListener('input', () => {
     const inIds = new Set(pendingIn.map(p => p.id));
     $('#search-results').innerHTML = (data || []).length ? data.map(p => `
       <div class="f-row">
+        <button data-viewuser="${p.id}" style="display:flex;flex:1;gap:10px;align-items:center;background:none;border:none;padding:0;min-width:0;text-align:left;color:inherit;font-family:inherit">
         ${avatar(p, 40)}
         <div style="flex:1;min-width:0"><div style="font-weight:600">${esc(p.display_name)}</div>
-          <div style="font-size:12px;color:var(--faint)">${esc(p.zip || '')}</div></div>
+          <div style="font-size:12px;color:var(--faint)">${esc(p.zip || '')}</div></div></button>
         ${fids.has(p.id) ? '<span class="mini-btn den">Friends ✓</span>'
           : pendingOut.has(p.id) ? '<span class="mini-btn den">Requested</span>'
           : inIds.has(p.id) ? `<button class="mini-btn acc" data-fracc="${p.id}">Accept</button>`
@@ -1037,6 +1076,7 @@ $('#friend-search').addEventListener('input', () => {
 });
 $('#friends').addEventListener('click', async e => {
   let el;
+  if(el = e.target.closest('[data-viewuser]')){ openUserCard(el.dataset.viewuser); return; }
   if(el = e.target.closest('[data-add]')){
     const { error } = await db.from('friendships').insert({ user_id: me.id, friend_id: el.dataset.add });
     if(error){ toast(error.message.includes('duplicate') ? 'Request already out' : error.message); return; }
@@ -1224,16 +1264,18 @@ async function renderProfile(){
   const ps = await pushState();
   const hosted = allParties.filter(p => p.host_id === me.id);
   $('#profile-body').innerHTML = `
-    <div style="display:flex;gap:14px;align-items:center;margin-bottom:18px">
-      <div style="position:relative">${avatar(me, 64, 20)}
-        <button id="av-change" aria-label="Change photo" style="position:absolute;right:-6px;bottom:-6px;width:26px;height:26px;border-radius:9px;background:var(--grad);display:flex;align-items:center;justify-content:center">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-        </button>
-        <input id="av-file" type="file" accept="image/*" hidden>
-      </div>
-      <div><h2 style="font-size:20px;margin:0">${esc(me.display_name)}
+    <div class="pf-banner" style="background:${me.banner_url ? `url('${esc(me.banner_url)}')` : gradFor(me.id)};background-size:cover;background-position:center">
+      <button class="pf-bannerbtn" id="bn-change" aria-label="Change banner">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      </button>
+      <button class="pf-avslot" id="av-open" aria-label="Your profile pic" style="background:none;border:none;padding:0">${avatar(me, 76, 24)}</button>
+      <input id="av-file" type="file" accept="image/*" hidden>
+      <input id="bn-file" type="file" accept="image/*" hidden>
+    </div>
+    <div style="margin:0 2px 18px">
+      <h2 style="font-size:20px;margin:0">${esc(me.display_name)}
         ${me.is_vip ? '<span class="tag" style="color:var(--amber);border:1px solid rgba(255,180,84,.45);background:rgba(255,180,84,.1);vertical-align:3px">VIP</span>' : ''}</h2>
-        <p style="color:var(--muted);font-size:14px">${esc(me.zip)}</p></div>
+      <p style="color:var(--muted);font-size:14px">${esc(me.zip)}${me.avatar_url ? '' : ' · tap your pic to set one'}</p>
     </div>
     <div class="panel" style="border-color:rgba(255,180,84,.4)">
       <h4 style="color:var(--amber)">Turnout VIP ${me.is_vip ? '· active' : '· $2.99/mo'}</h4>
@@ -1266,7 +1308,8 @@ async function renderProfile(){
 }
 $('#profile-body').addEventListener('click', async e => {
   if(e.target.id === 'notif-enable'){ enablePush(); return; }
-  if(e.target.closest('#av-change')){ $('#av-file').click(); return; }
+  if(e.target.closest('#av-open')){ openPfpSheet(); return; }
+  if(e.target.closest('#bn-change')){ $('#bn-file').click(); return; }
   if(e.target.id === 'vip-toggle'){
     const next = !me.is_vip;
     const { error } = await db.from('profiles').update({ is_vip: next }).eq('id', me.id);
@@ -1278,20 +1321,94 @@ $('#profile-body').addEventListener('click', async e => {
   if(e.target.id === 'signout'){ await db.auth.signOut(); location.reload(); }
 });
 $('#profile-body').addEventListener('change', async e => {
-  if(e.target.id !== 'av-file') return;
+  const which = e.target.id === 'av-file' ? 'avatar' : e.target.id === 'bn-file' ? 'banner' : null;
+  if(!which) return;
   const file = e.target.files && e.target.files[0];
   if(!file) return;
   if(file.size > 5 * 1024 * 1024){ toast('That photo is over 5MB — pick a smaller one'); return; }
   toast('Uploading…');
-  const path = me.id + '/avatar';
+  const path = me.id + '/' + which;
   const { error } = await db.storage.from('avatars').upload(path, file, { upsert: true, contentType: file.type });
   if(error){ toast(error.message.includes('not found') ? 'Run migration4.sql first — the photo bucket is missing' : error.message); return; }
   const url = db.storage.from('avatars').getPublicUrl(path).data.publicUrl + '?v=' + Date.now();
-  const { error: e2 } = await db.from('profiles').update({ avatar_url: url }).eq('id', me.id);
-  if(e2){ toast(e2.message); return; }
-  me.avatar_url = url;
-  toast('Looking good — photo saved');
+  const col = which === 'avatar' ? { avatar_url: url } : { banner_url: url };
+  const { error: e2 } = await db.from('profiles').update(col).eq('id', me.id);
+  if(e2){ toast(e2.message.includes('banner_url') ? 'One sec — banners aren’t wired in the database yet' : e2.message); return; }
+  if(which === 'avatar') me.avatar_url = url; else me.banner_url = url;
+  $('#pfp-sheet').hidden = true;
+  toast(which === 'avatar' ? 'Looking good — photo saved' : 'Banner set 🔥');
   renderProfile();
+});
+
+/* ── pfp sheet: tap your pic → camera roll or Turnout defaults ── */
+function openPfpSheet(){
+  $('#pfp-preview').innerHTML = avatar(me, 96, 28);
+  const cur = isDefaultAv(me.avatar_url) ? parseInt(me.avatar_url.slice(5), 10) : -1;
+  $('#pfp-grads').innerHTML = GRADS.map((g, i) =>
+    `<button class="grad-pick ${i === cur ? 'on' : ''}" data-grad="${i}" style="background:${g}">${esc((me.display_name || '?').charAt(0))}</button>`).join('');
+  $('#pfp-sheet').hidden = false;
+}
+$('#pfp-sheet').addEventListener('click', async e => {
+  if(e.target.id === 'pfp-sheet'){ e.target.hidden = true; return; }
+  if(e.target.id === 'pfp-upload'){ $('#av-file').click(); return; }
+  const g = e.target.closest('[data-grad]');
+  if(g){
+    const url = 'grad:' + g.dataset.grad;
+    const { error } = await db.from('profiles').update({ avatar_url: url }).eq('id', me.id);
+    if(error){ toast(error.message); return; }
+    me.avatar_url = url;
+    $('#pfp-sheet').hidden = true;
+    toast('Default set — add a real photo when you want in on private parties');
+    renderProfile();
+  }
+});
+
+/* ── public profile card ── */
+async function openUserCard(uid){
+  if(!uid || uid === me.id){ show('profile'); return; }
+  const { data: p } = await db.from('profiles').select('*').eq('id', uid).single();
+  if(!p){ toast('Couldn’t load that profile'); return; }
+  profMap[uid] = p;
+  const hosted = allParties.filter(x => x.host_id === uid).length;
+  let mut = null;
+  try { const { data } = await db.rpc('mutual_friends', { other: uid }); if(typeof data === 'number') mut = data; } catch(_){}
+  const isFriend = friends.some(f => f.id === uid);
+  const action = isFriend
+      ? `<button class="btn" data-ucchat="${uid}">Message ${esc((nickMap[uid] || p.display_name).split(' ')[0])}</button>`
+    : pendingOut.has(uid) ? '<button class="btn btn-ghost" disabled>Request sent</button>'
+    : pendingIn.some(x => x.id === uid) ? `<button class="btn" data-ucacc="${uid}">Accept friend request</button>`
+    : `<button class="btn" data-ucadd="${uid}">Add friend</button>`;
+  $('#user-card').innerHTML = `
+    <div class="pf-banner" style="background:${p.banner_url ? `url('${esc(p.banner_url)}')` : gradFor(p.id)};background-size:cover;background-position:center;height:96px;margin-bottom:40px">
+      <div class="pf-avslot">${avatar(p, 64, 20)}</div>
+    </div>
+    <h3 style="font-size:18px">${esc(nickMap[uid] || p.display_name)}
+      ${p.is_vip ? '<span class="tag" style="color:var(--amber);border:1px solid rgba(255,180,84,.45);background:rgba(255,180,84,.1);vertical-align:2px">VIP</span>' : ''}</h3>
+    ${nickMap[uid] ? `<p class="sub" style="margin-bottom:4px">${esc(p.display_name)}</p>` : ''}
+    <div class="uc-stats">
+      ${hosted >= 3 ? `<span class="flame">${flameSvg(14)} <b>${hosted}</b>&nbsp;hosted</span>` : `<span><b>${hosted}</b> hosted</span>`}
+      ${mut !== null ? `<span><b>${mut}</b> mutual friend${mut === 1 ? '' : 's'}</span>` : ''}
+      ${isFriend ? '<span style="color:#FF9CC4;font-weight:600">Friends ✓</span>' : ''}
+    </div>
+    ${action}`;
+  $('#user-sheet').hidden = false;
+}
+$('#user-sheet').addEventListener('click', async e => {
+  if(e.target.id === 'user-sheet'){ e.target.hidden = true; return; }
+  let el;
+  if(el = e.target.closest('[data-ucchat]')){ $('#user-sheet').hidden = true; openChat(el.dataset.ucchat); return; }
+  if(el = e.target.closest('[data-ucadd]')){
+    const { error } = await db.from('friendships').insert({ user_id: me.id, friend_id: el.dataset.ucadd });
+    toast(error ? (error.message.includes('duplicate') ? 'Request already out' : error.message) : 'Request sent');
+    if(!error){ pendingOut.add(el.dataset.ucadd); openUserCard(el.dataset.ucadd); }
+    return;
+  }
+  if(el = e.target.closest('[data-ucacc]')){
+    const { error } = await db.from('friendships').update({ status: 'accepted' })
+      .eq('user_id', el.dataset.ucacc).eq('friend_id', me.id);
+    toast(error ? error.message : 'You’re friends now');
+    await loadFriendRows(); openUserCard(el.dataset.ucacc); return;
+  }
 });
 
 /* ── phone feel: swipe-back + pull-to-refresh ── */
