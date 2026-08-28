@@ -206,6 +206,66 @@
   .bub.them{align-self:flex-start;background:var(--raised);border:1px solid var(--line);border-bottom-left-radius:4px}
   .bub.pcard{padding:0;overflow:hidden;background:var(--surface);border:1px solid var(--line);max-width:85%}
   .bub.pcard button{display:block;text-align:left;width:100%}
+  /* grouping: tight stacks, one tail per burst */
+  .msgs{scroll-behavior:smooth}
+  .bub{margin-bottom:2px}
+  .bub.gap{margin-top:11px}
+  .bub.me{border-bottom-right-radius:6px}
+  .bub.them{border-bottom-left-radius:6px}
+  .bub.me.tail{border-bottom-right-radius:17px}
+  .bub.them.tail{border-bottom-left-radius:17px}
+  .day-sep{align-self:center;font-size:11px;font-weight:700;color:var(--faint);letter-spacing:.06em;
+    text-transform:uppercase;margin:16px 0 10px;background:var(--raised);padding:5px 13px;border-radius:999px}
+  .stamp{font-size:10.5px;color:var(--faint);margin:2px 2px 8px;font-weight:600}
+  .stamp.me{align-self:flex-end} .stamp.them{align-self:flex-start}
+  /* shared party = the feed card, small */
+  .pshare{width:min(78%,290px);border-radius:18px;overflow:hidden;position:relative;aspect-ratio:16/10;
+    margin-bottom:2px;display:block;box-shadow:0 8px 22px -10px rgba(0,0,0,.8);transition:transform .28s var(--spring)}
+  .pshare:active{transform:scale(.97)}
+  .pshare.me{align-self:flex-end} .pshare.them{align-self:flex-start}
+  .pshare-img{position:absolute;inset:0;background-size:cover;background-position:center}
+  .pshare-scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(8,7,16,.93),rgba(8,7,16,.15) 62%)}
+  .pshare-txt{position:absolute;left:0;right:0;bottom:0;padding:0 13px 11px}
+  .pshare-txt b{display:block;font-family:var(--disp);font-size:14.5px;color:#fff;line-height:1.15;
+    text-shadow:0 2px 10px rgba(0,0,0,.7)}
+  .pshare-txt span{font-size:11px;color:rgba(255,255,255,.78);font-weight:600}
+  .pshare-gone{padding:12px 15px;border-radius:16px;background:var(--raised);border:1px solid var(--line);
+    color:var(--faint);font-size:13px}
+  /* photos sit clean, no frame */
+  .bub.imgb{padding:0;background:none;border:none;max-width:70%;line-height:0;border-radius:17px;overflow:hidden}
+  .bub.imgb.me{background:none}
+  .bub.imgb img{border-radius:17px}
+  /* reactions */
+  .rx{display:flex;gap:4px;margin:-1px 2px 5px;flex-wrap:wrap}
+  .rx.me{align-self:flex-end} .rx.them{align-self:flex-start}
+  .rx b{background:var(--raised);border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-size:12px;
+    font-weight:600;line-height:1.5;display:inline-flex;gap:3px;align-items:center;
+    animation:rxpop .38s var(--spring)}
+  .rx b.mine{border-color:rgba(255,61,138,.55);background:rgba(255,61,138,.15)}
+  @keyframes rxpop{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+  #rxbar{position:fixed;z-index:65;display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);
+    border-radius:999px;padding:7px 9px;box-shadow:0 14px 40px rgba(0,0,0,.7);transform:scale(.85);opacity:0;
+    transition:transform .22s var(--spring),opacity .18s;pointer-events:none}
+  #rxbar.on{transform:scale(1);opacity:1;pointer-events:auto}
+  #rxbar button{font-size:21px;line-height:1;padding:2px 4px;background:none;border:none;
+    transition:transform .2s var(--spring)}
+  #rxbar button:active{transform:scale(1.35)}
+  /* typing dots */
+  .typing{align-self:flex-start;display:flex;gap:4px;padding:12px 16px;background:var(--raised);
+    border:1px solid var(--line);border-radius:17px;border-bottom-left-radius:6px;margin-top:6px;width:fit-content}
+  .typing i{width:7px;height:7px;border-radius:99px;background:var(--muted);animation:dotty 1.25s infinite}
+  .typing i:nth-child(2){animation-delay:.16s} .typing i:nth-child(3){animation-delay:.32s}
+  @keyframes dotty{0%,60%,100%{opacity:.28;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+  /* composer that grows */
+  .composer textarea{flex:1;min-width:0;resize:none;max-height:110px;font-family:inherit;font-size:15px;
+    line-height:1.35;padding:13px 15px}
+  .send-btn{flex:0 0 auto;width:46px;height:46px;border-radius:999px;background:var(--grad);display:flex;
+    align-items:center;justify-content:center;transition:transform .28s var(--spring),opacity .2s}
+  .send-btn svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .send-btn:active{transform:scale(.9)}
+  .send-btn:disabled{opacity:.35}
+  .chat-empty{margin:auto;text-align:center;color:var(--faint);font-size:13.5px;padding:30px 20px}
+  .chat-empty b{display:block;font-family:var(--disp);font-size:16px;color:var(--muted);margin-bottom:5px}
   .bub.imgb{padding:4px;background:var(--raised);border:1px solid var(--line);max-width:72%;line-height:0}
   .bub.imgb.me{background:var(--grad)}
   .bub.imgb img{width:100%;max-height:340px;object-fit:cover;border-radius:13px;display:block;cursor:zoom-in;background:#191630}
@@ -340,7 +400,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.5</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.6</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -427,8 +487,10 @@
     <div class="composer">
       <button class="icon-btn" id="msg-photo" aria-label="Send a photo" title="Send a photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg></button>
       <input id="msg-file" type="file" accept="image/*" hidden>
-      <input id="msg-in" placeholder="Message&hellip;" autocomplete="off">
-      <button class="btn" id="msg-send" style="width:auto;padding:12px 18px">Send</button>
+      <textarea id="msg-in" placeholder="Message&hellip;" rows="1" autocomplete="off"></textarea>
+      <button class="send-btn" id="msg-send" aria-label="Send" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M12 5.5l6.5 6.5-6.5 6.5"/></svg>
+      </button>
     </div>
   </section>
 
@@ -546,6 +608,7 @@
     <div id="user-card"></div>
   </div>
 </div>
+<div id="rxbar"></div>
 <div id="claimpop"><div class="cp-card">
   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5 10-11"/></svg>
   <b id="cp-title">You’re in</b><span id="cp-sub"></span>
@@ -1472,25 +1535,43 @@ $('#friends').addEventListener('click', async e => {
 
 /* ── chat ── */
 const CAM_GLYPH = '<svg class="prev-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg>';
-function msgHtml(m){
+function msgHtml(m, opts){
+  const o = opts || {};
   const side = m.sender_id === me.id ? 'me' : 'them';
-  if(m.image_url){
-    return `<div class="bub imgb ${side}"><img src="${esc(m.image_url)}" alt="photo" data-full="${esc(m.image_url)}" loading="lazy"></div>`;
-  }
+  const cls = side + (o.gap ? ' gap' : '') + (o.tail ? ' tail' : '');
   if(m.party_id){
     const p = allParties.find(x => x.id === m.party_id);
-    if(!p) return `<div class="bub ${side}" style="color:var(--faint)">shared a party that’s gone now</div>`;
+    if(!p) return `<div class="bub pshare-gone ${cls}">shared a party that’s gone now</div>`;
     const claimed = (p.claims || []).length;
-    return `<div class="bub pcard" style="align-self:${side === 'me' ? 'flex-end' : 'flex-start'}">
-      <button data-msgparty="${p.id}">
-        <div style="height:40px;background:${gradFor(p.id)}"></div>
-        <div style="padding:10px 12px">
-          <div style="font-family:var(--disp);font-weight:700;font-size:13.5px;color:#fff">${esc(p.name)}</div>
-          <div style="font-size:12px;color:var(--muted)">${esc(whenLabel(p.starts_at))} · ${esc(p.town || 'nearby')} · ${capLabel(claimed, p.max_people)}</div>
-        </div>
-      </button></div>`;
+    const left = p.max_people - claimed;
+    return `<button class="pshare ${side}" data-msgparty="${p.id}" data-mid="${m.id || ''}">
+      <div class="pshare-img" style="background:${p.photo_url ? `url('${esc(p.photo_url)}')` : gradFor(p.id)};background-size:cover;background-position:center"></div>
+      <div class="pshare-scrim"></div>
+      <div class="pshare-txt">
+        <b>${esc(p.name)}</b>
+        <span>${esc(whenLabel(p.starts_at))} · ${left > 0 ? left + ' spot' + (left === 1 ? '' : 's') + ' left' : 'Full'}</span>
+      </div></button>`;
   }
-  return `<div class="bub ${side}">${esc(m.text)}</div>`;
+  if(m.image_url)
+    return `<div class="bub imgb ${cls}" data-mid="${m.id || ''}"><img src="${esc(m.image_url)}" alt="photo" data-full="${esc(m.image_url)}" loading="lazy"></div>`;
+  return `<div class="bub ${cls}" data-mid="${m.id || ''}">${esc(m.text)}</div>`;
+}
+function rxHtml(mid, side){
+  const list = rxMap[mid];
+  if(!list || !list.length) return '';
+  const counts = {};
+  list.forEach(r => { counts[r.emoji] = counts[r.emoji] || { n: 0, mine: false };
+    counts[r.emoji].n++; if(r.user_id === me.id) counts[r.emoji].mine = true; });
+  return `<div class="rx ${side}">` + Object.entries(counts).map(([e, v]) =>
+    `<b class="${v.mine ? 'mine' : ''}" data-rx="${mid}" data-emoji="${esc(e)}">${e}${v.n > 1 ? '<span>' + v.n + '</span>' : ''}</b>`).join('') + '</div>';
+}
+function dayName(d){
+  const t = new Date(); t.setHours(0,0,0,0);
+  const days = Math.round((new Date(d).setHours(0,0,0,0) - t) / 864e5);
+  if(days === 0) return 'Today';
+  if(days === -1) return 'Yesterday';
+  if(days > -7) return d.toLocaleDateString('en-US', { weekday: 'long' });
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 async function openChat(fid){
   chatId = fid;
@@ -1498,9 +1579,13 @@ async function openChat(fid){
   const f = profMap[fid] || friends.find(x => x.id === fid);
   $('#chat-av').innerHTML = avatar(f, 38);
   $('#chat-name').textContent = dispName(f);
+  $('#msg-in').value = ''; $('#msg-in').style.height = 'auto'; $('#msg-send').disabled = true;
+  rxMap = {};
+  joinTyping(fid);
   show('chat');
   await renderChat();
 }
+let rxMap = {}, typingTimer = null, typingChan = null, peerTyping = false;
 async function renderChat(){
   if(!chatId) return;
   const { data, error } = await db.from('messages').select('*')
@@ -1509,25 +1594,142 @@ async function renderChat(){
   const box = $('#msgs');
   if(error){ box.innerHTML = '<p class="empty">' + esc(error.message) + '</p>'; return; }
   const msgs = data || [];
-  // read receipt: tag the last message YOU sent
+  if(!msgs.length){
+    const f = profMap[chatId];
+    box.innerHTML = `<div class="chat-empty"><b>Say something to ${esc(dispName(f))}</b>
+      Send a message, a photo, or share a party from its card.</div>`;
+    return;
+  }
+  // reactions for this thread
+  try {
+    const { data: rx } = await db.from('message_reactions').select('*').in('message_id', msgs.map(m => m.id));
+    rxMap = {};
+    (rx || []).forEach(r => (rxMap[r.message_id] = rxMap[r.message_id] || []).push(r));
+  } catch(_){ rxMap = {}; }
+
   let lastMine = -1;
   msgs.forEach((m, i) => { if(m.sender_id === me.id) lastMine = i; });
-  box.innerHTML = msgs.map((m, i) => msgHtml(m)
-      + (i === lastMine ? `<div class="read-tag">${m.read_at ? 'Read' : 'Sent'}</div>` : '')
-    ).join('') ||
-    '<p class="empty">No messages yet. Say something, or share a party from its card.</p>';
-  box.scrollTop = box.scrollHeight;
-  // reading the chat marks their messages read (they'll see "Read" appear live)
-  const unseen = msgs.some(m => m.sender_id === chatId && !m.read_at);
-  if(unseen){
+  const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 90;
+
+  let html = '', lastDay = '';
+  msgs.forEach((m, i) => {
+    const d = new Date(m.created_at);
+    const day = d.toDateString();
+    if(day !== lastDay){ html += `<div class="day-sep">${esc(dayName(d))}</div>`; lastDay = day; }
+    const prev = msgs[i - 1], next = msgs[i + 1];
+    const mins = t => new Date(t).getTime() / 60000;
+    // a new burst starts on a different sender, a day change, or a 5-minute gap
+    const gap = !prev || prev.sender_id !== m.sender_id || new Date(prev.created_at).toDateString() !== day
+                || mins(m.created_at) - mins(prev.created_at) > 5;
+    const endsBurst = !next || next.sender_id !== m.sender_id
+                || new Date(next.created_at).toDateString() !== day
+                || mins(next.created_at) - mins(m.created_at) > 5;
+    const side = m.sender_id === me.id ? 'me' : 'them';
+    html += msgHtml(m, { gap: gap && i > 0, tail: endsBurst });
+    html += rxHtml(m.id, side);
+    if(endsBurst) html += `<div class="stamp ${side}">${esc(clockLabel(d))}</div>`;
+    if(i === lastMine) html += `<div class="read-tag">${m.read_at ? 'Read' : 'Sent'}</div>`;
+  });
+  if(peerTyping) html += '<div class="typing"><i></i><i></i><i></i></div>';
+  box.innerHTML = html;
+  if(atBottom || true) box.scrollTop = box.scrollHeight;
+  // reading marks their messages read — the sender sees it flip instantly
+  if(msgs.some(m => m.sender_id === chatId && !m.read_at)){
     await db.from('messages').update({ read_at: new Date().toISOString() })
       .eq('recipient_id', me.id).eq('sender_id', chatId).is('read_at', null);
   }
 }
+/* ── reactions: double-tap to heart, long-press for the picker ── */
+const RX_SET = ['❤️','😂','🔥','😮','😢','👍'];
+let rxTarget = null, pressTimer = null, lastTap = 0;
+async function react(mid, emoji){
+  if(!mid) return;
+  const mine = (rxMap[mid] || []).find(r => r.user_id === me.id);
+  haptic(12);
+  if(mine && mine.emoji === emoji){
+    (rxMap[mid] = (rxMap[mid] || []).filter(r => r.user_id !== me.id));
+    await db.from('message_reactions').delete().eq('message_id', mid).eq('user_id', me.id);
+  } else {
+    rxMap[mid] = (rxMap[mid] || []).filter(r => r.user_id !== me.id);
+    rxMap[mid].push({ message_id: mid, user_id: me.id, emoji });
+    const { error } = await db.from('message_reactions')
+      .upsert({ message_id: mid, user_id: me.id, emoji }, { onConflict: 'message_id,user_id' });
+    if(error && error.message.includes('message_reactions')){ toast('One sec — reactions need migration 16'); return; }
+  }
+  renderChat();
+}
+function openRxBar(el, mid){
+  rxTarget = mid;
+  const bar = $('#rxbar');
+  bar.innerHTML = RX_SET.map(e => `<button data-pick="${e}">${e}</button>`).join('');
+  const r = el.getBoundingClientRect();
+  bar.style.left = Math.max(10, Math.min(window.innerWidth - 250, r.left)) + 'px';
+  bar.style.top = Math.max(70, r.top - 56) + 'px';
+  bar.classList.add('on');
+  haptic(14);
+}
+$('#rxbar').addEventListener('click', e => {
+  const b = e.target.closest('[data-pick]');
+  if(b){ react(rxTarget, b.dataset.pick); $('#rxbar').classList.remove('on'); }
+});
+document.addEventListener('click', e => {
+  if(!e.target.closest('#rxbar') && !e.target.closest('[data-mid]')) $('#rxbar').classList.remove('on');
+}, true);
+(function chatGestures(){
+  const box = $('#msgs');
+  const holdable = e => e.target.closest('[data-mid]');
+  box.addEventListener('touchstart', e => {
+    const el = holdable(e); if(!el || !el.dataset.mid) return;
+    pressTimer = setTimeout(() => { pressTimer = null; openRxBar(el, el.dataset.mid); }, 420);
+  }, { passive: true });
+  box.addEventListener('touchmove', () => { clearTimeout(pressTimer); pressTimer = null; }, { passive: true });
+  box.addEventListener('touchend', e => {
+    if(pressTimer){ clearTimeout(pressTimer); pressTimer = null; }
+    const el = holdable(e); if(!el || !el.dataset.mid) return;
+    const now = Date.now();
+    if(now - lastTap < 320){ react(el.dataset.mid, '❤️'); lastTap = 0; }
+    else lastTap = now;
+  });
+  // desktop: double-click hearts, right-click opens the picker
+  box.addEventListener('dblclick', e => {
+    const el = holdable(e); if(el && el.dataset.mid) react(el.dataset.mid, '❤️');
+  });
+  box.addEventListener('contextmenu', e => {
+    const el = holdable(e); if(el && el.dataset.mid){ e.preventDefault(); openRxBar(el, el.dataset.mid); }
+  });
+})();
+$('#msgs').addEventListener('click', e => {
+  const chip = e.target.closest('[data-rx]');
+  if(chip){ react(chip.dataset.rx, chip.dataset.emoji); return; }
+});
+/* ── typing indicator: broadcast only, nothing stored ── */
+function typingKey(a, b){ return 'typing-' + [a, b].sort().join('-'); }
+function joinTyping(fid){
+  if(typingChan){ db.removeChannel(typingChan); typingChan = null; }
+  peerTyping = false;
+  typingChan = db.channel(typingKey(me.id, fid), { config: { broadcast: { self: false } } })
+    .on('broadcast', { event: 'typing' }, ({ payload }) => {
+      if(payload.from !== fid) return;
+      const was = peerTyping;
+      peerTyping = true;
+      clearTimeout(window.__peerTypeT);
+      window.__peerTypeT = setTimeout(() => { peerTyping = false; renderChat(); }, 3200);
+      if(!was) renderChat();
+    })
+    .subscribe();
+}
+let lastPing = 0;
+function pingTyping(){
+  if(!typingChan) return;
+  const now = Date.now();
+  if(now - lastPing < 1600) return;
+  lastPing = now;
+  typingChan.send({ type: 'broadcast', event: 'typing', payload: { from: me.id } });
+}
 async function sendMsg(){
   const inp = $('#msg-in');
   const text = inp.value.trim(); if(!text || !chatId) return;
-  inp.value = '';
+  inp.value = ''; inp.style.height = 'auto'; $('#msg-send').disabled = true;
   const { error } = await db.from('messages').insert({ sender_id: me.id, recipient_id: chatId, text });
   if(error){ toast(error.message); inp.value = text; return; }
   haptic(8);
@@ -1589,8 +1791,21 @@ $('#msgs').addEventListener('click', e => {
 });
 $('#lightbox').addEventListener('click', () => { $('#lightbox').hidden = true; $('#lb-img').src = ''; });
 $('#msg-send').addEventListener('click', sendMsg);
-$('#msg-in').addEventListener('keydown', e => { if(e.key === 'Enter') sendMsg(); });
-$('#chat-back').addEventListener('click', () => closeOverlay($('#chat'), 'friends'));
+$('#msg-in').addEventListener('keydown', e => {
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); }
+});
+$('#msg-in').addEventListener('input', () => {
+  const t = $('#msg-in');
+  t.style.height = 'auto';
+  t.style.height = Math.min(110, t.scrollHeight) + 'px';
+  $('#msg-send').disabled = !t.value.trim();
+  if(t.value.trim()) pingTyping();
+});
+$('#chat-back').addEventListener('click', () => {
+  if(typingChan){ db.removeChannel(typingChan); typingChan = null; }
+  peerTyping = false;
+  closeOverlay($('#chat'), 'friends');
+});
 
 /* ── tap their name in a chat → their profile card ── */
 $('#chat-peer').addEventListener('click', () => { if(chatId) openUserCard(chatId); });
@@ -2113,6 +2328,9 @@ function startRealtime(){
       toast('New message' + (who ? ' from ' + who.display_name : '') + ' — check Friends');
       if($('#friends').classList.contains('on')) loadFriends();
     })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, () => {
+      if(chatId && $('#chat').classList.contains('on')) renderChat();
+    })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, payload => {
       // their side just read your message — flip Sent to Read live
       if(payload.new.sender_id === me.id && chatId && $('#chat').classList.contains('on')) renderChat();
@@ -2148,6 +2366,10 @@ async function boot(){
   }catch(e){}
   show('find');
 }
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState !== 'visible' || !me) return;
+  if(chatId && $('#chat').classList.contains('on')) renderChat();
+});
 boot();
 </script>
 </body>
