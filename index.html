@@ -216,7 +216,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.7</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.8</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -604,7 +604,7 @@ async function refreshData(){
   const [pRes, cRes, rRes] = await Promise.all([
     db.from('parties').select('*, claims(user_id), profiles!parties_host_id_fkey(display_name, zip)').order('created_at', { ascending: false }),
     db.from('claims').select('party_id').eq('user_id', me.id),
-    db.from('requests').select('party_id, user_id, profiles(display_name)')
+    db.from('requests').select('party_id, user_id, profiles(display_name, avatar_url)')
   ]);
   allParties = pRes.data || [];
   // hide parties that ended more than 6 hours ago
@@ -622,7 +622,7 @@ async function refreshData(){
     if(r.user_id === me.id) myRequests.add(r.party_id);
     else {
       (hostRequests[r.party_id] = hostRequests[r.party_id] || [])
-        .push({ user_id: r.user_id, name: r.profiles?.display_name || 'Someone' });
+        .push({ user_id: r.user_id, name: r.profiles?.display_name || 'Someone', av: r.profiles?.avatar_url || null });
     }
   });
   await loadFriendRows();
@@ -782,8 +782,8 @@ async function renderDetail(){
       ${reqs.length ? `<div class="panel" style="border-color:rgba(255,180,84,.4)">
           <h4 style="color:var(--amber)">Requests (${reqs.length})</h4>
           ${reqs.map(r => `<div class="f-row">
-            ${avatar(profMap[r.user_id] || {id:r.user_id, display_name:r.name}, 34)}
-            <span style="flex:1;font-weight:600">${esc(r.name)}</span>
+            ${avatar(profMap[r.user_id] || {id:r.user_id, display_name:r.name, avatar_url:r.av}, 34)}
+            <span style="flex:1;font-weight:600">${esc(nickMap[r.user_id] || r.name)}</span>
             <button class="mini-btn acc" data-accept="${p.id}" data-uid="${r.user_id}">Accept</button>
             <button class="mini-btn den" data-deny="${p.id}" data-uid="${r.user_id}">Deny</button>
           </div>`).join('')}
@@ -813,8 +813,13 @@ $('#detail-body').addEventListener('click', async e => {
     refreshAfterAction(); return;
   }
   if(el = g('[data-request]')){
+    if(!me.avatar_url){
+      toast('Private parties need a face — add a profile pic first');
+      closeOverlay($('#detail'), 'profile'); return;
+    }
     const { error } = await db.from('requests').insert({ party_id: el.dataset.request, user_id: me.id });
-    toast(error ? error.message : 'Request sent — the host will review it');
+    toast(error ? (error.message.includes('pfp_required') ? 'Add a profile pic first — the host wants to see who’s asking' : error.message)
+                : 'Request sent — the host will review it');
     refreshAfterAction(); return;
   }
   if(el = g('[data-cancelreq]')){
