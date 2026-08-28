@@ -200,7 +200,7 @@
   .back-btn{width:44px;height:44px;border-radius:14px;background:var(--raised);border:1px solid var(--line);
     display:flex;align-items:center;justify-content:center;flex:0 0 auto}
   .back-btn svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-  .msgs{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:8px}
+  .msgs{flex:1;overflow-y:auto;padding:16px 20px 8px;display:flex;flex-direction:column;gap:0}
   .bub{max-width:78%;padding:10px 14px;border-radius:16px;font-size:14.5px;line-height:1.4;overflow-wrap:break-word}
   .bub.me{align-self:flex-end;background:var(--grad);color:#fff;border-bottom-right-radius:4px}
   .bub.them{align-self:flex-start;background:var(--raised);border:1px solid var(--line);border-bottom-left-radius:4px}
@@ -208,6 +208,7 @@
   .bub.pcard button{display:block;text-align:left;width:100%}
   /* grouping: tight stacks, one tail per burst */
   .msgs{scroll-behavior:smooth}
+  .bub,.pshare,.day-sep,.stamp,.rx,.typing,.pshare-gone,.read-tag,.chat-empty{flex:0 0 auto}
   .bub{margin-bottom:2px}
   .bub.gap{margin-top:11px}
   .bub.me{border-bottom-right-radius:6px}
@@ -219,7 +220,7 @@
   .stamp{font-size:10.5px;color:var(--faint);margin:2px 2px 8px;font-weight:600}
   .stamp.me{align-self:flex-end} .stamp.them{align-self:flex-start}
   /* shared party = the feed card, small */
-  .pshare{width:min(78%,290px);border-radius:18px;overflow:hidden;position:relative;aspect-ratio:16/10;
+  .pshare{width:min(78%,290px);border-radius:18px;overflow:hidden;position:relative;aspect-ratio:16/10;flex:0 0 auto;
     margin-bottom:2px;display:block;box-shadow:0 8px 22px -10px rgba(0,0,0,.8);transition:transform .28s var(--spring)}
   .pshare:active{transform:scale(.97)}
   .pshare.me{align-self:flex-end} .pshare.them{align-self:flex-start}
@@ -232,7 +233,7 @@
   .pshare-gone{padding:12px 15px;border-radius:16px;background:var(--raised);border:1px solid var(--line);
     color:var(--faint);font-size:13px}
   /* photos sit clean, no frame */
-  .bub.imgb{padding:0;background:none;border:none;max-width:70%;line-height:0;border-radius:17px;overflow:hidden}
+  .bub.imgb{padding:0;background:none;border:none;max-width:70%;width:fit-content;line-height:0;border-radius:17px;overflow:hidden;flex:0 0 auto}
   .bub.imgb.me{background:none}
   .bub.imgb img{border-radius:17px}
   /* reactions */
@@ -400,7 +401,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.6</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.7</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
