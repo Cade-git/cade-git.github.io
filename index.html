@@ -112,6 +112,41 @@
     margin-bottom:8px}
   .cp-card b{display:block;font-family:var(--disp);font-size:22px;color:#fff;letter-spacing:-.01em}
   .cp-card span{display:block;font-size:13.5px;color:rgba(255,255,255,.82);margin-top:3px}
+  /* ── the recap ── */
+  .recap{margin:18px 0 6px;padding:16px;border-radius:20px;background:var(--surface);border:1px solid var(--line)}
+  .recap-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:3px}
+  .recap-h b{font-family:var(--disp);font-size:16px;color:#fff}
+  .recap-h span{font-size:11.5px;color:var(--amber);font-weight:700;white-space:nowrap}
+  .recap-sub{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+  .rate-row{display:flex;gap:7px;margin:2px 0 4px}
+  .rate-row button{width:42px;height:42px;border-radius:13px;background:var(--raised);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;color:#3A3552;transition:all .28s var(--spring)}
+  .rate-row button.lit{color:var(--amber);background:rgba(255,180,84,.14);border-color:rgba(255,180,84,.45)}
+  .rate-row button:active{transform:scale(.88)}
+  .rate-done{font-size:12.5px;color:var(--lime);font-weight:600;margin-top:4px}
+  .album{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:14px}
+  .album-cell{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#191630}
+  .album-cell img{width:100%;height:100%;object-fit:cover;display:block;
+    -webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+  .album-cell.mine::after{content:'';position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:99px;
+    background:var(--lime);box-shadow:0 0 0 2px rgba(8,7,16,.75)}
+  .album-add{aspect-ratio:1;border-radius:12px;border:1.5px dashed rgba(255,255,255,.2);background:var(--raised);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:var(--muted);
+    font-size:10.5px;font-weight:700;text-align:center;line-height:1.2;padding:6px}
+  .album-add svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .album-empty{font-size:12.5px;color:var(--faint);margin-top:12px}
+  /* recap strip on the feed */
+  .recap-strip{display:flex;gap:10px;overflow-x:auto;margin:0 -20px 18px;padding:0 20px 4px;scrollbar-width:none}
+  .recap-strip::-webkit-scrollbar{display:none}
+  .rs-card{flex:0 0 auto;width:132px;border-radius:16px;overflow:hidden;position:relative;aspect-ratio:1;
+    background:#191630;transition:transform .28s var(--spring)}
+  .rs-card:active{transform:scale(.95)}
+  .rs-img{position:absolute;inset:0;background-size:cover;background-position:center}
+  .rs-scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(8,7,16,.92),rgba(8,7,16,.05) 60%)}
+  .rs-txt{position:absolute;left:0;right:0;bottom:0;padding:0 10px 9px}
+  .rs-txt b{display:block;font-family:var(--disp);font-size:12px;color:#fff;line-height:1.2;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rs-txt span{font-size:10px;color:var(--amber);font-weight:700}
   .cover-pick{width:100%;height:132px;border-radius:16px;border:1.5px dashed rgba(255,255,255,.18);
     background:var(--raised);background-size:cover;background-position:center;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:7px;color:var(--muted);font-size:13px;font-weight:600;position:relative;overflow:hidden}
@@ -399,7 +434,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.8</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v6.9</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -430,6 +465,8 @@
     <div class="top"><span class="wordmark">TURNOUT</span><span class="loc-pill">near <b id="loc-zip"></b></span></div>
     <div class="ptr" id="ptr">Release to refresh</div>
     <div class="scroll">
+      <h2 id="recap-head" hidden style="font-size:15px;margin:0 0 10px;color:var(--muted)">Last night</h2>
+      <div class="recap-strip" id="recap-strip" hidden></div>
       <h2 id="find-greet" style="font-size:19px;margin:0 0 12px">Parties near you</h2>
       <div id="party-list"><p class="empty">Loading parties…</p></div>
     </div>
@@ -612,7 +649,8 @@
   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5 10-11"/></svg>
   <b id="cp-title">You’re in</b><span id="cp-sub"></span>
 </div></div>
-<div id="lightbox" hidden><button class="lb-close" id="lb-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><img id="lb-img" alt=""></div>
+<div id="lightbox" hidden><button class="danger-link" id="lb-remove" hidden
+   style="position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));left:0;right:0;width:auto">Remove this photo</button><button class="lb-close" id="lb-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><img id="lb-img" alt=""></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -882,6 +920,26 @@ function friendLine(names){
   return names[0] + ' + ' + (names.length - 1) + (names.length === 2 ? ' other' : ' others') + ' going';
 }
 
+let hostScores = {};   // host id -> { avg, votes }
+async function loadHostScores(){
+  try {
+    const { data } = await db.from('party_ratings').select('flames, parties!inner(host_id)');
+    const acc = {};
+    (data || []).forEach(r => {
+      const h = r.parties && r.parties.host_id; if(!h) return;
+      (acc[h] = acc[h] || { sum: 0, votes: 0 });
+      acc[h].sum += r.flames; acc[h].votes++;
+    });
+    hostScores = {};
+    Object.entries(acc).forEach(([h, v]) => hostScores[h] = { avg: Math.round(v.sum / v.votes * 10) / 10, votes: v.votes });
+  } catch(_){ }
+}
+function flameBadge(hostId, partyCount){
+  const sc = hostScores[hostId];
+  if(sc && sc.votes >= 2) return `<span class="flame">${flameSvg(12)}${sc.avg}</span>`;
+  if(partyCount >= 3) return `<span class="flame">${flameSvg(12)}${partyCount}</span>`;
+  return '';
+}
 async function refreshData(){
   const [pRes, cRes, rRes] = await Promise.all([
     db.from('parties').select('*, claims(user_id), profiles!parties_host_id_fkey(id, display_name, zip, avatar_url)').order('created_at', { ascending: false }),
@@ -908,6 +966,7 @@ async function refreshData(){
     }
   });
   await loadFriendRows();
+  await loadHostScores();
   // addresses you have a right to: fetch them up front, no extra tap
   const need = parties.filter(p => (myClaims.has(p.id) || p.host_id === me.id) && !unlockedAddr[p.id]);
   await Promise.all(need.map(async p => {
@@ -932,6 +991,18 @@ async function loadParties(){
     $('#party-list').innerHTML = '<p class="empty">No parties yet. Be the first — hit Host.</p>';
     return;
   }
+  // parties you were at whose album is still alive
+  const recaps = allParties.filter(x => recapOpen(x) && (myClaims.has(x.id) || x.host_id === me.id));
+  const strip = $('#recap-strip');
+  if(strip){
+    strip.innerHTML = recaps.length ? recaps.map(x => `<button class="rs-card" data-open="${x.id}">
+        <div class="rs-img" style="background:${x.photo_url ? `url('${esc(x.photo_url)}')` : gradFor(x.id)};background-size:cover;background-position:center"></div>
+        <div class="rs-scrim"></div>
+        <div class="rs-txt"><b>${esc(x.name)}</b><span>${esc(diesIn(x))}</span></div>
+      </button>`).join('') : '';
+    strip.hidden = !recaps.length;
+    $('#recap-head').hidden = !recaps.length;
+  }
   const _sb = document.querySelector('#find .scroll');
   const _st = _sb ? _sb.scrollTop : 0;
   $('#party-list').innerHTML = parties.map(p => {
@@ -947,8 +1018,7 @@ async function loadParties(){
     const pct = Math.min(100, claimed / p.max_people * 100);
     const full = claimed >= p.max_people;
     const addr = unlockedAddr[p.id];
-    const flames = hostCount[p.host_id] >= 3
-      ? `<span class="flame">${flameSvg(12)}${hostCount[p.host_id]}</span>` : '';
+    const flames = flameBadge(p.host_id, hostCount[p.host_id] || 0);
     const reqCount = mine && priv ? (hostRequests[p.id] || []).length : 0;
     const status = going ? '<div class="friendsline" style="color:var(--lime)">You’re going — tap for the address</div>'
       : requested ? '<div class="friendsline" style="color:var(--amber)">Request sent — waiting on the host</div>'
@@ -984,6 +1054,59 @@ $('#party-list').addEventListener('click', e => {
   if(c) openDetail(c.dataset.open, 'find');
 });
 
+/* ── the recap: albums that die on Friday ── */
+let recapPhotos = {}, myRating = {}, recapBusy = false;
+function recapUntil(ts){
+  const d = new Date(ts);
+  const dow = (d.getDay() + 6) % 7 + 1;           // Mon=1 … Sun=7, same as Postgres
+  const f = new Date(d); f.setHours(23, 59, 0, 0);
+  f.setDate(f.getDate() + ((5 - dow) + 7) % 7);
+  if(f - d < 3 * 864e5) f.setDate(f.getDate() + 7);
+  return f;
+}
+function recapOpen(p){
+  const start = new Date(p.starts_at || p.created_at);
+  return Date.now() > start.getTime() && Date.now() < recapUntil(start).getTime();
+}
+function diesIn(p){
+  const end = recapUntil(new Date(p.starts_at || p.created_at));
+  const hrs = (end - Date.now()) / 36e5;
+  const day = end.toLocaleDateString('en-US', { weekday: 'long' });
+  if(hrs < 1) return 'Gone within the hour';
+  if(hrs < 24) return 'Gone in ' + Math.round(hrs) + ' hours';
+  return 'Disappears ' + day;
+}
+async function loadRecap(pid){
+  try {
+    const [ph, rt] = await Promise.all([
+      db.from('party_photos').select('*').eq('party_id', pid).order('created_at', { ascending: false }),
+      db.from('party_ratings').select('flames').eq('party_id', pid).eq('user_id', me.id).maybeSingle()
+    ]);
+    recapPhotos[pid] = ph.data || [];
+    myRating[pid] = rt.data ? rt.data.flames : 0;
+  } catch(_){ recapPhotos[pid] = recapPhotos[pid] || []; }
+}
+function recapHtml(p, mine){
+  const photos = recapPhotos[p.id] || [];
+  const rated = myRating[p.id] || 0;
+  const flame = n => `<button data-rate="${p.id}" data-n="${n}" class="${n <= rated ? 'lit' : ''}" aria-label="${n} flames">${flameSvg(19)}</button>`;
+  return `<div class="recap">
+    <div class="recap-h"><b>The Recap</b><span>${esc(diesIn(p))}</span></div>
+    <div class="recap-sub">Only people who were there can see this.</div>
+    <div style="font-size:13px;color:var(--muted);font-weight:600;margin-bottom:6px">How was it?</div>
+    <div class="rate-row">${[1,2,3,4,5].map(flame).join('')}</div>
+    ${rated ? `<div class="rate-done">Rated ${rated}/5 — counts toward ${esc(mine ? 'your' : 'the host’s')} flame</div>` : ''}
+    <div class="album">
+      <button class="album-add" data-addphoto="${p.id}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg>
+        Add to album</button>
+      ${photos.map(ph => `<div class="album-cell ${ph.user_id === me.id ? 'mine' : ''}"
+          data-rphoto="${ph.url}" data-rid="${ph.id}" data-rown="${ph.user_id === me.id || mine ? '1' : ''}">
+        <img src="${esc(ph.url)}" alt="" draggable="false" loading="lazy"></div>`).join('')}
+    </div>
+    ${photos.length ? '' : '<div class="album-empty">No photos yet — the camera goes straight here, nothing saves to your phone.</div>'}
+  </div>`;
+}
 /* ── party detail ── */
 function openDetail(pid, from){
   const fb = document.querySelector('#find .scroll');
@@ -997,6 +1120,8 @@ async function renderDetail(){
   const p = allParties.find(x => x.id === detailId);
   const body = $('#detail-body');
   if(!p){ show(detailFrom); return; }
+  const showRecap = recapOpen(p) && (myClaims.has(p.id) || p.host_id === me.id);
+  if(showRecap && !recapPhotos[p.id]) await loadRecap(p.id);
   const claimers = (p.claims || []).map(c => c.user_id);
   const claimed = claimers.length;
   const mine = p.host_id === me.id;
@@ -1028,7 +1153,7 @@ async function renderDetail(){
       <h2 style="font-size:22px;margin:0 0 4px">${esc(p.name)}</h2>
       <p style="color:var(--muted);font-size:14px;margin-bottom:10px">
         Hosted by ${esc(mine ? 'you' : (p.profiles?.display_name || 'someone'))}
-        ${hostCount >= 3 ? `<span class="flame">${flameSvg(12)}${hostCount}</span>` : ''}
+        ${flameBadge(p.host_id, hostCount)}
         · ${esc(p.town || 'nearby')}</p>
       <div class="meta" style="margin-bottom:14px">
         <span style="${p.fee > 0 ? 'color:var(--lime);font-weight:700' : 'color:var(--faint)'}">${p.fee > 0 ? '$' + (+p.fee) + ' cover at the door' : 'Free entry'}</span>
@@ -1071,13 +1196,14 @@ async function renderDetail(){
             <button class="mini-btn den" data-deny="${p.id}" data-uid="${r.user_id}">Deny</button>
           </div>`).join('')}
         </div>` : (mine && priv ? '<div class="panel"><h4>Requests</h4><p class="empty" style="padding:6px">Requests to get in show up here.</p></div>' : '')}
-      ${mine ? `<button class="btn btn-danger" data-cancel="${p.id}">Cancel this party</button>`
+      ${showRecap ? recapHtml(p, mine) : ''}
+      ${showRecap ? '' : mine ? `<button class="btn btn-danger" data-cancel="${p.id}">Cancel this party</button>`
         : going ? `<button class="btn btn-danger" data-unclaim="${p.id}">Give up my spot</button>`
         : requested ? `<div class="waiting">Request sent — waiting on ${esc((nickMap[p.host_id] || p.profiles?.display_name || 'the host').split(' ')[0])}</div>
             <button class="btn btn-danger" data-cancelreq="${p.id}">Cancel request</button>`
         : priv ? `<button class="btn" data-request="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Request a spot'}</button>`
         : `<button class="btn" data-claim="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Claim my spot'}</button>`}
-      <button class="btn btn-ghost" data-shareparty="${p.id}" style="margin-top:10px">Share with friends</button>
+      ${showRecap ? '' : `<button class="btn btn-ghost" data-shareparty="${p.id}" style="margin-top:10px">Share with friends</button>`}
     </div>`;
 }
 async function refreshAfterAction(){
@@ -1085,9 +1211,63 @@ async function refreshAfterAction(){
   if(detailId && $('#detail').classList.contains('on')) renderDetail();
 }
 
+$('#detail-body').addEventListener('change', async e => {
+  if(e.target.id !== 'recap-file') return;
+  const file = e.target.files && e.target.files[0];
+  const pid = e.target.dataset.pid;
+  e.target.value = '';
+  if(!file || !pid || recapBusy) return;
+  recapBusy = true;
+  const btn = document.querySelector('[data-addphoto]');
+  if(btn) btn.textContent = 'Adding…';
+  try {
+    const blob = await shrinkImage(file, 1400, .82);
+    const path = me.id + '/recap/' + pid + '-' + Date.now() + '.jpg';
+    const { error } = await db.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg' });
+    if(error) throw error;
+    const url = db.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+    const { error: e2 } = await db.from('party_photos').insert({ party_id: pid, user_id: me.id, url });
+    if(e2) throw e2;
+    haptic(12);
+    await loadRecap(pid);
+    renderDetail();
+  } catch(err){
+    toast((err && err.message || '').includes('party_photos') ? 'One sec — the recap needs migration 17'
+        : (err && err.message) || 'That photo would not add');
+    renderDetail();
+  } finally { recapBusy = false; }
+});
 $('#detail-body').addEventListener('click', async e => {
   const g = sel => e.target.closest(sel);
   let el;
+  if(el = g('[data-rate]')){
+    const pid = el.dataset.rate, n = +el.dataset.n;
+    myRating[pid] = n; haptic(12); renderDetail();
+    const { error } = await db.from('party_ratings')
+      .upsert({ party_id: pid, user_id: me.id, flames: n }, { onConflict: 'party_id,user_id' });
+    if(error) toast(error.message.includes('party_ratings') ? 'One sec — the recap needs migration 17' : error.message);
+    return;
+  }
+  if(el = g('[data-addphoto]')){
+    let inp = document.getElementById('recap-file');
+    if(!inp){
+      inp = document.createElement('input');
+      inp.type = 'file'; inp.id = 'recap-file'; inp.accept = 'image/*';
+      inp.setAttribute('capture', 'environment');   // straight to the camera on a phone
+      inp.hidden = true;
+      $('#detail-body').appendChild(inp);
+    }
+    inp.dataset.pid = el.dataset.addphoto;
+    inp.click(); return;
+  }
+  if(el = g('[data-rphoto]')){
+    $('#lb-img').src = el.dataset.rphoto;
+    $('#lightbox').hidden = false;
+    $('#lightbox').dataset.rid = el.dataset.rown ? el.dataset.rid : '';
+    $('#lightbox').dataset.pid = detailId;
+    $('#lb-remove').hidden = !el.dataset.rown;
+    return;
+  }
   if(g('[data-close]')){ closeOverlay($('#detail'), detailFrom || 'find'); return; }
   if(el = g('[data-viewuser]')){ openUserCard(el.dataset.viewuser); return; }
   if(el = g('[data-claim]')){
@@ -1786,9 +1966,25 @@ $('#msgs').addEventListener('click', e => {
   const img = e.target.closest('[data-full]');
   if(!img) return;
   $('#lb-img').src = img.dataset.full;
+  $('#lightbox').dataset.rid = '';
+  $('#lb-remove').hidden = true;
   $('#lightbox').hidden = false;
 });
-$('#lightbox').addEventListener('click', () => { $('#lightbox').hidden = true; $('#lb-img').src = ''; });
+$('#lightbox').addEventListener('click', async e => {
+  const box = $('#lightbox');
+  if(e.target.closest('#lb-remove')){
+    const rid = box.dataset.rid, pid = box.dataset.pid;
+    if(!rid) return;
+    if(!confirm('Remove this photo from the album?')) return;
+    const { error } = await db.from('party_photos').delete().eq('id', rid);
+    if(error){ toast(error.message); return; }
+    haptic(10);
+    box.hidden = true; $('#lb-img').src = ''; box.dataset.rid = '';
+    if(pid){ await loadRecap(pid); renderDetail(); }
+    return;
+  }
+  box.hidden = true; $('#lb-img').src = ''; box.dataset.rid = '';
+});
 $('#msg-send').addEventListener('click', sendMsg);
 $('#msg-in').addEventListener('keydown', e => {
   if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); }
@@ -2009,9 +2205,11 @@ async function renderProfile(){
         : '<button class="btn" id="notif-enable" style="margin-top:2px">Turn on notifications</button><p class="hint" style="margin-top:8px">New parties the moment they post, messages, and “you’re in” — straight to this phone.</p>'}
     </div>
     <div class="panel"><h4>Host flame</h4>
-      ${hosted.length >= 3
-        ? `<p class="flame" style="font-size:16px">${flameSvg(16)} ${hosted.length} parties hosted — you’ve got the flame</p>`
-        : `<p style="color:var(--muted);font-size:14px">${hosted.length} of 3 parties hosted. The flame shows on your parties once people know you throw them for real.</p>`}
+      ${(hostScores[me.id] && hostScores[me.id].votes >= 2)
+        ? `<p class="flame" style="font-size:19px">${flameSvg(19)} ${hostScores[me.id].avg} <span style="font-size:13px;color:var(--muted);font-weight:600">from ${hostScores[me.id].votes} ratings · ${hosted.length} parties hosted</span></p>`
+        : hosted.length >= 3
+        ? `<p class="flame" style="font-size:16px">${flameSvg(16)} ${hosted.length} parties hosted — rate a couple of recaps and your real score shows up here</p>`
+        : `<p style="color:var(--muted);font-size:14px">${hosted.length} of 3 parties hosted. Once guests start rating your recaps, your flame score lands here.</p>`}
     </div>
     <div class="panel"><h4>Home address</h4>
       <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Auto-fills the host form. Locked in the database — only you can ever read it.</p>
