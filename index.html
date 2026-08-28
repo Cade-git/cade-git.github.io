@@ -240,7 +240,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v5.5</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v5.6</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -289,6 +289,7 @@
       </div>
       <div class="map-note" id="map-note">pins are approximate — exact once you’re in</div>
       <button class="map-layerbtn" id="map-layer">Satellite</button>
+      <button class="map-layerbtn" id="map-locate" style="top:calc(48px + env(safe-area-inset-top, 0px))" aria-label="Center on me">◎ Me</button>
       <div class="map-mini" id="map-mini" hidden></div>
     </div>
   </section>
@@ -989,6 +990,40 @@ function pinIcon(col, label, mine){
   return L.divIcon({ className: 'lpin-wrap', iconSize: [130, 48], iconAnchor: [65, 14],
     html: `<div class="lpin"><span class="lpin-dot" style="background:${col};box-shadow:0 2px 12px ${col}${mine ? ',0 0 0 3px rgba(255,255,255,.45)' : ''}"></span><span class="lpin-name">${esc(label)}</span></div>` });
 }
+/* exact street addresses: the US Census geocoder knows every US address range (OSM often misses small-town streets) */
+async function censusGeocode(addr){
+  const ck = 'c:' + addr.trim().toLowerCase();
+  if(GEOCACHE[ck]) return GEOCACHE[ck];
+  try{
+    const r = await fetch('https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?benchmark=Public_AR_Current&format=json&address=' + encodeURIComponent(addr));
+    if(!r.ok) return null;
+    const j = await r.json();
+    const m = j && j.result && j.result.addressMatches && j.result.addressMatches[0];
+    if(m && m.coordinates){
+      GEOCACHE[ck] = { lat: +m.coordinates.y, lon: +m.coordinates.x };
+      try{ localStorage.setItem('turnout-geo2', JSON.stringify(GEOCACHE)); }catch(_){}
+      return GEOCACHE[ck];
+    }
+  }catch(_){}
+  return null;
+}
+/* live location: real GPS, kept ON THIS PHONE only — never uploaded anywhere */
+let liveLoc = null, geoWatchId = null, mapCentered = false;
+function setYou(ll){
+  if(!lmap) return;
+  if(!youMarker){
+    youMarker = L.marker(ll, { interactive: false, zIndexOffset: 500, icon: L.divIcon({ className: 'lpin-wrap', iconSize: [60, 44], iconAnchor: [30, 12],
+      html: '<div class="lpin"><span class="lpin-dot you"></span><span class="lpin-name">You</span></div>' }) }).addTo(lmap);
+  } else youMarker.setLatLng(ll);
+}
+function startLiveLocation(){
+  if(!navigator.geolocation || geoWatchId !== null) return;
+  geoWatchId = navigator.geolocation.watchPosition(pos => {
+    liveLoc = [pos.coords.latitude, pos.coords.longitude];
+    setYou(liveLoc);
+    if(!mapCentered){ mapCentered = true; lmap.setView(liveLoc, 14); }
+  }, () => {}, { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 });
+}
 async function renderMap(){
   $('#map-home').innerHTML = 'near <b>' + esc(me.zip || 'you') + '</b>';
   if(!window.L){ $('#map-note').textContent = 'map couldn’t load — check your connection and reopen'; return; }
@@ -1002,31 +1037,40 @@ async function renderMap(){
     lmap.on('click', () => { $('#map-mini').hidden = true; });
     window.addEventListener('resize', () => lmap && lmap.invalidateSize());
   }
+  startLiveLocation();
   // the container just became visible — Leaflet must re-measure or tiles render broken
   [100, 400, 900].forEach(t => setTimeout(() => lmap.invalidateSize(), t));
   const run = ++mapRun;
   const snapshot = parties.slice();
   const pts = [];
   if(snapshot.length) $('#map-note').textContent = 'placing parties…';
-  const home = await geoFirst(me.zip ? [me.zip + ', USA'] : [], run);
-  if(home === 'stale') return;
-  if(home){
-    pts.push([home.lat, home.lon]);
-    if(!youMarker){
-      youMarker = L.marker([home.lat, home.lon], { interactive: false, zIndexOffset: 500, icon: L.divIcon({ className: 'lpin-wrap', iconSize: [60, 44], iconAnchor: [30, 12],
-        html: '<div class="lpin"><span class="lpin-dot you"></span><span class="lpin-name">You</span></div>' }) }).addTo(lmap);
-      if(!mapFitted) lmap.setView([home.lat, home.lon], 12);
-    } else youMarker.setLatLng([home.lat, home.lon]);
+  if(liveLoc){
+    setYou(liveLoc); pts.push(liveLoc);
+  } else {
+    const home = await geoFirst(me.zip ? [me.zip + ', USA'] : [], run);
+    if(home === 'stale') return;
+    if(home && !liveLoc){
+      pts.push([home.lat, home.lon]);
+      setYou([home.lat, home.lon]);
+      if(!mapFitted && !mapCentered) lmap.setView([home.lat, home.lon], 12);
+    }
   }
   markerLayer.clearLayers();
   for(const p of snapshot){
     const exact = !!unlockedAddr[p.id];
-    const tries = [];
-    if(exact) tries.push(unlockedAddr[p.id] + (p.town ? ', ' + p.town : '') + ', USA');
-    if(p.profiles?.zip) tries.push(p.profiles.zip + ', USA'); // host ZIP: always the right area
-    if(p.town) tries.push(p.town + ', USA');
-    const loc = await geoFirst(tries, run);
-    if(loc === 'stale') return;
+    let loc = null;
+    if(exact){
+      loc = await censusGeocode(unlockedAddr[p.id] + (p.town ? ', ' + p.town : ''));
+      if(run !== mapRun) return;
+    }
+    if(!loc){
+      const tries = [];
+      if(exact) tries.push(unlockedAddr[p.id] + (p.town ? ', ' + p.town : '') + ', USA');
+      if(p.profiles?.zip) tries.push(p.profiles.zip + ', USA'); // host ZIP: always the right area
+      if(p.town) tries.push(p.town + ', USA');
+      loc = await geoFirst(tries, run);
+      if(loc === 'stale') return;
+    }
     if(!loc) continue;
     const lat = exact ? loc.lat : loc.lat + jitter(p.id, 'a');
     const lon = exact ? loc.lon : loc.lon + jitter(p.id, 'b');
@@ -1045,6 +1089,13 @@ async function renderMap(){
     lmap.fitBounds(L.latLngBounds(pts).pad(0.3), { maxZoom: 14 });
   }
 }
+$('#map-locate').addEventListener('click', () => {
+  if(!lmap) return;
+  if(liveLoc){ lmap.setView(liveLoc, 15); return; }
+  startLiveLocation();
+  if(youMarker) lmap.setView(youMarker.getLatLng(), 14);
+  else toast('Finding you — allow location when your phone asks');
+});
 $('#map-layer').addEventListener('click', () => {
   if(!lmap) return;
   satOn = !satOn;
