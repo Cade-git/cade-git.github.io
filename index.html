@@ -158,9 +158,16 @@
   .d-cover{height:calc(120px + env(safe-area-inset-top, 0px));position:relative;display:flex;align-items:flex-end;padding:12px 20px}
   .d-back{position:absolute;top:calc(12px + env(safe-area-inset-top, 0px));left:12px;z-index:2;background:rgba(11,10,20,.65)}
   /* share sheet */
-  #share-sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;
+  #share-sheet,#nick-sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;
     background:rgba(0,0,0,.55)}
-  #share-sheet[hidden]{display:none}
+  #share-sheet[hidden],#nick-sheet[hidden]{display:none}
+  #chat-peer{display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;
+    -webkit-tap-highlight-color:transparent}
+  .nick-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+  .nick-real{font-size:13px;color:var(--faint)}
+  #nick-input{margin-bottom:14px}
+  .danger-link{width:100%;background:none;border:none;color:#FF5C5C;font-family:var(--body);
+    font-size:14px;font-weight:600;padding:14px 0 2px;cursor:pointer}
   .sheet{width:min(440px,100%);background:var(--surface);border:1px solid var(--line);
     border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));
     max-height:70dvh;overflow-y:auto}
@@ -209,7 +216,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.6</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v4.7</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -284,8 +291,10 @@
     <div class="chat-top">
       <button class="back-btn" id="chat-back" aria-label="Back">
         <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
-      <span id="chat-av"></span>
-      <div style="font-weight:700" id="chat-name"></div>
+      <div id="chat-peer" title="Tap to edit">
+        <span id="chat-av"></span>
+        <div style="font-weight:700" id="chat-name"></div>
+      </div>
     </div>
     <div class="msgs" id="msgs"></div>
     <div class="composer">
@@ -357,6 +366,22 @@
     <div class="chips" id="share-list" style="margin-bottom:18px"></div>
     <button class="btn" id="share-send">Send it</button>
     <button class="btn btn-ghost" id="share-cancel" style="margin-top:10px">Cancel</button>
+  </div>
+</div>
+
+<div id="nick-sheet" hidden>
+  <div class="sheet">
+    <div class="nick-head">
+      <span id="nick-av"></span>
+      <div style="min-width:0">
+        <h3 style="margin:0" id="nick-title"></h3>
+        <div class="nick-real" id="nick-real"></div>
+      </div>
+    </div>
+    <input id="nick-input" placeholder="Add a nickname" autocomplete="off" maxlength="40">
+    <p class="sub" style="margin-top:-6px">Only you see it — it shows everywhere on your side.</p>
+    <button class="btn" id="nick-save">Save</button>
+    <button class="danger-link" id="nick-remove">Remove friend</button>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -438,7 +463,7 @@ function avatar(p, size, radius){
   const r = radius || 13;
   if(p && p.avatar_url)
     return `<img class="avimg" src="${esc(p.avatar_url)}" alt="" style="width:${size}px;height:${size}px;border-radius:${r}px">`;
-  return `<div class="f-av" style="width:${size}px;height:${size}px;border-radius:${r}px;background:${gradFor(p?.id || 'x')};font-size:${Math.round(size * 0.42)}px">${esc((p?.display_name || '?').charAt(0))}</div>`;
+  return `<div class="f-av" style="width:${size}px;height:${size}px;border-radius:${r}px;background:${gradFor(p?.id || 'x')};font-size:${Math.round(size * 0.42)}px">${esc((nickMap[p?.id] || p?.display_name || '?').charAt(0))}</div>`;
 }
 
 let me = null;
@@ -451,6 +476,8 @@ let friends = [];          // accepted friend profiles
 let pendingIn = [];        // profiles who asked me
 let pendingOut = new Set();// ids I asked
 let profMap = {};          // id -> profile (friends + requesters)
+let nickMap = {};          // id -> the nickname YOU gave them (private)
+const dispName = p => p ? (nickMap[p.id] || p.display_name || '?') : 'Chat';
 let unlockedAddr = {};
 let unreadFrom = new Set();
 let chatId = null;
@@ -527,6 +554,9 @@ async function loadMe(){
   return data;
 }
 async function loadFriendRows(){
+  const { data: nicks } = await db.from('nicknames').select('friend_id, nickname');
+  nickMap = {};
+  (nicks || []).forEach(n => nickMap[n.friend_id] = n.nickname);
   const { data } = await db.from('friendships').select('user_id, friend_id, status')
     .or(`user_id.eq.${me.id},friend_id.eq.${me.id}`);
   const rows = data || [];
@@ -610,7 +640,7 @@ async function loadParties(){
   $('#find-greet').textContent = 'Parties near you, ' + me.display_name.split(' ')[0];
   await refreshData();
   const friendIds = new Set(friends.map(f => f.id));
-  const nameOf = {}; friends.forEach(f => nameOf[f.id] = f.display_name);
+  const nameOf = {}; friends.forEach(f => nameOf[f.id] = dispName(f));
   const hostCount = {};
   allParties.forEach(p => hostCount[p.host_id] = (hostCount[p.host_id] || 0) + 1);
 
@@ -652,7 +682,7 @@ async function loadParties(){
           <span style="${p.fee > 0 ? 'color:var(--lime);font-weight:700' : 'color:var(--faint)'}">${p.fee > 0 ? '$' + (+p.fee) + ' cover' : 'Free'}</span>
         </div>
         <div class="meta" style="font-size:12px;color:var(--faint)">
-          <span>hosted by ${esc(mine ? 'you' : (p.profiles?.display_name || 'someone'))}</span>
+          <span>hosted by ${esc(mine ? 'you' : (nickMap[p.host_id] || p.profiles?.display_name || 'someone'))}</span>
           ${flames}
           <span>${p.drinks === 'provided' ? 'Drinks provided' : 'BYOB'}</span>
           ${priv ? '<span style="color:var(--amber);font-weight:600">Private</span>' : ''}
@@ -693,7 +723,7 @@ async function renderDetail(){
   const requested = myRequests.has(p.id);
   const priv = p.privacy === 'private';
   const friendIds = new Set(friends.map(f => f.id));
-  const fNames = claimers.filter(id => friendIds.has(id)).map(id => (profMap[id] || {}).display_name).filter(Boolean);
+  const fNames = claimers.filter(id => friendIds.has(id)).map(id => nickMap[id] || (profMap[id] || {}).display_name).filter(Boolean);
   const cls = capClass(claimed, p.max_people);
   const pct = Math.min(100, claimed / p.max_people * 100);
   const full = claimed >= p.max_people;
@@ -736,7 +766,7 @@ async function renderDetail(){
         ${(going || mine)
           ? (guests.length
               ? guests.map(gp => `<div class="f-row">${avatar(gp, 34)}
-                  <span style="flex:1;font-weight:600">${esc(gp.display_name)}${gp.id === me.id ? ' (you)' : ''}</span>
+                  <span style="flex:1;font-weight:600">${esc(nickMap[gp.id] || gp.display_name)}${gp.id === me.id ? ' (you)' : ''}</span>
                   ${friendIds.has(gp.id) ? '<span style="font-size:12px;color:#FF9CC4;font-weight:600">friend</span>' : ''}
                 </div>`).join('')
               : '<p class="empty" style="padding:6px">Nobody yet — first claim gets bragging rights.</p>')
@@ -760,7 +790,7 @@ async function renderDetail(){
         </div>` : (mine && priv ? '<div class="panel"><h4>Requests</h4><p class="empty" style="padding:6px">Requests to get in show up here.</p></div>' : '')}
       ${mine ? `<button class="btn btn-danger" data-cancel="${p.id}">Cancel this party</button>`
         : going ? `<button class="btn btn-danger" data-unclaim="${p.id}">Give up my spot</button>`
-        : requested ? `<div class="waiting">Request sent — waiting on ${esc((p.profiles?.display_name || 'the host').split(' ')[0])}</div>
+        : requested ? `<div class="waiting">Request sent — waiting on ${esc((nickMap[p.host_id] || p.profiles?.display_name || 'the host').split(' ')[0])}</div>
             <button class="btn btn-danger" data-cancelreq="${p.id}">Cancel request</button>`
         : priv ? `<button class="btn" data-request="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Request a spot'}</button>`
         : `<button class="btn" data-claim="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Claim my spot'}</button>`}
@@ -823,7 +853,7 @@ function openShare(pid){
   const p = allParties.find(x => x.id === pid);
   $('#share-title').textContent = p ? 'Share “' + p.name + '”' : 'Share this party';
   $('#share-list').innerHTML = friends.length
-    ? friends.map(f => `<button class="chip" data-fid="${f.id}">${esc(f.display_name)}</button>`).join('')
+    ? friends.map(f => `<button class="chip" data-fid="${f.id}">${esc(dispName(f))}</button>`).join('')
     : '<p class="empty" style="padding:6px">No friends yet — add some on the Friends tab first.</p>';
   $('#share-sheet').hidden = false;
 }
@@ -967,7 +997,7 @@ async function loadFriends(){
     return `<button class="fl-row" data-chat="${f.id}">
       ${avatar(f, 50, 16)}
       <div class="fl-main">
-        <div class="fl-name">${esc(f.display_name)}</div>
+        <div class="fl-name">${esc(dispName(f))}</div>
         <div class="fl-prev ${un ? 'unread' : ''}">${line}</div>
       </div>
       <div class="fl-side">
@@ -1054,7 +1084,7 @@ async function openChat(fid){
   unreadFrom.delete(fid); updateDot();
   const f = profMap[fid] || friends.find(x => x.id === fid);
   $('#chat-av').innerHTML = avatar(f, 38);
-  $('#chat-name').textContent = f ? f.display_name : 'Chat';
+  $('#chat-name').textContent = dispName(f);
   show('chat');
   await renderChat();
 }
@@ -1092,6 +1122,48 @@ async function sendMsg(){
 $('#msg-send').addEventListener('click', sendMsg);
 $('#msg-in').addEventListener('keydown', e => { if(e.key === 'Enter') sendMsg(); });
 $('#chat-back').addEventListener('click', () => closeOverlay($('#chat'), 'friends'));
+
+/* ── nickname sheet (tap their name in a chat, like Snapchat) ── */
+$('#chat-peer').addEventListener('click', () => {
+  if(!chatId) return;
+  const f = profMap[chatId] || friends.find(x => x.id === chatId);
+  $('#nick-av').innerHTML = avatar(f, 52, 16);
+  $('#nick-title').textContent = dispName(f);
+  $('#nick-real').textContent = nickMap[chatId] ? 'Real name: ' + (f?.display_name || '') : 'Tap below to give them a nickname';
+  $('#nick-input').value = nickMap[chatId] || '';
+  $('#nick-sheet').hidden = false;
+});
+$('#nick-sheet').addEventListener('click', e => { if(e.target.id === 'nick-sheet') e.target.hidden = true; });
+$('#nick-save').addEventListener('click', async () => {
+  if(!chatId) return;
+  const v = $('#nick-input').value.trim();
+  if(v){
+    const { error } = await db.from('nicknames').upsert({ owner_id: me.id, friend_id: chatId, nickname: v });
+    if(error){ toast(error.message.includes('nicknames') ? 'One sec — the nicknames table isn’t set up yet' : error.message); return; }
+    nickMap[chatId] = v;
+  } else {
+    await db.from('nicknames').delete().eq('owner_id', me.id).eq('friend_id', chatId);
+    delete nickMap[chatId];
+  }
+  const f = profMap[chatId];
+  $('#chat-name').textContent = dispName(f);
+  $('#chat-av').innerHTML = avatar(f, 38);
+  $('#nick-sheet').hidden = true;
+  toast(v ? 'Nickname saved — only you see it' : 'Back to their real name');
+});
+$('#nick-remove').addEventListener('click', async () => {
+  if(!chatId) return;
+  const f = profMap[chatId];
+  if(!confirm('Remove ' + (f?.display_name || 'this friend') + '? They won’t be notified.')) return;
+  await db.from('friendships').delete().eq('user_id', me.id).eq('friend_id', chatId);
+  await db.from('friendships').delete().eq('user_id', chatId).eq('friend_id', me.id);
+  await db.from('nicknames').delete().eq('owner_id', me.id).eq('friend_id', chatId);
+  delete nickMap[chatId];
+  $('#nick-sheet').hidden = true;
+  toast('Friend removed');
+  closeOverlay($('#chat'), 'friends');
+  loadFriends();
+});
 $('#msgs').addEventListener('click', e => {
   const c = e.target.closest('[data-msgparty]');
   if(c) show('find');
