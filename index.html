@@ -160,14 +160,13 @@
   .d-cover{height:calc(120px + env(safe-area-inset-top, 0px));position:relative;display:flex;align-items:flex-end;padding:12px 20px}
   .d-back{position:absolute;top:calc(12px + env(safe-area-inset-top, 0px));left:12px;z-index:2;background:rgba(11,10,20,.65)}
   /* share sheet */
-  #share-sheet,#nick-sheet,#pfp-sheet,#user-sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;
+  #share-sheet,#nick-sheet,#pfp-sheet,#user-sheet,#bn-sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;
     background:rgba(0,0,0,.55)}
-  #share-sheet[hidden],#nick-sheet[hidden],#pfp-sheet[hidden],#user-sheet[hidden]{display:none}
+  #share-sheet[hidden],#nick-sheet[hidden],#pfp-sheet[hidden],#user-sheet[hidden],#bn-sheet[hidden]{display:none}
+  .grad-pick.wide{width:74px;height:44px;border-radius:12px}
   .pf-banner{height:118px;border-radius:18px;background-size:cover;background-position:center;position:relative;margin-bottom:44px}
   .pf-banner .pf-avslot{position:absolute;left:14px;bottom:-32px}
   .pf-avslot .avimg,.pf-avslot .f-av{border:3px solid var(--bg);box-sizing:content-box}
-  .pf-bannerbtn{position:absolute;right:10px;top:10px;width:30px;height:30px;border-radius:10px;background:rgba(0,0,0,.45);
-    display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.25)}
   .grad-grid{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 16px}
   .grad-pick{width:52px;height:52px;border-radius:18px;display:flex;align-items:center;justify-content:center;
     font-family:var(--disp);font-weight:800;color:#fff;font-size:20px;border:2px solid transparent;cursor:pointer}
@@ -240,7 +239,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v5.1</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v5.2</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -422,6 +421,17 @@
   </div>
 </div>
 
+<div id="bn-sheet" hidden>
+  <div class="sheet">
+    <div id="bn-preview" style="height:88px;border-radius:14px;margin-bottom:14px;background-size:cover;background-position:center"></div>
+    <h3 style="text-align:center">Your banner</h3>
+    <p class="sub" style="text-align:center">Tops off your profile card.</p>
+    <button class="btn" id="bn-upload">Choose from camera roll</button>
+    <p class="sub" style="margin:16px 0 4px">…or a Turnout gradient:</p>
+    <div class="grad-grid" id="bn-grads"></div>
+  </div>
+</div>
+
 <div id="user-sheet" hidden>
   <div class="sheet" style="padding-top:14px">
     <div id="user-card"></div>
@@ -499,6 +509,7 @@ const GRADS = ['linear-gradient(120deg,#FF3D8A,#8B5CF6)','linear-gradient(120deg
   'linear-gradient(120deg,#B4F04B,#35D6ED)','linear-gradient(120deg,#FF5C5C,#FFB454)'];
 const isDefaultAv = u => !!u && u.startsWith('grad:');
 const gradOfAv = (u, id) => GRADS[(parseInt(u.slice(5), 10) || 0) % GRADS.length] || gradFor(id || 'x');
+const bannerCss = (u, id) => !u ? gradFor(id || 'x') : (isDefaultAv(u) ? gradOfAv(u, id) : `url('${esc(u)}')`);
 function hashN(id, mod){ let h = 0; for(const c of id) h = (h * 31 + c.charCodeAt(0)) % 99991; return h % mod; }
 function gradFor(id){ return GRADS[hashN(id, 6)]; }
 function flameSvg(w){
@@ -1306,10 +1317,7 @@ async function renderProfile(){
   const ps = await pushState();
   const hosted = allParties.filter(p => p.host_id === me.id);
   $('#profile-body').innerHTML = `
-    <div class="pf-banner" style="background:${me.banner_url ? `url('${esc(me.banner_url)}')` : gradFor(me.id)};background-size:cover;background-position:center">
-      <button class="pf-bannerbtn" id="bn-change" aria-label="Change banner">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-      </button>
+    <div class="pf-banner" id="bn-open" style="background:${bannerCss(me.banner_url, me.id)};background-size:cover;background-position:center;cursor:pointer" title="Tap to change your banner">
       <button class="pf-avslot" id="av-open" aria-label="Your profile pic" style="background:none;border:none;padding:0">${avatar(me, 76, 24)}</button>
       <input id="av-file" type="file" accept="image/*" hidden>
       <input id="bn-file" type="file" accept="image/*" hidden>
@@ -1351,7 +1359,7 @@ async function renderProfile(){
 $('#profile-body').addEventListener('click', async e => {
   if(e.target.id === 'notif-enable'){ enablePush(); return; }
   if(e.target.closest('#av-open')){ openPfpSheet(); return; }
-  if(e.target.closest('#bn-change')){ $('#bn-file').click(); return; }
+  if(e.target.closest('#bn-open')){ openBnSheet(); return; }
   if(e.target.id === 'vip-toggle'){
     const next = !me.is_vip;
     const { error } = await db.from('profiles').update({ is_vip: next }).eq('id', me.id);
@@ -1378,8 +1386,34 @@ $('#profile-body').addEventListener('change', async e => {
   if(e2){ toast(e2.message.includes('banner_url') ? 'One sec — banners aren’t wired in the database yet' : e2.message); return; }
   if(which === 'avatar') me.avatar_url = url; else me.banner_url = url;
   $('#pfp-sheet').hidden = true;
+  $('#bn-sheet').hidden = true;
   toast(which === 'avatar' ? 'Looking good — photo saved' : 'Banner set 🔥');
   renderProfile();
+});
+
+/* ── banner sheet: tap your banner → camera roll or Turnout gradients ── */
+function openBnSheet(){
+  $('#bn-preview').style.background = bannerCss(me.banner_url, me.id);
+  $('#bn-preview').style.backgroundSize = 'cover';
+  $('#bn-preview').style.backgroundPosition = 'center';
+  const cur = isDefaultAv(me.banner_url) ? parseInt(me.banner_url.slice(5), 10) : -1;
+  $('#bn-grads').innerHTML = GRADS.map((g, i) =>
+    `<button class="grad-pick wide ${i === cur ? 'on' : ''}" data-bngrad="${i}" style="background:${g}"></button>`).join('');
+  $('#bn-sheet').hidden = false;
+}
+$('#bn-sheet').addEventListener('click', async e => {
+  if(e.target.id === 'bn-sheet'){ e.target.hidden = true; return; }
+  if(e.target.id === 'bn-upload'){ $('#bn-file').click(); return; }
+  const g = e.target.closest('[data-bngrad]');
+  if(g){
+    const url = 'grad:' + g.dataset.bngrad;
+    const { error } = await db.from('profiles').update({ banner_url: url }).eq('id', me.id);
+    if(error){ toast(error.message.includes('banner_url') ? 'One sec — banners aren’t wired in the database yet' : error.message); return; }
+    me.banner_url = url;
+    $('#bn-sheet').hidden = true;
+    toast('Banner set 🔥');
+    renderProfile();
+  }
 });
 
 /* ── pfp sheet: tap your pic → camera roll or Turnout defaults ── */
@@ -1417,16 +1451,15 @@ async function openUserCard(uid){
   const isFriend = friends.some(f => f.id === uid);
   const action = isFriend
       ? `<button class="btn" data-ucchat="${uid}">Message ${esc((nickMap[uid] || p.display_name).split(' ')[0])}</button>
-         <button class="btn btn-ghost" data-ucnick="${uid}" style="margin-top:10px">${nickMap[uid] ? 'Edit nickname' : 'Add a nickname'}</button>
          <button class="danger-link" data-ucremove="${uid}">Remove friend</button>`
     : pendingOut.has(uid) ? '<button class="btn btn-ghost" disabled>Request sent</button>'
     : pendingIn.some(x => x.id === uid) ? `<button class="btn" data-ucacc="${uid}">Accept friend request</button>`
     : `<button class="btn" data-ucadd="${uid}">Add friend</button>`;
   $('#user-card').innerHTML = `
-    <div class="pf-banner" style="background:${p.banner_url ? `url('${esc(p.banner_url)}')` : gradFor(p.id)};background-size:cover;background-position:center;height:96px;margin-bottom:40px">
+    <div class="pf-banner" style="background:${bannerCss(p.banner_url, p.id)};background-size:cover;background-position:center;height:96px;margin-bottom:40px">
       <div class="pf-avslot">${avatar(p, 64, 20)}</div>
     </div>
-    <h3 style="font-size:18px">${esc(nickMap[uid] || p.display_name)}
+    <h3 style="font-size:18px${isFriend ? ';cursor:pointer' : ''}"${isFriend ? ` data-ucnick="${uid}" title="Tap to set a nickname"` : ''}>${esc(nickMap[uid] || p.display_name)}
       ${p.is_vip ? '<span class="tag" style="color:var(--amber);border:1px solid rgba(255,180,84,.45);background:rgba(255,180,84,.1);vertical-align:2px">VIP</span>' : ''}</h3>
     ${nickMap[uid] ? `<p class="sub" style="margin-bottom:4px">${esc(p.display_name)}</p>` : ''}
     <div class="uc-stats">
