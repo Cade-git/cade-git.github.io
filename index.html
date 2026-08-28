@@ -12,6 +12,8 @@
 <link rel="apple-touch-icon" href="/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Outfit:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
@@ -190,7 +192,18 @@
   .chip.on{background:rgba(255,61,138,.15);border-color:var(--mag);color:#fff}
   /* map */
   #map .map-wrap{flex:1;position:relative;overflow:hidden;background:#0E0C1A}
-  #map svg{position:absolute;inset:0;width:100%;height:100%}
+  #realmap{position:absolute;inset:0;z-index:0;background:#0E0C1A}
+  #realmap .leaflet-control-attribution{background:rgba(11,10,20,.6);color:#66607E;font-size:9px}
+  #realmap .leaflet-control-attribution a{color:#9C95B8}
+  .lpin-wrap{background:none;border:none}
+  .lpin{display:flex;flex-direction:column;align-items:center;gap:3px;width:120px}
+  .lpin-dot{width:14px;height:14px;border-radius:99px;border:2.5px solid #0E0C1A;display:block}
+  .lpin-dot.you{background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.22)}
+  .lpin-name{font-family:'Outfit',sans-serif;font-size:10.5px;font-weight:700;color:#fff;background:rgba(11,10,20,.78);
+    padding:2px 7px;border-radius:99px;border:1px solid var(--line);white-space:nowrap;max-width:118px;overflow:hidden;text-overflow:ellipsis}
+  .map-legend,.map-note,.map-mini,.map-layerbtn{z-index:5}
+  .map-layerbtn{position:absolute;right:12px;top:calc(10px + env(safe-area-inset-top, 0px));font-size:11px;font-weight:600;
+    color:var(--muted);background:rgba(11,10,20,.7);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
   .map-legend{position:absolute;top:calc(10px + env(safe-area-inset-top, 0px));left:12px;display:flex;gap:12px;font-size:11px;color:var(--muted);
     background:rgba(11,10,20,.7);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
   .map-legend i{display:inline-block;width:8px;height:8px;border-radius:99px;margin-right:4px}
@@ -227,7 +240,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v5.0</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v5.1</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -266,13 +279,14 @@
   <section class="screen" id="map">
     <div class="top"><span class="wordmark">TURNOUT</span><span class="loc-pill" id="map-home">your map</span></div>
     <div class="map-wrap">
-      <svg id="map-svg" viewBox="0 0 400 620" preserveAspectRatio="xMidYMid slice" aria-label="Party map"></svg>
+      <div id="realmap" aria-label="Party map"></div>
       <div class="map-legend">
         <span><i style="background:var(--lime)"></i>open</span>
         <span><i style="background:var(--amber)"></i>almost full</span>
         <span><i style="background:var(--red)"></i>full</span>
       </div>
-      <div class="map-note">pin spots are approximate until GPS lands</div>
+      <div class="map-note" id="map-note">pins are approximate — exact once you’re in</div>
+      <button class="map-layerbtn" id="map-layer">Satellite</button>
       <div class="map-mini" id="map-mini" hidden></div>
     </div>
   </section>
@@ -915,64 +929,85 @@ $('#share-send').addEventListener('click', async () => {
 
 /* ── map ── */
 const CAPHEX = {open:'#B4F04B', low:'#FFB454', full:'#FF5C5C'};
-function renderMap(){
+/* the real map: Leaflet + free dark tiles (CARTO) / satellite (Esri), geocoding via Nominatim */
+let lmap = null, tileStreet = null, tileSat = null, satOn = false, markerLayer = null, youMarker = null, mapRun = 0;
+const GEOCACHE = (() => { try { return JSON.parse(localStorage.getItem('turnout-geo') || '{}'); } catch(_){ return {}; } })();
+let geoChain = Promise.resolve();
+function geocode(q){
+  if(!q) return Promise.resolve(null);
+  const k = q.trim().toLowerCase();
+  if(k in GEOCACHE) return Promise.resolve(GEOCACHE[k]);
+  geoChain = geoChain.then(async () => {
+    if(k in GEOCACHE) return GEOCACHE[k];
+    try {
+      const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=' + encodeURIComponent(q));
+      const j = await r.json();
+      GEOCACHE[k] = (j && j[0]) ? { lat: +j[0].lat, lon: +j[0].lon } : null;
+      try { localStorage.setItem('turnout-geo', JSON.stringify(GEOCACHE)); } catch(_){}
+      await new Promise(res => setTimeout(res, 1100)); // nominatim rule: 1 lookup/sec
+    } catch(_){ return null; } // network hiccup: don't cache, try again next render
+    return GEOCACHE[k];
+  });
+  return geoChain;
+}
+function jitter(id, salt){ return (hashN(id + salt, 1000) / 1000 - 0.5) * 0.012; } // ~±0.4mi so locked pins never sit on the house
+function pinIcon(col, label, mine){
+  return L.divIcon({ className: 'lpin-wrap', iconSize: [120, 44], iconAnchor: [60, 12],
+    html: `<div class="lpin"><span class="lpin-dot" style="background:${col};box-shadow:0 0 10px ${col}${mine ? ',0 0 0 3px rgba(255,255,255,.4)' : ''}"></span><span class="lpin-name">${esc(label)}</span></div>` });
+}
+async function renderMap(){
   $('#map-home').innerHTML = 'near <b>' + esc(me.zip || 'you') + '</b>';
-  const CX = 200, CY = 300;
-  let g = '';
-  for(let x = 20; x < 400; x += 40) g += `<line x1="${x}" y1="0" x2="${x}" y2="620" stroke="#181530" stroke-width="1"/>`;
-  for(let y = 20; y < 620; y += 40) g += `<line x1="0" y1="${y}" x2="400" y2="${y}" stroke="#181530" stroke-width="1"/>`;
-  g += `<line x1="0" y1="140" x2="400" y2="220" stroke="#221E3C" stroke-width="7"/>
-        <line x1="60" y1="620" x2="330" y2="0" stroke="#221E3C" stroke-width="7"/>
-        <line x1="0" y1="470" x2="400" y2="430" stroke="#221E3C" stroke-width="5"/>`;
-  [92, 143, 180].forEach(r => {
-    g += `<circle cx="${CX}" cy="${CY}" r="${r}" fill="none" stroke="#2A2639" stroke-width="1" stroke-dasharray="3 5"/>`;
-  });
-  const pos = parties.map((p, i) => {
-    const a = i * 2.399963 + (hashN(p.id, 100) / 100) * 0.7;
-    const r = 60 + hashN(p.id, 120);
-    return {p, x: CX + r * Math.cos(a), y: CY + r * Math.sin(a)};
-  });
-  for(let iter = 0; iter < 24; iter++){
-    for(let i = 0; i < pos.length; i++) for(let j = i + 1; j < pos.length; j++){
-      const dx = pos[j].x - pos[i].x, dy = pos[j].y - pos[i].y;
-      const d = Math.hypot(dx, dy) || 1;
-      if(d < 56){
-        const push = (56 - d) / 2, ux = dx / d, uy = dy / d;
-        pos[i].x -= ux * push; pos[i].y -= uy * push;
-        pos[j].x += ux * push; pos[j].y += uy * push;
-      }
-    }
+  if(!window.L){ $('#map-note').textContent = 'map couldn’t load — check your connection and reopen'; return; }
+  if(!lmap){
+    lmap = L.map('realmap', { zoomControl: false });
+    tileStreet = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap &copy; CARTO' });
+    tileSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: '&copy; Esri' });
+    tileStreet.addTo(lmap);
+    markerLayer = L.layerGroup().addTo(lmap);
+    lmap.setView([37.9514, -91.7713], 12);
+    lmap.on('click', () => { $('#map-mini').hidden = true; });
   }
-  pos.forEach(({p, x: px, y: py}) => {
-    const x = Math.max(48, Math.min(352, px));
-    const y = Math.max(90, Math.min(545, py));
+  setTimeout(() => lmap.invalidateSize(), 80);
+  const run = ++mapRun;
+  const snapshot = parties.slice();
+  const home = await geocode(me.zip ? me.zip + ', USA' : null);
+  if(run !== mapRun) return;
+  if(home){
+    if(!youMarker){
+      youMarker = L.marker([home.lat, home.lon], { interactive: false, icon: L.divIcon({ className: 'lpin-wrap', iconSize: [60, 40], iconAnchor: [30, 10],
+        html: '<div class="lpin"><span class="lpin-dot you"></span><span class="lpin-name">You</span></div>' }) }).addTo(lmap);
+      lmap.setView([home.lat, home.lon], 12);
+    } else youMarker.setLatLng([home.lat, home.lon]);
+  }
+  markerLayer.clearLayers();
+  for(const p of snapshot){
+    const exact = !!unlockedAddr[p.id];
+    const q = exact ? unlockedAddr[p.id] + ', ' + (p.town || '')
+                    : (p.town || (p.profiles?.zip ? p.profiles.zip + ', USA' : null));
+    const loc = await geocode(q);
+    if(run !== mapRun) return;
+    if(!loc) continue;
+    const lat = exact ? loc.lat : loc.lat + jitter(p.id, 'a');
+    const lon = exact ? loc.lon : loc.lon + jitter(p.id, 'b');
     const claimed = (p.claims || []).length;
     const col = CAPHEX[capClass(claimed, p.max_people)];
-    const mine = p.host_id === me.id;
-    const label = p.name.length > 14 ? p.name.slice(0, 13) + '…' : p.name;
-    g += `<g class="pin" data-pin="${p.id}">
-      <circle cx="${x}" cy="${y}" r="13" fill="${col}" opacity="0.18"/>
-      <circle cx="${x}" cy="${y}" r="5.5" fill="${col}" stroke="#0E0C1A" stroke-width="1.5"/>
-      ${mine ? `<circle cx="${x}" cy="${y}" r="9" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="2 2"/>` : ''}
-      <text x="${x}" y="${y + 18}" text-anchor="middle" font-size="9" font-weight="600" fill="#9C95B8" font-family="Outfit,sans-serif">${esc(label)}</text>
-    </g>`;
-  });
-  g += `<g>
-    <circle cx="${CX}" cy="${CY}" r="10" fill="none" stroke="url(#gradstroke)" stroke-width="2"/>
-    <circle cx="${CX}" cy="${CY}" r="4.5" fill="#fff"/>
-    <text x="${CX}" y="${CY + 24}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="Outfit,sans-serif">You</text>
-  </g>`;
-  $('#map-svg').innerHTML = g;
-  $('#map-mini').hidden = true;
+    const label = p.name.length > 16 ? p.name.slice(0, 15) + '…' : p.name;
+    const m = L.marker([lat, lon], { icon: pinIcon(col, label, p.host_id === me.id) });
+    m.on('click', () => showMapMini(p.id));
+    markerLayer.addLayer(m);
+  }
 }
-$('#map-svg').addEventListener('click', e => {
-  const pin = e.target.closest('[data-pin]');
-  if(!pin) return;
-  const p = parties.find(x => x.id === pin.dataset.pin); if(!p) return;
+$('#map-layer').addEventListener('click', () => {
+  if(!lmap) return;
+  satOn = !satOn;
+  if(satOn){ lmap.removeLayer(tileStreet); tileSat.addTo(lmap); }
+  else { lmap.removeLayer(tileSat); tileStreet.addTo(lmap); }
+  $('#map-layer').textContent = satOn ? 'Map' : 'Satellite';
+});
+function showMapMini(pid){
+  const p = parties.find(x => x.id === pid); if(!p) return;
   const claimed = (p.claims || []).length;
   const cls = capClass(claimed, p.max_people);
-  const going = myClaims.has(p.id);
-  const mine = p.host_id === me.id;
   $('#map-mini').hidden = false;
   $('#map-mini').innerHTML = `
     <h3>${esc(p.name)}</h3>
@@ -986,7 +1021,7 @@ $('#map-svg').addEventListener('click', e => {
       <button class="btn" data-mapopen="${p.id}" style="padding:11px">Open the party</button>
       <button class="btn btn-ghost" data-mapclose style="padding:11px;width:auto">Close</button>
     </div>`;
-});
+}
 $('#map-mini').addEventListener('click', e => {
   if(e.target.closest('[data-mapclose]')){ $('#map-mini').hidden = true; return; }
   const o = e.target.closest('[data-mapopen]');
@@ -1477,6 +1512,7 @@ const TAB_ORDER = ['find','map','friends','host','profile'];
     if(e.touches.length !== 1) return;
     if($('#chat').classList.contains('on') || $('#detail').classList.contains('on') || $('#auth').classList.contains('on')) return;
     if(e.target.closest('.tabbar') || e.target.closest('input,textarea,select')) return;
+    if(e.target.closest('#realmap')) return; // the map owns its own drag
     sx = e.touches[0].clientX; sy = e.touches[0].clientY;
     dx = 0; dragging = true; decided = false; cur = null; nb = null;
   }, { passive: true });
