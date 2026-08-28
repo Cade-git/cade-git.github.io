@@ -240,7 +240,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v5.4</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v5.5</span>
         <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -342,7 +342,7 @@
       <div class="field"><label for="h-addr">Address</label><input id="h-addr" placeholder="Street address">
         <p class="hint">Locked in the database — only your guests can ever read it.</p></div>
       <div class="row2">
-        <div class="field"><label for="h-town">Town</label><input id="h-town" placeholder="Rolla, MO"></div>
+        <div class="field"><label for="h-town">Town</label><input id="h-town" placeholder="Town"></div>
         <div class="field"><label for="h-max">Max people</label><input id="h-max" type="number" min="2" max="500" value="50" inputmode="numeric"></div>
       </div>
       <div class="field"><label>Who gets in?</label>
@@ -566,10 +566,13 @@ function show(id){
       if(b) b.scrollTop = savedFindScroll; savedFindScroll = 0; }
   });
   if(id === 'map') loadParties().then(renderMap);
-  if(id === 'host' && myHomeAddr && !$('#h-addr').value.trim()){
-    $('#h-addr').value = myHomeAddr;
-    const hint = document.querySelector('#host .field:has(#h-addr) .hint') || $('#h-addr').nextElementSibling;
-    if(hint) hint.textContent = 'Your home address, pre-filled — change it if the party’s somewhere else.';
+  if(id === 'host'){
+    if(myHomeAddr && !$('#h-addr').value.trim()){
+      $('#h-addr').value = myHomeAddr;
+      const hint = document.querySelector('#host .field:has(#h-addr) .hint') || $('#h-addr').nextElementSibling;
+      if(hint) hint.textContent = 'Your home address, pre-filled — change it if the party’s somewhere else.';
+    }
+    if(!$('#h-town').value.trim()) fillTown();
   }
   if(id === 'friends') loadFriends();
   if(id === 'profile') renderProfile();
@@ -1302,6 +1305,28 @@ $('#msgs').addEventListener('click', e => {
 });
 
 /* ── host ── */
+/* town auto-fill: use the town written in their home address, else look it up from their ZIP */
+async function fillTown(){
+  let t = '';
+  if(myHomeAddr && myHomeAddr.includes(',')) t = myHomeAddr.slice(myHomeAddr.indexOf(',') + 1).trim();
+  if(!t && me.zip){
+    try{
+      const key = 'turnout-town-' + me.zip;
+      t = localStorage.getItem(key) || '';
+      if(!t){
+        const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&countrycodes=us&postalcode=' + me.zip);
+        if(r.ok){
+          const j = await r.json();
+          const a = (j && j[0] && j[0].address) || {};
+          const name = a.city || a.town || a.village || a.hamlet || '';
+          const st = (a['ISO3166-2-lvl4'] || '').split('-')[1] || '';
+          if(name){ t = name + (st ? ', ' + st : ''); try{ localStorage.setItem(key, t); }catch(_){} }
+        }
+      }
+    }catch(_){}
+  }
+  if(t && !$('#h-town').value.trim()) $('#h-town').value = t;
+}
 let hPriv = 'public', hDrinks = 'byob';
 $('#h-priv').addEventListener('click', e => {
   const b = e.target.closest('[data-priv]'); if(!b) return;
