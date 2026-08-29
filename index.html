@@ -135,6 +135,31 @@
   .hc-list{margin-top:12px;max-height:210px;overflow-y:auto}
   .hc-list .f-row{padding:7px 0}
   .hc-when{font-size:11.5px;color:var(--faint);font-weight:600}
+  .hc .sub .hc-n{color:var(--lime);font-variant-numeric:tabular-nums}
+  .hc-grp{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);
+    font-weight:800;margin:14px 0 2px}
+  .hc-list .f-row.dim{opacity:.5}
+  /* the standing invitation to host — the job Turnout is actually for */
+  .host-cta{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin:0 0 16px;padding:13px 14px;
+    border-radius:18px;background:var(--surface);border:1px solid var(--line);
+    transition:transform .28s var(--spring),border-color .28s var(--spring)}
+  .host-cta:active{transform:scale(.985);border-color:rgba(255,255,255,.18)}
+  .host-cta-ic{flex:0 0 auto;width:38px;height:38px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,var(--pink),var(--violet))}
+  .host-cta-ic svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round}
+  .host-cta-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .host-cta-t b{font-size:14.5px;color:#fff;font-weight:700}
+  .host-cta-t i{font-style:normal;font-size:12.5px;color:var(--muted)}
+  .host-cta-go{width:18px;height:18px;flex:0 0 auto;fill:none;stroke:var(--faint);stroke-width:2;stroke-linecap:round}
+  .host-cta.livecta{border-color:rgba(163,230,53,.42);background:linear-gradient(135deg,rgba(163,230,53,.10),var(--surface))}
+  .host-cta.livecta .host-cta-ic{background:linear-gradient(135deg,var(--lime),#4ade80)}
+  .host-cta.livecta .host-cta-ic svg{stroke:#0B0A14}
+  .host-cta .livedot{width:11px;height:11px;border-radius:50%;background:#0B0A14;
+    box-shadow:0 0 0 0 rgba(11,10,20,.55);animation:doorpulse 1.9s ease-out infinite}
+  @keyframes doorpulse{
+    0%{box-shadow:0 0 0 0 rgba(11,10,20,.55)}
+    70%{box-shadow:0 0 0 11px rgba(11,10,20,0)}
+    100%{box-shadow:0 0 0 0 rgba(11,10,20,0)}}
   /* ── checking in ── */
   .ci{margin:16px 0 6px;padding:16px;border-radius:20px;background:linear-gradient(150deg,rgba(180,240,75,.1),rgba(53,214,237,.06));
     border:1px solid rgba(180,240,75,.3)}
@@ -152,6 +177,14 @@
   .recap-h b{font-family:var(--disp);font-size:16px;color:#fff}
   .recap-h span{font-size:11.5px;color:var(--amber);font-weight:700;white-space:nowrap}
   .recap-sub{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+  /* the album you can't get into unless you were there */
+  .locked{text-align:center;padding:26px 14px 22px}
+  .locked-ic{width:56px;height:56px;margin:0 auto 13px;border-radius:19px;display:flex;align-items:center;justify-content:center;
+    color:var(--muted);background:var(--raised);border:1px solid var(--line)}
+  .locked h4{font-family:var(--disp);font-size:16px;color:#fff;margin:0 0 6px}
+  .locked p{font-size:13px;color:var(--muted);line-height:1.5;max-width:250px;margin:0 auto}
+  .here-locked{margin-top:11px;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:7px;justify-content:center}
+  .here-locked b{color:var(--lime);font-variant-numeric:tabular-nums}
   .rate-row{display:flex;gap:7px;margin:2px 0 4px}
   .rate-row button{width:42px;height:42px;border-radius:13px;background:var(--raised);border:1px solid var(--line);
     display:flex;align-items:center;justify-content:center;color:#3A3552;transition:all .28s var(--spring)}
@@ -489,8 +522,8 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.3</span>
-        <p style="color:var(--muted);margin-top:6px">Find the party. Claim your spot. For real this time.</p>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.4</span>
+        <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
       <div id="auth-signup">
@@ -523,6 +556,11 @@
       <h2 id="recap-head" hidden style="font-size:15px;margin:0 0 10px;color:var(--muted)">Last night</h2>
       <div class="recap-strip" id="recap-strip" hidden></div>
       <h2 id="find-greet" style="font-size:19px;margin:0 0 12px">Parties near you</h2>
+      <button class="host-cta" id="host-cta">
+        <span class="host-cta-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span>
+        <span class="host-cta-t"><b id="host-cta-h">Throwing something?</b><i id="host-cta-s">Post it and run the door from your phone.</i></span>
+        <svg class="host-cta-go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
       <div id="party-list"><p class="empty">Loading parties…</p></div>
     </div>
   </section>
@@ -821,6 +859,9 @@ function flameSvg(w){
   const h = Math.round(w * 14 / 12);
   return `<svg width="${w}" height="${h}" viewBox="0 0 12 14" fill="currentColor" aria-hidden="true" style="vertical-align:-2px"><path d="M6 0c.5 2.5 3.5 3.8 4.6 6.4 1.2 2.8-.3 6-3.1 7.1.6-1 .8-2.3.3-3.4-.4-1-1.3-1.6-1.8-2.6-.4.8-.5 1.7-.3 2.5-1-.4-1.7-1.4-1.9-2.4C3.4 5.4 5 3.9 5.6 2 5.8 1.3 6 .7 6 0z"/></svg>`;
 }
+function lockSvg(w){
+  return `<svg width="${w}" height="${w}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="3"/><path d="M8.2 10.5V7.6a3.8 3.8 0 0 1 7.6 0v2.9"/><circle cx="12" cy="15.4" r="1.35" fill="currentColor" stroke="none"/></svg>`;
+}
 function avatar(p, size, radius){
   const r = radius || 13;
   const au = p && p.avatar_url;
@@ -1093,19 +1134,44 @@ async function refreshData(){
 }
 
 /* ── find ── */
+/* your own party that's happening right now — the thing a host opens the app for */
+function myLiveParty(){
+  return allParties.find(p => p.host_id === me.id && checkinOpen(p));
+}
+function updateHostCta(){
+  const live = myLiveParty();
+  const h = $('#host-cta-h'), sub = $('#host-cta-s');
+  if(!h) return;
+  if(live){
+    const n = hereCount[live.id] || 0;
+    h.textContent = 'Your door is open';
+    sub.textContent = n ? `${n} ${n === 1 ? 'person is' : 'people are'} inside — tap to see who` : 'Nobody has checked in yet — tap to watch the door';
+    $('#host-cta').classList.add('livecta');
+    $('#host-cta').querySelector('.host-cta-ic').innerHTML = '<span class="livedot"></span>';
+  } else {
+    const hosted = allParties.filter(p => p.host_id === me.id).length;
+    h.textContent = hosted ? 'Throw another one' : 'Throwing something?';
+    sub.textContent = hosted ? 'Post it and run the door from your phone.'
+                             : 'Post it, cap the numbers, see who actually shows.';
+    $('#host-cta').classList.remove('livecta');
+    $('#host-cta').querySelector('.host-cta-ic').innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>';
+  }
+}
 async function loadParties(){
   if(!$('#party-list').children.length)
     $('#party-list').innerHTML = '<div class="skel"></div><div class="skel" style="opacity:.6"></div>';
   $('#loc-zip').textContent = me.zip || '—';
   $('#find-greet').textContent = timeGreeting() + ', ' + me.display_name.split(' ')[0];
   await refreshData();
+  updateHostCta();
   const friendIds = new Set(friends.map(f => f.id));
   const nameOf = {}; friends.forEach(f => nameOf[f.id] = dispName(f));
   const hostCount = {};
   allParties.forEach(p => hostCount[p.host_id] = (hostCount[p.host_id] || 0) + 1);
 
   if(!parties.length){
-    $('#party-list').innerHTML = '<p class="empty">No parties yet. Be the first — hit Host.</p>';
+    $('#party-list').innerHTML = '<p class="empty">Nothing posted near you yet. Throw the first one — you\u2019ll own the night.</p>';
     return;
   }
   // parties you were at whose album is still alive
@@ -1234,45 +1300,56 @@ $('#rp-block').addEventListener('click', async () => {
   loadParties();
 });
 /* ── the host's door: who's inside, one message to everyone, more room ── */
-let hcRoster = {};
+let hcRoster = {}, hcPending = {};
 async function loadRoster(pid){
   try {
-    const { data } = await db.from('check_ins').select('user_id, at').eq('party_id', pid).order('at', { ascending: false });
-    hcRoster[pid] = data || [];
-    const ids = (data || []).map(r => r.user_id).filter(id => !profMap[id]);
+    /* one call gives the host both halves of the door: who walked in, and
+       who said they were coming but hasn't shown (migration 21) */
+    const { data } = await db.rpc('door_list', { pid });
+    const d = data || {};
+    hcRoster[pid]  = Array.isArray(d.arrived) ? d.arrived : [];
+    hcPending[pid] = Array.isArray(d.claimed) ? d.claimed : [];
+    const ids = [...hcRoster[pid].map(r => r.user_id), ...hcPending[pid]].filter(id => id && !profMap[id]);
     if(ids.length){
       const { data: profs } = await db.from('profiles').select('*').in('id', ids);
       (profs || []).forEach(pr => profMap[pr.id] = pr);
     }
-  } catch(_){ hcRoster[pid] = hcRoster[pid] || []; }
+  } catch(_){ hcRoster[pid] = hcRoster[pid] || []; hcPending[pid] = hcPending[pid] || []; }
 }
 function hostConsoleHtml(p){
-  const roster = hcRoster[p.id] || [];
-  const claimed = (p.claims || []).length;
+  const roster  = hcRoster[p.id] || [];
+  const pending = hcPending[p.id] || [];
+  const over = Date.now() > new Date(p.starts_at || p.created_at).getTime() + 12 * 36e5;
   const ago = ts => {
     const s = (Date.now() - new Date(ts).getTime()) / 1000;
     if(s < 90) return 'just now';
     if(s < 3600) return Math.floor(s / 60) + 'm ago';
     return Math.floor(s / 3600) + 'h ago';
   };
+  const nameOf = id => esc(nickMap[id] || (profMap[id] || {}).display_name || 'Someone');
+  const row = (id, right, dim) => {
+    const u = profMap[id] || { id, display_name: 'Someone' };
+    return `<div class="f-row${dim ? ' dim' : ''}">${avatar(u, 32)}
+      <span style="flex:1;font-weight:600;font-size:14px">${nameOf(id)}</span>
+      <span class="hc-when">${right}</span></div>`;
+  };
   return `<div class="hc">
     <h4>Your door</h4>
-    <div class="sub">${roster.length} of ${claimed} claimed ${roster.length === 1 ? 'has' : 'have'} checked in.</div>
+    <div class="sub">${roster.length ? `<b class="hc-n">${roster.length}</b> inside` : 'Nobody inside yet'}${pending.length ? ` · ${pending.length} claimed, not here` : ''}</div>
     <div class="hc-row">
       <button class="btn" data-hcmsg="${p.id}">Message everyone</button>
       <button class="btn btn-ghost" data-hcroom="${p.id}" style="width:auto;padding:11px 14px;white-space:nowrap">+10 spots</button>
     </div>
-    ${roster.length ? `<div class="hc-list">${roster.map(r => {
-      const u = profMap[r.user_id] || { id: r.user_id, display_name: 'Someone' };
-      return `<div class="f-row">${avatar(u, 32)}
-        <span style="flex:1;font-weight:600;font-size:14px">${esc(nickMap[u.id] || u.display_name)}</span>
-        <span class="hc-when">${esc(ago(r.at))}</span></div>`;
-    }).join('')}</div>` : '<p class="empty" style="padding:8px 0 0">Nobody has checked in yet.</p>'}
+    ${roster.length ? `<div class="hc-grp">Inside</div>
+      <div class="hc-list">${roster.map(r => row(r.user_id, esc(ago(r.at)))).join('')}</div>` : ''}
+    ${pending.length ? `<div class="hc-grp">${over ? 'Never showed' : 'On the way'}</div>
+      <div class="hc-list">${pending.map(id => row(id, over ? 'no-show' : 'claimed', true)).join('')}</div>` : ''}
+    ${!roster.length && !pending.length ? '<p class="empty" style="padding:8px 0 0">No claims yet.</p>' : ''}
   </div>`;
 }
 /* ── checking in: you have to actually be there ── */
 const CHECKIN_FT = 250;
-let checkIns = {}, myCheckIn = {}, ciDist = null, ciWatch = null;
+let checkIns = {}, myCheckIn = {}, hereCount = {}, ciDist = null, ciWatch = null;
 function feetBetween(a, b){
   const R = 20903520, p = Math.PI / 180;
   const dl = (b.lat - a.lat) * p, dg = (b.lon - a.lon) * p;
@@ -1285,9 +1362,16 @@ function checkinOpen(p){
 }
 async function loadCheckIns(pid){
   try {
-    const { data } = await db.from('check_ins').select('user_id').eq('party_id', pid);
-    checkIns[pid] = (data || []).map(r => r.user_id);
+    /* the rows are gated to people who actually checked in (migration 21), so
+       an empty list means "you're not in" — not "nobody's here". The count
+       comes from an RPC so the hook still works for someone deciding to come. */
+    const [rows, cnt] = await Promise.all([
+      db.from('check_ins').select('user_id').eq('party_id', pid),
+      db.rpc('here_count', { pid })
+    ]);
+    checkIns[pid] = (rows.data || []).map(r => r.user_id);
     myCheckIn[pid] = checkIns[pid].includes(me.id);
+    hereCount[pid] = typeof cnt.data === 'number' ? cnt.data : checkIns[pid].length;
   } catch(_){ checkIns[pid] = checkIns[pid] || []; }
 }
 /* watch how far away they are, so the button turns on the moment they arrive */
@@ -1312,11 +1396,12 @@ function checkinHtml(p){
   const here = checkIns[p.id] || [];
   const mineIn = myCheckIn[p.id];
   const known = here.filter(id => profMap[id]);
+  const n = hereCount[p.id] || here.length;
   if(mineIn){
     return `<div class="ci done">
       <h4>You’re checked in</h4>
-      <p>You can rate the night and add to the album when it’s over.</p>
-      ${here.length ? `<div class="ci-here">${here.length} here now ${known.length ? faceStack(known, 4) : ''}</div>` : ''}
+      <p>The album and the guest list are open to you now.</p>
+      ${n ? `<div class="ci-here">${n} here now ${known.length ? faceStack(known, 4) : ''}</div>` : ''}
     </div>`;
   }
   const noPoint = !exactPt[p.id];
@@ -1326,7 +1411,7 @@ function checkinHtml(p){
         : 'Turnout checks your location — you have to be within ' + CHECKIN_FT + ' feet of the party.'}</p>
     <button class="btn" id="ci-btn" data-checkin="${p.id}" disabled>${noPoint ? 'Location not set' : 'Finding you…'}</button>
     <div style="text-align:center;margin-top:9px;font-size:12px" class="ci-dist" id="ci-dist">${noPoint ? '' : 'Checking your distance…'}</div>
-    ${here.length ? `<div class="ci-here">${here.length} here now ${known.length ? faceStack(known, 4) : ''}</div>` : ''}
+    ${n ? `<div class="here-locked">${lockSvg(14)}<span><b>${n}</b> here now — check in to see who</span></div>` : ''}
   </div>`;
 }
 /* ── the recap: albums that die on Friday ── */
@@ -1364,15 +1449,26 @@ async function loadRecap(pid){
 function recapHtml(p, mine){
   const photos = recapPhotos[p.id] || [];
   const rated = myRating[p.id] || 0;
-  const canRate = mine || myCheckIn[p.id];
+  /* the album is the reward for actually showing up — the host always gets in,
+     it's their house. Everyone else had to check in at the door. */
+  const wasThere = mine || myCheckIn[p.id];
   const flame = n => `<button data-rate="${p.id}" data-n="${n}" class="${n <= rated ? 'lit' : ''}" aria-label="${n} flames">${flameSvg(19)}</button>`;
+  if(!wasThere){
+    return `<div class="recap">
+      <div class="recap-h"><b>The Recap</b><span>${esc(diesIn(p))}</span></div>
+      <div class="locked">
+        <div class="locked-ic">${lockSvg(26)}</div>
+        <h4>You had to be there</h4>
+        <p>The album only opens for people who checked in at the party. Nothing to see here — that's the point.</p>
+      </div>
+    </div>`;
+  }
   return `<div class="recap">
     <div class="recap-h"><b>The Recap</b><span>${esc(diesIn(p))}</span></div>
-    <div class="recap-sub">Only people who were there can see this.</div>
-    ${canRate ? `<div style="font-size:13px;color:var(--muted);font-weight:600;margin-bottom:6px">How was it?</div>
+    <div class="recap-sub">Only the people who checked in can see this.</div>
+    <div style="font-size:13px;color:var(--muted);font-weight:600;margin-bottom:6px">How was it?</div>
     <div class="rate-row">${[1,2,3,4,5].map(flame).join('')}</div>
-    ${rated ? `<div class="rate-done">Rated ${rated}/5 — counts toward ${esc(mine ? 'your' : 'the host’s')} flame</div>` : ''}`
-    : '<div style="font-size:12.5px;color:var(--faint);margin-bottom:4px">You didn’t check in, so you can’t rate this one — but you can still see the album.</div>'}
+    ${rated ? `<div class="rate-done">Rated ${rated}/5 — counts toward ${esc(mine ? 'your' : 'the host’s')} flame</div>` : ''}
     <div class="album">
       <button class="album-add" data-addphoto="${p.id}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg>
@@ -1400,13 +1496,13 @@ async function renderDetail(){
   const invited = myClaims.has(p.id) || p.host_id === me.id;
   const showRecap = recapOpen(p) && invited;
   const showCheckin = invited && checkinOpen(p);
+  const mine = p.host_id === me.id;
   if(showRecap && !recapPhotos[p.id]) await loadRecap(p.id);
   if((showCheckin || showRecap) && !checkIns[p.id]) await loadCheckIns(p.id);
   const showHostConsole = mine && (checkinOpen(p) || recapOpen(p));
   if(showHostConsole && !hcRoster[p.id]) await loadRoster(p.id);
   const claimers = (p.claims || []).map(c => c.user_id);
   const claimed = claimers.length;
-  const mine = p.host_id === me.id;
   const going = myClaims.has(p.id);
   const requested = myRequests.has(p.id);
   const priv = p.privacy === 'private';
@@ -2564,7 +2660,7 @@ $('#h-post').addEventListener('click', async () => {
   hPriv = 'public'; hDrinks = 'byob';
   $$('#h-priv button').forEach(x => x.classList.toggle('on', x.dataset.priv === 'public'));
   $$('#h-drinks button').forEach(x => x.classList.toggle('on', x.dataset.drinks === 'byob'));
-  $('#h-priv-hint').textContent = 'Anyone who claims a spot instantly gets the address.';
+  $('#h-priv-hint').textContent = 'Anyone who claims a spot instantly gets the address. They still have to check in at the door.';
   show('find');
 });
 
@@ -2648,8 +2744,14 @@ $('#profile-body').addEventListener('click', async e => {
     toast(next ? 'VIP is on — gold badge unlocked' : 'VIP turned off');
     renderProfile(); return;
   }
+  if(e.target.closest && e.target.closest('#host-cta')){
+    const live = myLiveParty();
+    if(live){ openDetail(live.id, 'find'); } else { show('host'); }
+    haptic(10);
+    return;
+  }
   if(e.target.id === 'invite-btn'){
-    const text = me.display_name.split(' ')[0] + ' is on Turnout — find the party, claim your spot.';
+    const text = me.display_name.split(' ')[0] + ' is on Turnout — where the party is. Claim a spot, get the address.';
     const url = 'https://jointurnout.app';
     try {
       if(navigator.share){ await navigator.share({ title: 'Turnout', text, url }); haptic(10); return; }
@@ -2990,6 +3092,13 @@ async function boot(){
       .eq('recipient_id', me.id).is('read_at', null);
     unreadFrom = new Set((un || []).map(r => r.sender_id));
     updateDot();
+  }catch(e){}
+  /* if you're hosting right now, that's the only screen you want */
+  try{
+    await refreshData();
+    const live = myLiveParty();
+    if(live){ show('find'); openDetail(live.id, 'find'); return; }
+    if(allParties.some(isLive)){ show('map'); return; }
   }catch(e){}
   show('find');
 }
