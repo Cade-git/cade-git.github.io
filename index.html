@@ -380,6 +380,18 @@
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .row2 > *{min-width:0}
   .row2 > .field{min-width:0}
+  .tog-row{display:flex;align-items:center;gap:14px}
+  .tog-txt{flex:1;min-width:0}
+  .tog-txt b{display:block;font-size:14.5px;color:#fff;font-weight:600}
+  .tog-txt i{display:block;font-style:normal;font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+  .switch{flex:0 0 auto;width:50px;height:30px;border-radius:99px;background:var(--raised);
+    border:1px solid var(--line);padding:0;position:relative;transition:background .24s var(--spring),border-color .24s}
+  .switch i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:99px;background:var(--faint);
+    transition:transform .26s var(--spring),background .24s}
+  .switch[aria-checked="true"]{background:var(--grad);border-color:transparent}
+  .switch[aria-checked="true"] i{transform:translateX(20px);background:#fff}
+  .switch[disabled]{opacity:.45}
+  .switch:active i{width:26px}
   .qa-row{display:flex;align-items:center;gap:11px;padding:9px 0;border-top:1px solid var(--line)}
   .qa-row:first-child{border-top:none;padding-top:2px}
   .qa-txt{flex:1;min-width:0}
@@ -703,7 +715,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.2</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.3</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1078,48 +1090,123 @@ if('serviceWorker' in navigator && location.protocol === 'https:'){
     if(hadController && !window.__swReloaded){ window.__swReloaded = true; location.reload(); }
   });
 }
-/* Location is asked for HERE, on purpose. Prompting the moment someone walks
-   in reads as creepy and gets denied; asking on the profile, next to the
-   reason, gets a yes. Once denied, the browser won't ask again — so we say
-   what to do instead of silently failing. */
-async function locState(){
-  if(!navigator.geolocation) return 'unsupported';
+/* ── location, as a switch that remembers ─────────────────────────────
+   The old button never looked on again after a reload, and the reason is
+   iOS: Safari has no Permissions API for geolocation, so asking the browser
+   "am I allowed?" always came back empty and the UI drew the off state. So
+   Turnout keeps its OWN record of what you chose, per account, and treats the
+   Permissions API as a bonus where it exists. Turning it off here stops
+   Turnout using location at all; the browser-level grant is revoked in the
+   phone's own settings, which the note says. */
+let locWanted = false;
+function locKey(){ return 'turnout-loc-' + (me ? me.id : 'anon'); }
+function loadLocPref(){
+  /* Absent means "never touched it", which must behave like the app always
+     has — the browser's own permission prompt is the real gate. Only an
+     explicit off is an off. */
+  try{ const v = localStorage.getItem(locKey()); locWanted = (v === null ? true : v === '1'); }
+  catch(_){ locWanted = true; }
+}
+function setLocPref(on){
+  locWanted = on;
+  try{ localStorage.setItem(locKey(), on ? '1' : '0'); }catch(_){ }
+  if(!on) stopDistance();
+}
+/* null when the browser won't tell us — which is the normal case on iOS */
+async function browserLocPerm(){
   try{
-    if(navigator.permissions){
+    if(navigator.permissions && navigator.permissions.query){
       const st = await navigator.permissions.query({ name: 'geolocation' });
-      return st.state === 'granted' ? 'on' : st.state === 'denied' ? 'blocked' : 'off';
+      return st.state;
     }
   }catch(_){ }
-  return 'off';
+  return null;
 }
-async function paintLocState(){
-  const box = $('#loc-state'); if(!box) return;
-  const st = await locState();
-  if(st === 'on') box.innerHTML = '<p style="color:var(--lime);font-weight:600;font-size:14px">On \u2014 you can check in at parties</p>';
-  else if(st === 'blocked') box.innerHTML = '<p style="color:var(--muted);font-size:14px">Blocked in your phone\u2019s settings. On iPhone: <b style="color:var(--text)">Settings \u2192 Turnout \u2192 Location</b>, set it to <b style="color:var(--text)">While Using</b>, then come back.</p>';
-  else if(st === 'unsupported') box.innerHTML = '<p style="color:var(--muted);font-size:14px">This browser can\u2019t do location \u2014 use the app on your phone.</p>';
+function getFix(opts){
+  return new Promise(res => navigator.geolocation.getCurrentPosition(
+    () => res('ok'), err => res(err && err.code === 1 ? 'denied' : 'error'), opts));
 }
-function askLocation(){
+async function paintLocToggle(){
+  const tog = $('#loc-tog'), note = $('#loc-note');
+  if(!tog || !note) return;
+  if(!navigator.geolocation){
+    tog.setAttribute('aria-checked', 'false'); tog.disabled = true;
+    note.textContent = 'This browser can\u2019t do location \u2014 use the app on your phone.'; return;
+  }
+  const perm = await browserLocPerm();
+  if(perm === 'denied'){
+    setLocPref(false);
+    tog.setAttribute('aria-checked', 'false');
+    note.innerHTML = 'Blocked in your phone\u2019s settings. On iPhone: <b style="color:var(--text)">Settings \u2192 Turnout \u2192 Location</b>, set it to <b style="color:var(--text)">While Using</b>, then come back.';
+    return;
+  }
+  tog.disabled = false;
+  tog.setAttribute('aria-checked', locWanted ? 'true' : 'false');
+  note.textContent = locWanted
+    ? 'On \u2014 you can check in at parties.'
+    : 'Without this you can\u2019t check in, so the album and the guest list stay locked.';
+}
+async function toggleLocation(){
+  const tog = $('#loc-tog'), note = $('#loc-note');
+  if(locWanted){ setLocPref(false); haptic(8); paintLocToggle(); return; }
   if(!navigator.geolocation){ toast('This browser can\u2019t do location'); return; }
-  const btn = $('#loc-enable');
-  if(btn){ btn.disabled = true; btn.textContent = 'Asking\u2026'; }
-  navigator.geolocation.getCurrentPosition(
-    () => { haptic(10); toast('Location on \u2014 you can check in now'); paintLocState(); },
-    err => {
-      if(btn){ btn.disabled = false; btn.textContent = 'Turn on location'; }
-      toast(err && err.code === 1
-        ? 'You said no \u2014 turn it on in Settings \u2192 Turnout \u2192 Location'
-        : 'Could not get a location fix \u2014 try again outside');
-      paintLocState();
-    },
-    { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+  tog.disabled = true; note.textContent = 'Asking\u2026';
+  const r = await getFix({ enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+  tog.disabled = false;
+  if(r === 'ok'){ setLocPref(true); haptic(10); toast('Location on \u2014 you can check in now'); }
+  else if(r === 'denied') toast('You said no \u2014 turn it on in Settings \u2192 Turnout \u2192 Location');
+  else toast('Could not get a fix \u2014 try again outside');
+  paintLocToggle();
 }
+
+/* ── notifications, same switch ───────────────────────────────── */
+async function paintNotifToggle(){
+  const tog = $('#notif-tog'), note = $('#notif-note');
+  if(!tog || !note) return;
+  const ps = await pushState();
+  tog.disabled = (ps === 'unsupported' || ps === 'needs-install' || ps === 'blocked');
+  tog.setAttribute('aria-checked', ps === 'on' ? 'true' : 'false');
+  note.innerHTML =
+      ps === 'on' ? 'On \u2014 new parties, messages and acceptances reach this phone.'
+    : ps === 'needs-install' ? 'Add Turnout to your Home Screen first: tap <b style="color:var(--text)">Share</b> \u2192 <b style="color:var(--text)">Add to Home Screen</b>, open it from the new icon, then come back.'
+    : ps === 'blocked' ? 'Blocked in your settings \u2014 allow notifications for Turnout, then come back.'
+    : ps === 'unsupported' ? 'This browser can\u2019t do push \u2014 use the app on your phone.'
+    : 'Off \u2014 you\u2019ll miss new parties and messages while the app is closed.';
+}
+async function toggleNotifs(){
+  const tog = $('#notif-tog'), note = $('#notif-note');
+  /* Always say something while we wait. The permission prompt can sit there
+     unanswered for as long as the person likes, and a switch that neither
+     moves nor explains itself reads as broken. */
+  tog.disabled = true;
+  if(note) note.textContent = 'One sec\u2026';
+  try{
+    const ps = await pushState();
+    if(ps === 'on'){
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if(sub){ await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); }
+      toast('Notifications off'); haptic(8);
+    } else {
+      await enablePush();
+    }
+  }catch(e){ toast('Could not change that \u2014 try again'); }
+  finally { tog.disabled = false; paintNotifToggle(); }
+}
+function paintProfileToggles(){ loadLocPref(); paintLocToggle(); paintNotifToggle(); }
 async function pushState(){
   if(!('serviceWorker' in navigator) || !('PushManager' in window) || location.protocol !== 'https:') return 'unsupported';
   if(isIOS && !isStandalone) return 'needs-install';
   if(Notification.permission === 'denied') return 'blocked';
   try{
-    const reg = await navigator.serviceWorker.ready;
+    /* serviceWorker.ready never rejects — if registration failed it simply
+       never settles, and anything awaiting it waits forever. That is enough to
+       hang the whole profile screen, so give it a deadline. */
+    const reg = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise(res => setTimeout(() => res(null), 3000))
+    ]);
+    if(!reg) return 'off';
     const sub = await reg.pushManager.getSubscription();
     return sub ? 'on' : 'off';
   }catch(e){ return 'off'; }
@@ -1135,7 +1222,7 @@ async function enablePush(){
     .upsert({ user_id: me.id, endpoint: j.endpoint, subscription: j }, { onConflict: 'endpoint' });
   if(error){ toast(error.message.includes('push_subscriptions') ? 'Run migration6.sql first' : error.message); return; }
   toast('Notifications on — this phone is wired in');
-  renderProfile();
+  paintNotifToggle();
 }
 
 const $ = s => document.querySelector(s);
@@ -1224,7 +1311,7 @@ function show(id){
   if(id === 'map') loadParties().then(renderMap);
   if(id === 'tonight') renderTonight();
   if(id === 'friends') loadQuickAdd();
-  if(id === 'profile') setTimeout(paintLocState, 60);
+  if(id === 'profile') setTimeout(paintProfileToggles, 60);
   if(id === 'host'){
     if(myHomeAddr && !$('#h-addr').value.trim()){
       $('#h-addr').value = myHomeAddr;
@@ -1700,6 +1787,7 @@ async function loadCheckIns(pid){
 }
 /* watch how far away they are, so the button turns on the moment they arrive */
 function watchDistance(pid){
+  if(!locWanted) return;      // you turned it off; Turnout doesn't reach for it
   stopDistance();
   const pt = exactPt[pid];
   if(!pt || !navigator.geolocation) return;
@@ -3710,7 +3798,6 @@ $('#h-post').addEventListener('click', async () => {
 async function renderProfile(){
   paintMeDots();
   await refreshData();
-  const ps = await pushState();
   const hosted = allParties.filter(p => p.host_id === me.id);
   $('#profile-body').innerHTML = `
     <div class="pf-banner" id="bn-open" style="background:${bannerCss(me.banner_url, me.id)};background-size:cover;background-position:center;cursor:pointer" title="Tap to change your banner">
@@ -3731,18 +3818,19 @@ async function renderProfile(){
     </div>
     <div class="panel">
       <h4>Notifications</h4>
-      ${ps === 'on' ? '<p style="color:var(--lime);font-weight:600;font-size:14px">On — new parties, messages, and acceptances hit this phone</p>'
-        : ps === 'needs-install' ? '<p style="color:var(--muted);font-size:14px">On iPhone, first add Turnout to your Home Screen: tap the <b style="color:var(--text)">Share</b> button in Safari → <b style="color:var(--text)">Add to Home Screen</b> → open Turnout from the new icon, then come back here.</p>'
-        : ps === 'blocked' ? '<p style="color:var(--muted);font-size:14px">Blocked in your browser settings — allow notifications for this site, then refresh.</p>'
-        : ps === 'unsupported' ? '<p style="color:var(--muted);font-size:14px">This browser can’t do push — use the app on your phone.</p>'
-        : '<button class="btn" id="notif-enable" style="margin-top:2px">Turn on notifications</button><p class="hint" style="margin-top:8px">New parties the moment they post, messages, and “you’re in” — straight to this phone.</p>'}
+      <div class="tog-row">
+        <div class="tog-txt"><b>Push notifications</b><i>New parties the moment they post, messages, and &ldquo;you&rsquo;re in&rdquo;.</i></div>
+        <button class="switch" id="notif-tog" role="switch" aria-checked="false" aria-label="Push notifications"><i></i></button>
+      </div>
+      <p class="hint" id="notif-note" style="margin-top:10px"></p>
     </div>
     <div class="panel">
       <h4>Location</h4>
-      <div id="loc-state">
-        <button class="btn" id="loc-enable" style="margin-top:2px">Turn on location</button>
-        <p class="hint" style="margin-top:8px">Check-in compares where you are to the host&rsquo;s spot, right on your phone. Turnout never keeps a trail of where you&rsquo;ve been &mdash; without this you can&rsquo;t check in, so the album and the guest list stay locked.</p>
+      <div class="tog-row">
+        <div class="tog-txt"><b>Use my location</b><i>Only to check you in at a party. Turnout never keeps a trail of where you&rsquo;ve been.</i></div>
+        <button class="switch" id="loc-tog" role="switch" aria-checked="false" aria-label="Use my location"><i></i></button>
       </div>
+      <p class="hint" id="loc-note" style="margin-top:10px"></p>
     </div>
     <div class="panel"><h4>Host flame</h4>
       ${(hostScores[me.id] && hostScores[me.id].votes >= 2)
@@ -3771,10 +3859,12 @@ async function renderProfile(){
     <button class="btn btn-ghost" id="signout">Sign out</button>
     <button class="btn btn-ghost" id="legal-btn" style="margin-top:14px">The rules &amp; your privacy</button>
     <button class="danger-link" id="delete-acct" style="margin-top:14px">Delete my account</button>`;
+  /* the markup was just replaced, so the switches need repainting with it */
+  paintProfileToggles();
 }
 $('#profile-body').addEventListener('click', async e => {
-  if(e.target.id === 'notif-enable'){ enablePush(); return; }
-  if(e.target.id === 'loc-enable'){ askLocation(); return; }
+  if(e.target.closest('#notif-tog')){ toggleNotifs(); return; }
+  if(e.target.closest('#loc-tog')){ toggleLocation(); return; }
   if(e.target.closest('#av-open')){ openPfpSheet(); return; }
   if(e.target.closest('#bn-open')){ openBnSheet(); return; }
   if(e.target.id === 'home-addr-save'){
@@ -4165,6 +4255,7 @@ async function boot(){
   if(!configured){ $('#config-warn').hidden = false; dropSplash(); return; }
   me = await loadMe();
   if(!me){ show('auth'); dropSplash(); return; }
+  loadLocPref();
   try{
     if(pendingHomeAddr){
       await db.from('home_addresses').upsert({ user_id: me.id, address: pendingHomeAddr });
