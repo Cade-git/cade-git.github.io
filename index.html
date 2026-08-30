@@ -715,7 +715,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.4</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.5</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1873,6 +1873,18 @@ async function signOne(path){
   SIGNED[path] = { url: data.signedUrl, exp: Date.now() + SIGN_TTL * 1000 };
   return data.signedUrl;
 }
+/* A stored photo is either a vault path (new) or a full public-bucket URL
+   (old). Everything that deletes a photo needs the same answer to "which
+   bucket, which key", or the old ones quietly orphan. */
+function photoTarget(v){
+  if(!v) return null;
+  if(isVaultPath(v)) return { bucket: 'vault', path: v };
+  const m = String(v).split('/object/public/')[1];
+  if(!m) return null;
+  const i = m.indexOf('/');
+  if(i < 1) return null;
+  return { bucket: m.slice(0, i), path: decodeURIComponent(m.slice(i + 1).split('?')[0]) };
+}
 async function signMany(paths){
   const need = [...new Set(paths.filter(isVaultPath))]
     .filter(x => !(SIGNED[x] && SIGNED[x].exp > Date.now() + 60000));
@@ -2286,6 +2298,7 @@ async function partyPageHtml(p, opts = {}){
       ${showHostConsole ? hostConsoleHtml(p) : ''}
       ${showCheckin ? checkinHtml(p, inRoom) : ''}
       ${showRecap ? recapHtml(p, mine) : ''}
+      ${over && mine ? `<button class="btn btn-danger" data-delparty="${p.id}">Delete this party</button>` : ''}
       ${(showRecap || over) ? '' : mine ? `<button class="btn btn-danger" data-cancel="${p.id}">Cancel this party</button>`
         : going ? `<button class="btn btn-danger" data-unclaim="${p.id}">Give up my spot</button>`
         : requested ? `<div class="waiting">Request sent — waiting on ${esc((nickMap[p.host_id] || p.profiles?.display_name || 'the host').split(' ')[0])}</div>
@@ -2305,6 +2318,22 @@ async function renderDetail(){
 function afterDetailRender(p, showCheckin){
   if(showCheckin && !myCheckIn[p.id] && exactPt[p.id]) watchDistance(p.id); else stopDistance();
   if(dropPending(p) && (myClaims.has(p.id) || p.host_id === me.id)) startDropTimer(p); else stopDropTimer();
+}
+/* Deleting the parties row cascades the claims and the album ROWS, but storage
+   knows nothing about foreign keys — the photos themselves would sit in the
+   bucket forever. Take the files out first, then the party. */
+async function deleteParty(pid){
+  const byBucket = {};
+  try{
+    const { data } = await db.from('party_photos').select('url').eq('party_id', pid);
+    (data || []).forEach(r => { const t = photoTarget(r.url);
+      if(t){ (byBucket[t.bucket] = byBucket[t.bucket] || []).push(t.path); } });
+  }catch(_){ }
+  for(const [bucket, list] of Object.entries(byBucket)){
+    try{ await db.storage.from(bucket).remove(list); list.forEach(x => delete SIGNED[x]); }catch(_){ }
+  }
+  const { error } = await db.from('parties').delete().eq('id', pid);
+  return error;
 }
 async function refreshAfterAction(){
   await loadParties();
@@ -2478,8 +2507,25 @@ async function partyActions(e){
     if(!await askYes({ title: 'Cancel this party?',
       sub: 'Everyone\u2019s claims disappear and this can\u2019t be undone.',
       yes: 'Cancel it', no: 'Keep it', danger: true })) return;
-    await db.from('parties').delete().eq('id', el.dataset.cancel);
-    toast('Party canceled'); refreshAfterAction(); return;
+    const err = await deleteParty(el.dataset.cancel);
+    if(err){ toast(err.message); return; }
+    toast('Party canceled');
+    detailId = null; show(detailFrom || 'find'); refreshAfterAction(); return;
+  }
+  if(el = g('[data-delparty]')){
+    const pid = el.dataset.delparty;
+    const p = allParties.find(x => x.id === pid) || {};
+    const shots = (recapPhotos[pid] || []).length;
+    if(!await askYes({ title: 'Delete this party?',
+      sub: 'It disappears for everyone' + (shots ? ', and the ' + shots + ' photo' + (shots > 1 ? 's' : '') + ' in the album go with it' : '') + '. This cannot be undone.',
+      yes: 'Delete', no: 'Keep it', danger: true })) return;
+    if(!await askYes({ title: 'Last check',
+      sub: 'Deleting \u201c' + (p.name || 'this party') + '\u201d is permanent.',
+      yes: 'Delete it', no: 'Cancel', danger: true })) return;
+    const err = await deleteParty(pid);
+    if(err){ toast(err.message); return; }
+    haptic(12); toast('Party deleted');
+    detailId = null; show(detailFrom || 'find'); refreshAfterAction(); return;
   }
   if(el = g('[data-shareparty]')){
     openShare(el.dataset.shareparty);
@@ -3448,22 +3494,14 @@ $('#lightbox').addEventListener('click', async e => {
     let target = null;
     try{
       const { data: row } = await db.from('party_photos').select('url').eq('id', rid).maybeSingle();
-      const v = row && row.url;
-      if(v){
-        if(isVaultPath(v)) target = { bucket: 'vault', path: v };
-        else {
-          const m = v.split('/object/public/')[1];
-          if(m){ const i = m.indexOf('/');
-                 target = { bucket: m.slice(0, i), path: m.slice(i + 1).split('?')[0] }; }
-        }
-      }
+      target = photoTarget(row && row.url);
     }catch(_){ }
     const { error } = await db.from('party_photos').delete().eq('id', rid);
     if(error){ toast(error.message); return; }
     let gone = true;
     if(target){
       try{
-        const { error: se } = await db.storage.from(target.bucket).remove([decodeURIComponent(target.path)]);
+        const { error: se } = await db.storage.from(target.bucket).remove([target.path]);
         if(se) gone = false; else delete SIGNED[target.path];
       }catch(_){ gone = false; }
     }
