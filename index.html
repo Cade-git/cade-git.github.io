@@ -139,13 +139,41 @@
   .hc-grp{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);
     font-weight:800;margin:14px 0 2px}
   .hc-list .f-row.dim{opacity:.5}
+  .seg-wrap{flex-wrap:wrap}
+  .seg-wrap button{flex:1 1 auto;min-width:calc(50% - 3px);font-size:13px;padding:9px 6px}
+  .tier-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;
+    padding:12px 14px;border-radius:14px;background:var(--raised);border:1px dashed var(--line);
+    color:var(--muted);font-size:13.5px;font-weight:600;transition:all .28s var(--spring)}
+  .tier-toggle:active{transform:scale(.985)}
+  .tier-toggle.on{border-style:solid;color:#fff;background:var(--surface)}
+  .tier-toggle svg{width:17px;height:17px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;transition:transform .28s var(--spring)}
+  .tier-toggle.on svg{transform:rotate(45deg)}
+  /* the countdown that replaces the address until it drops */
+  .drop{margin:16px 0 6px;padding:18px 16px;border-radius:20px;text-align:center;
+    background:linear-gradient(135deg,rgba(236,72,153,.10),rgba(139,92,246,.10)),var(--surface);
+    border:1px solid rgba(236,72,153,.32)}
+  .drop .drop-h{font-family:var(--disp);font-size:15.5px;color:#fff;margin:0 0 3px;
+    letter-spacing:0;text-transform:none;font-weight:700}
+  .drop .cd{font-family:var(--disp);font-size:38px;line-height:1.05;margin:9px 0 5px;
+    font-variant-numeric:tabular-nums;background:linear-gradient(120deg,var(--mag),var(--vio));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .drop p{font-size:12.5px;color:var(--muted);margin:0}
+  .fee-tier{display:flex;gap:8px;margin-top:10px}
+  .fee-tier div{flex:1;padding:9px 10px;border-radius:13px;background:var(--raised);border:1px solid var(--line)}
+  .fee-tier b{display:block;font-size:15px;color:#fff;font-variant-numeric:tabular-nums}
+  .fee-tier span{font-size:11px;color:var(--faint);font-weight:600}
+  .fee-tier .now{border-color:rgba(163,230,53,.45);background:rgba(163,230,53,.10)}
+  .fee-tier .now b{color:var(--lime)}
+  .tag.drop-tag{background:rgba(236,72,153,.20);color:#FF9CC4;border-color:rgba(236,72,153,.42);
+    display:inline-flex;align-items:center;gap:4px}
+  .tag.drop-tag svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
   /* the standing invitation to host — the job Turnout is actually for */
   .host-cta{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin:0 0 16px;padding:13px 14px;
     border-radius:18px;background:var(--surface);border:1px solid var(--line);
     transition:transform .28s var(--spring),border-color .28s var(--spring)}
   .host-cta:active{transform:scale(.985);border-color:rgba(255,255,255,.18)}
   .host-cta-ic{flex:0 0 auto;width:38px;height:38px;border-radius:13px;display:flex;align-items:center;justify-content:center;
-    background:linear-gradient(135deg,var(--pink),var(--violet))}
+    background:linear-gradient(135deg,var(--mag),var(--vio))}
   .host-cta-ic svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round}
   .host-cta-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
   .host-cta-t b{font-size:14.5px;color:#fff;font-weight:700}
@@ -522,7 +550,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.4</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.5</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -638,6 +666,15 @@
       <div class="field"><label for="h-addr">Address</label><input id="h-addr" placeholder="Street address">
         <button class="btn btn-ghost" id="h-gps" style="padding:9px;margin-top:8px;font-size:13.5px"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.2-6.5-10.2a6.5 6.5 0 0 1 13 0C18.5 15.8 12 21 12 21z"/><circle cx="12" cy="10.6" r="2.3"/></svg>Set the spot on a map</button>
         <p class="hint" id="h-addr-hint">Locked in the database — only your guests can ever read it.</p></div>
+      <div class="field"><label>When does the address drop?</label>
+        <div class="seg seg-wrap" id="h-drop">
+          <button class="on" data-drop="0">Right away</button>
+          <button data-drop="60">1 hr before</button>
+          <button data-drop="120">2 hrs before</button>
+          <button data-drop="start">At start</button>
+        </div>
+        <p class="hint" id="h-drop-hint">Everyone who claims a spot gets the address immediately.</p>
+      </div>
       <div class="row2">
         <div class="field"><label for="h-town">Town</label><input id="h-town" placeholder="Town"></div>
         <div class="field"><label for="h-max">Max people</label><input id="h-max" type="number" min="2" max="500" value="50" inputmode="numeric"></div>
@@ -656,6 +693,19 @@
             <button class="on" data-drinks="byob">BYOB</button>
             <button data-drinks="provided">Provided</button>
           </div></div>
+      </div>
+      <div class="field">
+        <button class="tier-toggle" id="h-tier-on" type="button">
+          <span>Charge more after a certain time</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <div id="h-tier" hidden>
+          <div class="row2">
+            <div class="field"><label for="h-fee-late">Price after ($)</label><input id="h-fee-late" type="number" min="0" inputmode="decimal" placeholder="e.g. 10"></div>
+            <div class="field"><label for="h-cutoff">Goes up at</label><input id="h-cutoff" type="time"></div>
+          </div>
+          <p class="hint">Check-in timestamps when people arrive, so this actually holds. Gets everyone there early.</p>
+        </div>
       </div>
       <div class="field"><label for="h-desc">What&rsquo;s it about?</label><textarea id="h-desc" rows="3" placeholder="Set the vibe."></textarea></div>
       <button class="btn" id="h-post">Post my party</button>
@@ -859,6 +909,7 @@ function flameSvg(w){
   const h = Math.round(w * 14 / 12);
   return `<svg width="${w}" height="${h}" viewBox="0 0 12 14" fill="currentColor" aria-hidden="true" style="vertical-align:-2px"><path d="M6 0c.5 2.5 3.5 3.8 4.6 6.4 1.2 2.8-.3 6-3.1 7.1.6-1 .8-2.3.3-3.4-.4-1-1.3-1.6-1.8-2.6-.4.8-.5 1.7-.3 2.5-1-.4-1.7-1.4-1.9-2.4C3.4 5.4 5 3.9 5.6 2 5.8 1.3 6 .7 6 0z"/></svg>`;
 }
+const LOCK_TAG = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="3"/><path d="M8.2 10.5V7.6a3.8 3.8 0 0 1 7.6 0v2.9"/></svg>';
 function lockSvg(w){
   return `<svg width="${w}" height="${w}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="3"/><path d="M8.2 10.5V7.6a3.8 3.8 0 0 1 7.6 0v2.9"/><circle cx="12" cy="15.4" r="1.35" fill="currentColor" stroke="none"/></svg>`;
 }
@@ -894,6 +945,7 @@ let detailFrom = 'find';
 let savedFindScroll = 0;
 
 function show(id){
+  if(id !== 'detail'){ stopDropTimer(); }
   ['chat','detail'].forEach(o => { const el = document.getElementById(o);
     if(el){ el.style.transform = ''; el.style.transition = ''; el.classList.remove('swiping'); } });
   const overlays = ['chat','detail'];
@@ -1210,7 +1262,9 @@ async function loadParties(){
     const addr = unlockedAddr[p.id];
     const flames = flameBadge(p.host_id, hostCount[p.host_id] || 0);
     const reqCount = mine && priv ? (hostRequests[p.id] || []).length : 0;
-    const status = going ? '<div class="friendsline" style="color:var(--lime)">You’re going — tap for the address</div>'
+    const status = going ? (dropPending(p)
+        ? `<div class="friendsline" style="color:var(--mag)">You’re in — address drops ${esc(dropWhen(p))}</div>`
+        : '<div class="friendsline" style="color:var(--lime)">You’re going — tap for the address</div>')
       : requested ? '<div class="friendsline" style="color:var(--amber)">Request sent — waiting on the host</div>'
       : reqCount ? `<div class="friendsline" style="color:var(--amber)">${reqCount} request${reqCount > 1 ? 's' : ''} waiting — tap to review</div>`
       : '';
@@ -1224,6 +1278,7 @@ async function loadParties(){
         ${live ? '<span class="live-pill"><i></i>LIVE</span>' : ''}
         ${going ? '<span class="tag going">You’re in</span>' : ''}
         ${priv && !mine && !going ? '<span class="tag priv">Private</span>' : ''}
+        ${dropPending(p) && !going ? '<span class="tag drop-tag">' + LOCK_TAG + 'drops ' + esc(dropWhen(p)) + '</span>' : ''}
         ${flames ? `<span class="tag">${flames}</span>` : ''}
         <span style="flex:1"></span>
         ${p.fee > 0 ? `<span class="tag">$${+p.fee}</span>` : ''}
@@ -1480,6 +1535,63 @@ function recapHtml(p, mine){
     ${photos.length ? '' : '<div class="album-empty">No photos yet — the camera goes straight here, nothing saves to your phone.</div>'}
   </div>`;
 }
+/* ── the address drop: a countdown that turns into a street address ── */
+function dropPending(p){
+  return !!p.address_drop_at && Date.now() < new Date(p.address_drop_at).getTime();
+}
+function dropWhen(p){
+  const d = new Date(p.address_drop_at);
+  const today = new Date().toDateString() === d.toDateString();
+  const t = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase().replace(' ', '');
+  return (today ? 'at ' : d.toLocaleDateString('en-US', { weekday: 'short' }) + ' ') + t;
+}
+function dropLeft(p){
+  const ms = new Date(p.address_drop_at).getTime() - Date.now();
+  if(ms <= 0) return null;
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  const pad = n => String(n).padStart(2, '0');
+  return h > 0 ? h + ':' + pad(m) + ':' + pad(sec) : m + ':' + pad(sec);
+}
+function dropHtml(p){
+  return `<div class="drop">
+    <div class="drop-h">The address drops ${esc(dropWhen(p))}</div>
+    <div class="cd" id="drop-cd">${esc(dropLeft(p) || '0:00')}</div>
+    <p>Your spot is locked in. Nobody gets the address before this — not even in a screenshot.</p>
+  </div>`;
+}
+/* what this person pays, and what it becomes later */
+function feeTierHtml(p){
+  if(!p.fee_late || !p.fee_cutoff) return '';
+  const cut = new Date(p.fee_cutoff);
+  const late = Date.now() >= cut.getTime();
+  const t = cut.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase().replace(' ', '');
+  const money = n => Number(n) > 0 ? '$' + Number(n) : 'Free';
+  return `<div class="fee-tier">
+    <div class="${late ? '' : 'now'}"><b>${esc(money(p.fee))}</b><span>BEFORE ${esc(t)}</span></div>
+    <div class="${late ? 'now' : ''}"><b>${esc(money(p.fee_late))}</b><span>AFTER ${esc(t)}</span></div>
+  </div>`;
+}
+/* tick the countdown, and pull the address the instant it goes live */
+let dropTimer = null;
+function stopDropTimer(){ if(dropTimer){ clearInterval(dropTimer); dropTimer = null; } }
+function startDropTimer(p){
+  stopDropTimer();
+  if(!dropPending(p)) return;
+  dropTimer = setInterval(async () => {
+    const el = document.getElementById('drop-cd');
+    const left = dropLeft(p);
+    if(left && el){ el.textContent = left; return; }
+    stopDropTimer();
+    const { data } = await db.rpc('get_party_address', { pid: p.id });
+    if(data){
+      unlockedAddr[p.id] = data;
+      haptic([14, 50, 22]);
+      toast('The address just dropped');
+    }
+    if(detailId === p.id) renderDetail();
+  }, 1000);
+}
 /* ── party detail ── */
 function openDetail(pid, from){
   const fb = document.querySelector('#find .scroll');
@@ -1562,8 +1674,10 @@ async function renderDetail(){
         <h4>${showRecap ? 'Where it was' : 'Location'}</h4>
         ${mine ? `<button class="btn btn-ghost" data-repin="${p.id}" style="padding:9px;margin-bottom:10px;font-size:13px">${PIN_IC}${exactPt[p.id] ? 'Fix the map pin' : 'Set the map pin'}</button>` : ''}
         ${(going || mine)
-          ? (addr ? `<p class="addr" style="margin:0">${esc(addr)}</p>` : '<p class="hint" style="margin:0">Unlocking…</p>')
-          : `<p class="hint" style="margin:0">Address unlocks ${priv ? 'when the host accepts you' : 'when you claim a spot'}. For now: <b style="color:var(--text)">${esc(p.town || 'nearby')}</b>.</p>`}
+          ? (addr ? `<p class="addr" style="margin:0">${esc(addr)}</p>`
+             : (dropPending(p) ? dropHtml(p) : '<p class="hint" style="margin:0">Unlocking…</p>'))
+          : `<p class="hint" style="margin:0">Address ${dropPending(p) ? 'drops ' + esc(dropWhen(p)) : 'unlocks ' + (priv ? 'when the host accepts you' : 'when you claim a spot')}. For now: <b style="color:var(--text)">${esc(p.town || 'nearby')}</b>.</p>`}
+        ${feeTierHtml(p)}
       </div>
       ${reqs.length ? `<div class="panel" style="border-color:rgba(255,180,84,.4)">
           <h4 style="color:var(--amber)">Requests (${reqs.length})</h4>
@@ -1591,6 +1705,7 @@ async function renderDetail(){
 }
 function afterDetailRender(p, showCheckin){
   if(showCheckin && !myCheckIn[p.id] && exactPt[p.id]) watchDistance(p.id); else stopDistance();
+  if(dropPending(p) && (myClaims.has(p.id) || p.host_id === me.id)) startDropTimer(p); else stopDropTimer();
 }
 async function refreshAfterAction(){
   await loadParties();
@@ -2618,6 +2733,50 @@ $('#h-drinks').addEventListener('click', e => {
   hDrinks = b.dataset.drinks;
   $$('#h-drinks button').forEach(x => x.classList.toggle('on', x === b));
 });
+/* ── when the address drops. '0' = immediately, a number = minutes before
+      the start time, 'start' = exactly at kickoff ── */
+let hDrop = '0';
+const DROP_HINT = {
+  '0':     'Everyone who claims a spot gets the address immediately.',
+  '60':    'The address appears an hour before you start. Nobody can pass it around early.',
+  '120':   'The address appears two hours before you start.',
+  'start': 'The address appears the moment your party starts.'
+};
+$('#h-drop').addEventListener('click', e => {
+  const b = e.target.closest('[data-drop]'); if(!b) return;
+  hDrop = b.dataset.drop;
+  $$('#h-drop button').forEach(x => x.classList.toggle('on', x === b));
+  const needsTime = hDrop !== '0' && !$('#h-when').value;
+  $('#h-drop-hint').textContent = needsTime
+    ? 'Set a start time above first — the drop is measured from it.'
+    : DROP_HINT[hDrop];
+  haptic(8);
+});
+$('#h-tier-on').addEventListener('click', () => {
+  const box = $('#h-tier');
+  box.hidden = !box.hidden;
+  $('#h-tier-on').classList.toggle('on', !box.hidden);
+  if(box.hidden){ $('#h-fee-late').value = ''; $('#h-cutoff').value = ''; }
+  haptic(8);
+});
+/* turn the picked option into a real timestamp against the start time */
+function dropAtFrom(startsAt){
+  if(hDrop === '0' || !startsAt) return null;
+  const t = new Date(startsAt).getTime();
+  if(hDrop === 'start') return new Date(t).toISOString();
+  return new Date(t - parseInt(hDrop, 10) * 60000).toISOString();
+}
+/* the cutoff is a time-of-day; anchor it to the party's own night */
+function cutoffFrom(startsAt){
+  const v = $('#h-cutoff').value;
+  if(!v || $('#h-tier').hidden) return null;
+  const base = startsAt ? new Date(startsAt) : new Date();
+  const [hh, mm] = v.split(':').map(Number);
+  const c = new Date(base); c.setHours(hh, mm, 0, 0);
+  // a cutoff earlier in the clock than the start belongs to the following morning
+  if(c.getTime() < base.getTime()) c.setDate(c.getDate() + 1);
+  return c.toISOString();
+}
 $('#h-post').addEventListener('click', async () => {
   const name = $('#h-name').value.trim(), addr = $('#h-addr').value.trim();
   if(!name){ toast('Give your party a name'); return; }
@@ -2634,6 +2793,9 @@ $('#h-post').addEventListener('click', async () => {
     starts_at: $('#h-when').value ? new Date($('#h-when').value).toISOString() : null,
     max_people: Math.max(2, parseInt($('#h-max').value, 10) || 50),
     fee: Math.max(0, parseFloat($('#h-fee').value) || 0),
+    fee_late: $('#h-tier').hidden ? null : (parseFloat($('#h-fee-late').value) || null),
+    fee_cutoff: cutoffFrom($('#h-when').value || null),
+    address_drop_at: dropAtFrom($('#h-when').value || null),
     drinks: hDrinks,
     privacy: hPriv,
     description: $('#h-desc').value.trim(),
@@ -2657,7 +2819,11 @@ $('#h-post').addEventListener('click', async () => {
   $('#h-gps').innerHTML = PIN_IC + 'Set the spot on a map';
   $('#h-addr-hint').textContent = 'Locked in the database — only your guests can ever read it.';
   ['h-name','h-addr','h-town','h-desc','h-when','h-fee'].forEach(id => $('#' + id).value = '');
-  hPriv = 'public'; hDrinks = 'byob';
+  hPriv = 'public'; hDrinks = 'byob'; hDrop = '0';
+  $$('#h-drop button').forEach(x => x.classList.toggle('on', x.dataset.drop === '0'));
+  $('#h-drop-hint').textContent = DROP_HINT['0'];
+  $('#h-tier').hidden = true; $('#h-tier-on').classList.remove('on');
+  ['h-fee-late','h-cutoff'].forEach(id => $('#' + id).value = '');
   $$('#h-priv button').forEach(x => x.classList.toggle('on', x.dataset.priv === 'public'));
   $$('#h-drinks button').forEach(x => x.classList.toggle('on', x.dataset.drinks === 'byob'));
   $('#h-priv-hint').textContent = 'Anyone who claims a spot instantly gets the address. They still have to check in at the door.';
