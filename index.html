@@ -304,6 +304,15 @@
     background:linear-gradient(135deg,#221B44,#171331);border:1px solid rgba(255,255,255,.14);
     box-shadow:0 16px 44px -22px #000}
   .ticket::before{content:'';position:absolute;inset:0;background:var(--grad);opacity:.18}
+  /* Claimed but not checked in: the same ticket, not yet torn. Muted, dashed
+     edge, and the stub number greyed until the door stamps it. */
+  .ticket.pending{background:linear-gradient(135deg,#191634,#141127);
+    border:1px dashed rgba(255,255,255,.2)}
+  .ticket.pending::before{opacity:.07}
+  .ticket.pending .tk-no{color:rgba(255,255,255,.62)}
+  .ticket.stamped{border-color:rgba(163,230,53,.36)}
+  .ticket.stamped .tk-name i{color:var(--lime);font-weight:600}
+  .ticket.stamped .tk-no{background:rgba(163,230,53,.14);border-color:rgba(163,230,53,.4);color:var(--lime)}
   .tk-top{position:relative;display:flex;align-items:center;gap:12px;padding:15px 16px 13px}
   .tk-who{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
   .tk-name{min-width:0}
@@ -441,6 +450,22 @@
     background:rgba(255,180,84,.08);border:1px solid rgba(255,180,84,.35);border-radius:14px;padding:12px;margin-bottom:10px}
   .panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
   .panel h4{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 10px}
+  /* start / end sit under one shared date, each with its own small caption */
+  .wf{min-width:0}
+  .wf span{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--faint);margin-bottom:5px}
+  .wf input{width:100%}
+  .wf.off input{opacity:.35}
+  .chip-tog{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:8px 13px;
+    border-radius:99px;background:var(--raised);border:1px solid var(--line);
+    font-size:13px;font-weight:600;color:var(--muted)}
+  .chip-tog i{width:15px;height:15px;border-radius:5px;border:1.5px solid var(--line);
+    background:var(--surface);flex:0 0 auto;position:relative}
+  .chip-tog[aria-pressed="true"]{color:var(--lime);border-color:rgba(163,230,53,.45);
+    background:rgba(163,230,53,.10)}
+  .chip-tog[aria-pressed="true"] i{background:var(--lime);border-color:var(--lime)}
+  .chip-tog[aria-pressed="true"] i::after{content:'';position:absolute;left:4px;top:1px;
+    width:4px;height:8px;border:solid #12210A;border-width:0 2px 2px 0;transform:rotate(42deg)}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .row2 > *{min-width:0}
   .row2 > .field{min-width:0}
@@ -794,7 +819,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.7</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.8</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -917,7 +942,16 @@
           <button class="btn btn-ghost cover-opt" id="h-photo-gen">Generate <span class="soon-pip">SOON</span></button>
         </div>
         <input id="h-photo-file" type="file" accept="image/*" hidden></div>
-      <div class="field"><label for="h-when">When</label><input id="h-when" type="datetime-local"></div>
+      <div class="field"><label for="h-date">When</label>
+        <input id="h-date" type="date">
+        <div class="row2" style="margin-top:9px">
+          <div class="wf"><span>Starts</span><input id="h-start" type="time"></div>
+          <div class="wf" id="h-end-wrap"><span>Ends</span><input id="h-end" type="time"></div>
+        </div>
+        <button class="chip-tog" id="h-open-end" aria-pressed="false">
+          <i></i>Goes till whenever</button>
+        <p class="hint" id="h-when-hint">Ends at is just so people know when it winds down — nothing shuts off.</p>
+      </div>
       <div class="field"><label for="h-addr">Address</label><input id="h-addr" placeholder="Street address">
         <button class="btn btn-ghost" id="h-gps" style="padding:9px;margin-top:8px;font-size:13.5px"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.2-6.5-10.2a6.5 6.5 0 0 1 13 0C18.5 15.8 12 21 12 21z"/><circle cx="12" cy="10.6" r="2.3"/></svg>Set the spot on a map</button>
         <p class="hint" id="h-addr-hint">Locked in the database — only your guests can ever read it.</p></div>
@@ -1510,6 +1544,14 @@ function clockLabel(d){
   h = h % 12 || 12;
   return m ? h + ':' + String(m).padStart(2, '0') + ap : h + ap;   // 9PM, not 9:00 PM
 }
+/* "9PM – 2AM", or "9PM till whenever" when the host didn't set an end.
+   Older parties have no ends_at at all, so they just show the start. */
+function timeRange(p){
+  if(!p.starts_at) return '';
+  const s = clockLabel(new Date(p.starts_at));
+  if(!p.ends_at) return s;
+  return s + ' \u2013 ' + clockLabel(new Date(p.ends_at));
+}
 /* people don't say "Fri, Aug 28 · 12:55 PM" — they say "tonight" */
 function isLive(p){
   if(!p.starts_at) return false;
@@ -1993,13 +2035,23 @@ function ticketNo(pid, uid){
   for(let i = 0; i < str.length; i++){ h = (h * 31 + str.charCodeAt(i)) >>> 0; }
   return String(h % 9000 + 1000);
 }
+/* You claim a TICKET, so you get a ticket the moment you claim — it just isn't
+   stamped yet. Checking in at the door stamps it with the time. It used to only
+   appear after check-in, which meant the thing the button promised you didn't
+   exist until hours later. */
 function ticketHtml(p){
+  const stamped = !!myCheckIn[p.id];
   const when = checkInAt[p.id];
   const t = when ? new Date(when) : null;
-  return `<div class="ticket">
+  const sub = stamped
+    ? 'Checked in' + (t ? ' \u00b7 ' + t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '')
+    : partyOver(p) ? 'Never checked in'
+    : checkinOpen(p) ? 'Not checked in yet'
+    : whenLabel(p.starts_at);
+  return `<div class="ticket ${stamped ? 'stamped' : 'pending'}">
     <div class="tk-top">
       <div class="tk-who">${avatar(me, 42)}
-        <div class="tk-name"><b>${esc(nickMap[me.id] || me.display_name)}</b><i>Checked in${t ? ' &middot; ' + esc(t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })) : ''}</i></div>
+        <div class="tk-name"><b>${esc(nickMap[me.id] || me.display_name)}</b><i>${esc(sub)}</i></div>
       </div>
       <div class="tk-no">#${ticketNo(p.id, me.id)}</div>
     </div>
@@ -2008,7 +2060,9 @@ function ticketHtml(p){
       <div class="tk-party">${esc(p.name)}</div>
       <div class="tk-sub">${esc(p.town || '')}${p.fee > 0 ? ' &middot; $' + (+p.fee) + ' at the door' : ''}</div>
     </div>
-    <div class="tk-hint">Show this at the door. It only exists on your phone.</div>
+    <div class="tk-hint">${stamped
+      ? 'You\u2019re in. This is your stub for the night.'
+      : 'Show this at the door. It only exists on your phone.'}</div>
   </div>`;
 }
 function checkinHtml(p, rollShown){
@@ -2492,21 +2546,22 @@ async function partyPageHtml(p, opts = {}){
         Hosted by ${esc(mine ? 'you' : (p.profiles?.display_name || 'someone'))}
         ${flameBadge(p.host_id)}
         · ${esc(p.town || 'nearby')}</p>
-      ${(showCheckin && myCheckIn[p.id]) ? ticketHtml(p) : ''}
+      ${(!over && (going || myCheckIn[p.id])) ? ticketHtml(p) : ''}
       <div class="meta" style="margin-bottom:14px">
+        ${p.starts_at ? `<span style="color:var(--text);font-weight:600">${esc(timeRange(p))}${p.ends_at ? '' : ' till whenever'}</span>` : ''}
         <span style="${p.fee > 0 ? 'color:var(--lime);font-weight:700' : 'color:var(--faint)'}">${p.fee > 0 ? '$' + (+p.fee) + ' cover at the door' : 'Free entry'}</span>
         <span>${p.drinks === 'provided' ? 'Drinks provided' : 'BYOB'}</span>
         ${priv ? '<span style="color:var(--amber);font-weight:600">Private · host approves</span>' : ''}
       </div>
       ${p.description ? `<div class="panel"><h4>The rundown</h4><p style="font-size:14.5px">${esc(p.description)}</p></div>` : ''}
       <div class="panel">
-        <h4>${(showRecap || over) ? 'Turnout' : 'Capacity'}</h4>
-        <div class="capline" style="margin-top:0"><b>${claimed} / ${p.max_people} ${nowLive ? 'in' : (showRecap || over) ? 'showed up' : 'going'}</b>
-          ${(showRecap || over) ? '' : `<b class="spots-${cls}">${capLabel(claimed, p.max_people)}</b>`}</div>
+        <h4>${(nowLive || over) ? 'Turnout' : 'Capacity'}</h4>
+        <div class="capline" style="margin-top:0"><b>${claimed} / ${p.max_people} ${nowLive ? 'in' : over ? 'showed up' : 'going'}</b>
+          ${(nowLive || over) ? '' : `<b class="spots-${cls}">${capLabel(claimed, p.max_people)}</b>`}</div>
         <div class="capbar" style="margin-bottom:0"><i class="fill-${cls}" style="width:${pct}%"></i></div>
       </div>
       <div class="panel">
-        <h4>${inRoom ? 'Who&rsquo;s here' : (showRecap || over) ? 'Who was there' : 'Who&rsquo;s going'} (${inRoom ? hereN : claimed})</h4>
+        <h4>${(inRoom || nowLive) ? 'Who&rsquo;s here' : over ? 'Who was there' : 'Who&rsquo;s going'} (${inRoom ? hereN : claimed})</h4>
         ${inRoom ? hereRollHtml(p, hereKnown, hereN) : (going || mine)
           ? (guests.length
               ? guests.map(gp => `<div class="f-row">
@@ -2514,13 +2569,13 @@ async function partyPageHtml(p, opts = {}){
                   <span style="flex:1;font-weight:600">${esc(nickMap[gp.id] || gp.display_name)}${gp.id === me.id ? ' (you)' : ''}</span></button>
                   ${friendIds.has(gp.id) ? '<span style="font-size:12px;color:#FF9CC4;font-weight:600">friend</span>' : ''}
                 </div>`).join('')
-              : `<p class="empty" style="padding:6px">${(showRecap || over) ? 'Nobody claimed a ticket.' : 'Nobody yet \u2014 first claim gets bragging rights.'}</p>`)
+              : `<p class="empty" style="padding:6px">${over ? 'Nobody claimed a ticket.' : 'Nobody yet \u2014 first claim gets bragging rights.'}</p>`)
           : `${fNames.length ? `<div class="friendsline" style="margin:0 0 8px">${esc(friendLine(fNames))}</div>` : ''}
              <p class="hint" style="margin:0">${priv ? 'Get accepted and the whole guest list opens up.' : 'Claim a ticket to see everyone going.'}</p>`}
         ${inRoom && claimed ? `<p class="hint" style="margin:10px 0 0">${claimed} claimed a ticket.</p>` : ''}
       </div>
       <div class="panel">
-        <h4>${nowLive ? 'Where' : (showRecap || over) ? 'Where it was' : 'Location'}</h4>
+        <h4>${nowLive ? 'Where' : over ? 'Where it was' : 'Location'}</h4>
         ${mine ? `<button class="btn btn-ghost" data-repin="${p.id}" style="padding:9px;margin-bottom:10px;font-size:13px">${PIN_IC}${exactPt[p.id] ? 'Fix the map pin' : 'Set the map pin'}</button>` : ''}
         ${(going || mine)
           ? (addr ? `<p class="addr" style="margin:0">${esc(addr)}</p>`
@@ -4059,16 +4114,28 @@ const DROP_HINT = {
   '120':   'The address appears two hours before you start.',
   'start': 'The address appears the moment your party starts.'
 };
+function paintDropHint(){
+  const needsTime = hDrop !== '0' && !whenStart();
+  $('#h-drop-hint').textContent = needsTime
+    ? 'Set a start time above first — the drop is measured from it.'
+    : DROP_HINT[hDrop];
+}
 $('#h-drop').addEventListener('click', e => {
   const b = e.target.closest('[data-drop]'); if(!b) return;
   hDrop = b.dataset.drop;
   $$('#h-drop button').forEach(x => x.classList.toggle('on', x === b));
-  const needsTime = hDrop !== '0' && !$('#h-when').value;
-  $('#h-drop-hint').textContent = needsTime
-    ? 'Set a start time above first — the drop is measured from it.'
-    : DROP_HINT[hDrop];
+  paintDropHint();
   haptic(8);
 });
+$('#h-open-end').addEventListener('click', () => {
+  hOpenEnd = !hOpenEnd;
+  $('#h-open-end').setAttribute('aria-pressed', hOpenEnd ? 'true' : 'false');
+  $('#h-end').disabled = hOpenEnd;
+  $('#h-end-wrap').classList.toggle('off', hOpenEnd);
+  paintWhenHint(); haptic(8);
+});
+['h-date','h-start','h-end'].forEach(id =>
+  $('#' + id).addEventListener('change', () => { paintWhenHint(); paintDropHint(); }));
 $('#h-tier-on').addEventListener('click', () => {
   const box = $('#h-tier');
   box.hidden = !box.hidden;
@@ -4078,6 +4145,36 @@ $('#h-tier-on').addEventListener('click', () => {
   haptic(8);
 });
 /* turn the picked option into a real timestamp against the start time */
+/* One date, two clock times. A party that starts at 9pm and ends at 2am ends
+   the NEXT day — reading the two times off one date is what people actually
+   mean, and it's why this isn't two datetime pickers. */
+let hOpenEnd = false;
+function whenStart(){
+  const d = $('#h-date').value, t = $('#h-start').value;
+  if(!d || !t) return null;
+  const dt = new Date(d + 'T' + t);
+  return isNaN(dt) ? null : dt;
+}
+function whenEnd(){
+  if(hOpenEnd) return null;
+  const d = $('#h-date').value, t = $('#h-end').value;
+  if(!d || !t) return null;
+  const e = new Date(d + 'T' + t);
+  if(isNaN(e)) return null;
+  const s = whenStart();
+  if(s && e.getTime() <= s.getTime()) e.setDate(e.getDate() + 1);
+  return e;
+}
+function paintWhenHint(){
+  const s = whenStart(), e = whenEnd();
+  const hint = $('#h-when-hint');
+  if(!hint) return;
+  if(!s){ hint.textContent = 'Pick a date and a start time so the countdown and the address drop have something to measure from.'; return; }
+  if(hOpenEnd){ hint.textContent = clockLabel(s) + ' till whenever it winds down.'; return; }
+  if(!e){ hint.textContent = 'Starts ' + clockLabel(s) + '. Leave the end blank or tap \u201ctill whenever\u201d if you don\u2019t know yet.'; return; }
+  const over = e.getDate() !== s.getDate();
+  hint.textContent = clockLabel(s) + ' \u2192 ' + clockLabel(e) + (over ? ' (next morning).' : '.');
+}
 function dropAtFrom(startsAt){
   if(hDrop === '0' || !startsAt) return null;
   const t = new Date(startsAt).getTime();
@@ -4099,8 +4196,12 @@ $('#h-post').addEventListener('click', async () => {
   const name = $('#h-name').value.trim(), addr = $('#h-addr').value.trim();
   if(!name){ toast('Give your party a name'); return; }
   if(!addr){ toast('Add an address — it stays locked until claims'); return; }
-  if($('#h-when').value && new Date($('#h-when').value).getTime() < Date.now() - 3600e3){
+  const startsAt = whenStart(), endsAt = whenEnd();
+  if(startsAt && startsAt.getTime() < Date.now() - 3600e3){
     toast('That start time already happened — pick a future one'); return;
+  }
+  if($('#h-date').value && !$('#h-start').value){
+    toast('What time does it start?'); return;
   }
   const town = $('#h-town').value.trim();
   $('#h-post').textContent = 'Posting…';
@@ -4108,12 +4209,13 @@ $('#h-post').addEventListener('click', async () => {
   const fz = pt ? fuzzPoint(pt.lat, pt.lon, name + addr) : null;
   const { data: p, error } = await db.from('parties').insert({
     host_id: me.id, name, town,
-    starts_at: $('#h-when').value ? new Date($('#h-when').value).toISOString() : null,
+    starts_at: startsAt ? startsAt.toISOString() : null,
+    ends_at: endsAt ? endsAt.toISOString() : null,
     max_people: Math.max(2, parseInt($('#h-max').value, 10) || 50),
     fee: Math.max(0, parseFloat($('#h-fee').value) || 0),
     fee_late: $('#h-tier').hidden ? null : (parseFloat($('#h-fee-late').value) || null),
-    fee_cutoff: cutoffFrom($('#h-when').value || null),
-    address_drop_at: dropAtFrom($('#h-when').value || null),
+    fee_cutoff: cutoffFrom(startsAt),
+    address_drop_at: dropAtFrom(startsAt),
     drinks: hDrinks,
     privacy: hPriv,
     description: $('#h-desc').value.trim(),
@@ -4141,7 +4243,12 @@ $('#h-post').addEventListener('click', async () => {
   $('#h-photo').querySelector('.cp-label').textContent = 'Add or generate a cover';
   $('#h-gps').innerHTML = PIN_IC + 'Set the spot on a map';
   $('#h-addr-hint').textContent = 'Locked in the database — only your guests can ever read it.';
-  ['h-name','h-addr','h-town','h-desc','h-when','h-fee'].forEach(id => $('#' + id).value = '');
+  ['h-name','h-addr','h-town','h-desc','h-date','h-start','h-end','h-fee'].forEach(id => $('#' + id).value = '');
+  hOpenEnd = false;
+  $('#h-open-end').setAttribute('aria-pressed', 'false');
+  $('#h-end').disabled = false;
+  $('#h-end-wrap').classList.remove('off');
+  paintWhenHint();
   hPriv = 'public'; hDrinks = 'byob'; hDrop = '0';
   $$('#h-drop button').forEach(x => x.classList.toggle('on', x.dataset.drop === '0'));
   $('#h-drop-hint').textContent = DROP_HINT['0'];
