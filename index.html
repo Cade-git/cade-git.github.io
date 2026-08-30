@@ -560,12 +560,6 @@
     -webkit-overflow-scrolling:touch;opacity:0;transition:opacity .26s ease}
   #map-sheet.up #map-sheet-more{opacity:1}
   #map-sheet:not(.up) #map-sheet-more{pointer-events:none}
-  .ms-hint{display:flex;align-items:center;justify-content:center;gap:6px;font-size:11.5px;color:var(--faint);
-    font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 0 4px;
-    transition:opacity .2s ease}
-  .ms-hint svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-  /* fade, never display:none — hiding it would change the height the peek snap is measured from */
-  #map-sheet.up .ms-hint{opacity:0}
   .ms-cover{height:154px;border-radius:18px;background-size:cover;background-position:center;
     margin:4px 0 14px;position:relative;overflow:hidden}
   .ms-sec{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:800;margin:18px 0 8px}
@@ -601,7 +595,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.8</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.9</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1591,6 +1585,41 @@ document.addEventListener('click', e => {
   const go = e.target.closest('[data-gotab]');
   if(go){ show(go.dataset.gotab); haptic(9); }
 });
+/* check-in and adding to the album both happen in two places now
+   (the party page and the map sheet), so they live in one place each. */
+async function doCheckIn(pid, btn){
+  const label = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Checking in…'; }
+  const fail = msg => { if(btn){ btn.disabled = false; btn.textContent = label || 'Check in'; } toast(msg); };
+  const here = await new Promise(res => navigator.geolocation.getCurrentPosition(
+    pos => res({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+    () => res(null), { enableHighAccuracy: true, maximumAge: 5000, timeout: 12000 }));
+  if(!here) return fail('Couldn’t read your location — try again');
+  const { data: r, error } = await db.rpc('check_in_at', { pid, lat: here.lat, lon: here.lon });
+  if(error || !r || !r.ok){
+    const why = (r && r.error) || (error && error.message) || 'check-in failed';
+    return fail(why === 'too far' ? `You're ${r.feet} ft away — get within ${r.need}` : why);
+  }
+  myCheckIn[pid] = true;
+  await loadCheckIns(pid);
+  stopDistance();
+  celebrate('Checked in', 'You’re on the list for tonight’s recap');
+  return true;
+}
+function openAlbumPicker(pid){
+  let inp = document.getElementById('recap-file');
+  if(!inp){
+    inp = document.createElement('input');
+    inp.type = 'file'; inp.id = 'recap-file'; inp.accept = 'image/*';
+    inp.setAttribute('capture', 'environment');   // straight to the camera on a phone
+    inp.hidden = true;
+    /* it lives in #detail-body no matter who opened it — the change listener
+       is bound there, and a hidden input works from anywhere in the DOM */
+    $('#detail-body').appendChild(inp);
+  }
+  inp.dataset.pid = pid;
+  inp.click();
+}
 /* ── TONIGHT ──────────────────────────────────────────────────────────
    One tab, one answer to "what am I doing right now". It shows exactly
    one thing, in this order:
@@ -1922,28 +1951,8 @@ $('#detail-body').addEventListener('click', async e => {
     const pid = el.dataset.checkin, pt = exactPt[pid];
     if(!pt) return;
     if(ciDist === null || ciDist > CHECKIN_FT){ toast('You need to be within ' + CHECKIN_FT + ' feet'); return; }
-    el.disabled = true; el.textContent = 'Checking in…';
-    /* the database measures the distance itself from the host's exact point —
-       the button is a convenience, not the lock (migration 23) */
-    const here = await new Promise(res => navigator.geolocation.getCurrentPosition(
-      pos => res({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      () => res(null), { enableHighAccuracy: true, maximumAge: 5000, timeout: 12000 }));
-    if(!here){
-      el.disabled = false; el.textContent = 'Check in';
-      toast('Couldn’t read your location — try again'); return;
-    }
-    const { data: r, error } = await db.rpc('check_in_at', { pid, lat: here.lat, lon: here.lon });
-    if(error || !r || !r.ok){
-      el.disabled = false; el.textContent = 'Check in';
-      const why = (r && r.error) || (error && error.message) || 'check-in failed';
-      toast(why === 'too far' ? `You're ${r.feet} ft away — get within ${r.need}` : why);
-      return;
-    }
-    myCheckIn[pid] = true;
-    await loadCheckIns(pid);
-    stopDistance();
-    celebrate('Checked in', 'You’re on the list for tonight’s recap');
-    renderDetail(); return;
+    if(await doCheckIn(pid, el)) renderDetail();
+    return;
   }
   if(el = g('[data-rate]')){
     const pid = el.dataset.rate, n = +el.dataset.n;
@@ -1953,18 +1962,7 @@ $('#detail-body').addEventListener('click', async e => {
     if(error) toast(error.message.includes('party_ratings') ? 'One sec — the recap needs migration 17' : error.message);
     return;
   }
-  if(el = g('[data-addphoto]')){
-    let inp = document.getElementById('recap-file');
-    if(!inp){
-      inp = document.createElement('input');
-      inp.type = 'file'; inp.id = 'recap-file'; inp.accept = 'image/*';
-      inp.setAttribute('capture', 'environment');   // straight to the camera on a phone
-      inp.hidden = true;
-      $('#detail-body').appendChild(inp);
-    }
-    inp.dataset.pid = el.dataset.addphoto;
-    inp.click(); return;
-  }
+  if(el = g('[data-addphoto]')){ openAlbumPicker(el.dataset.addphoto); return; }
   if(el = g('[data-rphoto]')){
     $('#lb-img').src = el.dataset.rphoto;
     $('#lightbox').hidden = false;
@@ -2367,7 +2365,30 @@ window.addEventListener('resize', () => {
   measureSheet(); setSheetY(wasUp ? 0 : SHEET.peek, false);
 });
 
-function openMapSheet(pid){
+/* what the big button does depends entirely on where you are in the night:
+   claim it → check in at the door → put photos in the album */
+function msAction(p, mine, going){
+  const share = `<button class="btn btn-ghost" data-mapshare="${p.id}" style="margin-top:10px">Share with a friend</button>`;
+  if(mine){
+    return `<button class="btn" data-mapopen="${p.id}" style="margin-top:20px">Manage my party</button>` +
+      (recapOpen(p) ? `<button class="btn btn-ghost" data-msalbum="${p.id}" style="margin-top:10px">Add to album</button>` : '');
+  }
+  if(!going){
+    return `<button class="btn" data-mapopen="${p.id}" style="margin-top:20px">See it and claim a spot</button>` + share;
+  }
+  // you're in. the door comes before the album.
+  if(checkinOpen(p) && !myCheckIn[p.id]){
+    return `<button class="btn" data-mscheckin="${p.id}" style="margin-top:20px">Check in</button>
+      <p class="hint" style="text-align:center;margin:9px 0 0">Get within ${CHECKIN_FT} ft and the album opens up.</p>
+      <button class="btn btn-ghost" data-mapopen="${p.id}" style="margin-top:10px">Open the party</button>`;
+  }
+  if(myCheckIn[p.id] && recapOpen(p)){
+    return `<button class="btn" data-msalbum="${p.id}" style="margin-top:20px">Add to album</button>
+      <button class="btn btn-ghost" data-mapopen="${p.id}" style="margin-top:10px">Open the party</button>`;
+  }
+  return `<button class="btn" data-mapopen="${p.id}" style="margin-top:20px">Open the party</button>`;
+}
+function openMapSheet(pid, keepPos){
   const p = parties.find(x => x.id === pid); if(!p) return;
   sheetId = pid;
   const claimed = (p.claims || []).length;
@@ -2396,13 +2417,13 @@ function openMapSheet(pid){
       ${p.privacy === 'private' ? '<span class="tag" style="color:var(--amber);border:1px solid rgba(255,180,84,.45);background:rgba(255,180,84,.1)">Private</span>' : ''}
     </div>
     <div class="ms-bar"><i class="fill-${cls}" style="width:${pct}%;background:${CAPHEX[cls]}"></i></div>
-    <div class="meta" style="margin:0 0 10px;font-size:13px">
+    <div class="meta" style="margin:0 0 16px;font-size:13px">
       <b class="spots-${cls}">${capLabel(claimed, p.max_people)}</b>
       <span>${esc(p.town || 'nearby')}</span>
       <span>${p.fee > 0 ? '$' + (+p.fee) + ' cover' : 'Free'}</span>
       <span>${p.drinks === 'provided' ? 'Drinks provided' : 'BYOB'}</span>
     </div>
-    <div class="ms-hint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14l5-5 5 5"/></svg>pull up for more</div>`;
+`;
 
   // ── what the pull reveals ──
   $('#map-sheet-more').innerHTML = `
@@ -2424,10 +2445,15 @@ function openMapSheet(pid){
       ${known.length ? `<div style="display:flex;align-items:center;gap:10px">${faceStack(known, 6)}
         <span style="font-size:13px;color:var(--muted)">${claimed} claimed</span></div>` : ''}
       ${fNames.length ? `<div class="friendsline" style="margin-top:8px">${esc(friendLine(fNames))}</div>` : ''}` : ''}
-    <button class="btn" data-mapopen="${p.id}" style="margin-top:20px">${mine ? 'Manage my party' : going ? 'Open the party' : 'See it and claim a spot'}</button>
-    ${!mine && !going ? `<button class="btn btn-ghost" data-mapshare="${p.id}" style="margin-top:10px">Share with a friend</button>` : ''}`;
+    ${msAction(p, mine, going)}`;
 
   const el = sheetEl();
+  if(keepPos && SHEET.open){
+    // a re-render mid-session (you just checked in) keeps the height you're at
+    const wasUp = SHEET.y < SHEET.peek / 2;
+    requestAnimationFrame(() => { measureSheet(); snapSheet(wasUp ? 'full' : 'peek'); });
+    return;
+  }
   el.classList.remove('glide');
   el.style.transform = 'translateY(100%)';
   requestAnimationFrame(() => { measureSheet(); snapSheet('peek'); });
@@ -2436,7 +2462,11 @@ $('#map-sheet').addEventListener('click', e => {
   const o = e.target.closest('[data-mapopen]');
   if(o){ closeMapSheet(); openDetail(o.dataset.mapopen, 'map'); return; }
   const sh = e.target.closest('[data-mapshare]');
-  if(sh){ openShare(sh.dataset.mapshare); }
+  if(sh){ openShare(sh.dataset.mapshare); return; }
+  const ci = e.target.closest('[data-mscheckin]');
+  if(ci){ doCheckIn(ci.dataset.mscheckin, ci).then(ok => { if(ok && sheetId) openMapSheet(sheetId, true); }); return; }
+  const al = e.target.closest('[data-msalbum]');
+  if(al){ openAlbumPicker(al.dataset.msalbum); }
 });
 
 /* ── friends ── */
