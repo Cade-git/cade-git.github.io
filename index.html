@@ -619,7 +619,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v8.3</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v8.4</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1542,7 +1542,7 @@ function watchDistance(pid){
   }, () => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
 }
 function stopDistance(){ if(ciWatch !== null){ navigator.geolocation.clearWatch(ciWatch); ciWatch = null; } ciDist = null; }
-function checkinHtml(p){
+function checkinHtml(p, rollShown){
   const here = checkIns[p.id] || [];
   const mineIn = myCheckIn[p.id];
   const known = here.filter(id => profMap[id]);
@@ -1551,7 +1551,7 @@ function checkinHtml(p){
     return `<div class="ci done">
       <h4>You’re checked in</h4>
       <p>The album and the guest list are open to you now.</p>
-      ${n ? `<div class="ci-here">${n} here now ${known.length ? faceStack(known, 4) : ''}</div>` : ''}
+      ${(n && !rollShown) ? `<div class="ci-here">${n} here now ${known.length ? faceStack(known, 4) : ''}</div>` : ''}
     </div>`;
   }
   const noPoint = !exactPt[p.id];
@@ -1774,21 +1774,10 @@ async function renderTonight(){
   const known = (checkIns[p.id] || []).filter(id => profMap[id]);
   const claimed = (p.claims || []).length;
 
-  body.innerHTML = `
-    <div class="tn-hero">
-      <div class="tn-eyebrow ${mine ? 'host-e' : ''}"><i></i>${mine ? 'You\u2019re hosting' : 'You\u2019re at'}</div>
-      <h2 class="tn-title">${esc(p.name)}</h2>
-      <p class="tn-sub">${esc(p.town || '')}${p.town ? ' \u00b7 ' : ''}${n} ${n === 1 ? 'person' : 'people'} inside${mine ? ` \u00b7 ${claimed} claimed` : ''}</p>
-      <div class="tn-cover" style="background-image:${coverFor(p)}"><div class="card-scrim"></div></div>
-    </div>
-    ${mine ? hostConsoleHtml(p) : ''}
-    ${!mine && !myCheckIn[p.id] ? checkinHtml(p) : ''}
-    ${!mine && myCheckIn[p.id] ? `<div class="panel">
-        <h4>Who\u2019s here (${n})</h4>
-        ${hereRollHtml(p, known, n)}
-      </div>` : ''}
-    ${recapOpen(p) ? recapHtml(p, mine) : ''}
-    <button class="btn btn-ghost" data-open="${p.id}" style="margin-top:14px">Open the full party page</button>`;
+  /* This IS the party page — same builder the party screen uses — with the
+     "you're here" line on top instead of a back arrow. No summary, no button
+     down to the real thing. */
+  body.innerHTML = await partyPageHtml(p, { back: false, eyebrow: true });
   afterDetailRender(p, !mine && checkinOpen(p));
 }
 function updateTonightDot(){
@@ -1861,16 +1850,18 @@ function openDetail(pid, from){
   show('detail');
   renderDetail();
 }
-async function renderDetail(){
-  const p = allParties.find(x => x.id === detailId);
-  const body = $('#detail-body');
-  if(!p){ show(detailFrom); return; }
+/* The party page, as a string. The Tonight tab and the party screen show the
+   SAME page — Tonight used to be a summary with an "Open the full party page"
+   button on the bottom, which made the tab a waiting room for the real thing.
+   opts.back draws the back arrow (party screen only); opts.eyebrow prints the
+   "You're at / You're hosting" line that makes Tonight feel like where you are. */
+async function partyPageHtml(p, opts = {}){
   const invited = myClaims.has(p.id) || p.host_id === me.id;
   const showRecap = recapOpen(p) && invited;
   const showCheckin = invited && checkinOpen(p);
   const mine = p.host_id === me.id;
   if(showRecap && !recapPhotos[p.id]) await loadRecap(p.id);
-  if((showCheckin || showRecap) && !checkIns[p.id]) await loadCheckIns(p.id);
+  if((showCheckin || showRecap || isLive(p)) && !checkIns[p.id]) await loadCheckIns(p.id);
   const showHostConsole = mine && (checkinOpen(p) || recapOpen(p));
   /* Every label on this page is written in one of three tenses. Drive them
      off the clock, not off whether the album happens to still be open —
@@ -1895,6 +1886,12 @@ async function renderDetail(){
          if(ad) unlockedAddr[p.id] = ad; }catch(_){ }
   }
   const addr = unlockedAddr[p.id];
+  /* Two different rosters, and which one is useful depends on the clock.
+     Before the party, the question is who CLAIMED. Once it's running and
+     you're inside, the question is who is actually HERE. */
+  const inRoom = nowLive && (myCheckIn[p.id] || mine);
+  const hereN = inRoom ? (hereCount[p.id] || (checkIns[p.id] || []).length) : 0;
+  const hereKnown = inRoom ? (checkIns[p.id] || []).filter(id => profMap[id]) : [];
   const hostCount = allParties.filter(x => x.host_id === p.host_id).length;
   const reqs = mine && priv ? (hostRequests[p.id] || []) : [];
   // guest list — RLS already limits what comes back; UI saves the full list for people who are in
@@ -1914,13 +1911,14 @@ async function renderDetail(){
     guests = claimers.map(id =>
       byId[id] || (id === me.id ? me : null) || profMap[id] || { id, display_name: 'Someone' });
   }
-  body.innerHTML = `
-    <div class="d-cover" style="background:${gradFor(p.id)}">
-      <button class="back-btn d-back" data-close aria-label="Back">
-        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+  return `
+    <div class="d-cover" style="background:${coverFor(p)}">
+      ${opts.back ? `<button class="back-btn d-back" data-close aria-label="Back">
+        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>` : ''}
       <span class="tag" style="position:absolute;top:12px;right:12px">${esc(whenLabel(p.starts_at))}</span>
     </div>
     <div style="padding:16px 20px 0">
+      ${opts.eyebrow ? `<div class="tn-eyebrow ${mine ? 'host-e' : ''}" style="margin-bottom:6px"><i></i>${mine ? 'You\u2019re hosting' : 'You\u2019re at'}</div>` : ''}
       <h2 style="font-size:22px;margin:0 0 4px">${esc(p.name)}</h2>
       <p style="color:var(--muted);font-size:14px;margin-bottom:10px">
         Hosted by ${esc(mine ? 'you' : (p.profiles?.display_name || 'someone'))}
@@ -1939,8 +1937,8 @@ async function renderDetail(){
         <div class="capbar" style="margin-bottom:0"><i class="fill-${cls}" style="width:${pct}%"></i></div>
       </div>
       <div class="panel">
-        <h4>${nowLive ? 'Who&rsquo;s here' : (showRecap || over) ? 'Who was there' : 'Who&rsquo;s going'} (${claimed})</h4>
-        ${(going || mine)
+        <h4>${inRoom ? 'Who&rsquo;s here' : (showRecap || over) ? 'Who was there' : 'Who&rsquo;s going'} (${inRoom ? hereN : claimed})</h4>
+        ${inRoom ? hereRollHtml(p, hereKnown, hereN) : (going || mine)
           ? (guests.length
               ? guests.map(gp => `<div class="f-row">
                   <button data-viewuser="${gp.id}" style="display:flex;flex:1;gap:10px;align-items:center;background:none;border:none;padding:0;min-width:0;text-align:left;color:inherit;font-family:inherit">${avatar(gp, 34)}
@@ -1950,6 +1948,7 @@ async function renderDetail(){
               : `<p class="empty" style="padding:6px">${(showRecap || over) ? 'Nobody claimed a spot.' : 'Nobody yet \u2014 first claim gets bragging rights.'}</p>`)
           : `${fNames.length ? `<div class="friendsline" style="margin:0 0 8px">${esc(friendLine(fNames))}</div>` : ''}
              <p class="hint" style="margin:0">${priv ? 'Get accepted and the whole guest list opens up.' : 'Claim a spot to see everyone going.'}</p>`}
+        ${inRoom && claimed ? `<p class="hint" style="margin:10px 0 0">${claimed} claimed a spot.</p>` : ''}
       </div>
       <div class="panel">
         <h4>${nowLive ? 'Where' : (showRecap || over) ? 'Where it was' : 'Location'}</h4>
@@ -1972,7 +1971,7 @@ async function renderDetail(){
           </div>`).join('')}
         </div>` : (mine && priv ? '<div class="panel"><h4>Requests</h4><p class="empty" style="padding:6px">Requests to get in show up here.</p></div>' : '')}
       ${showHostConsole ? hostConsoleHtml(p) : ''}
-      ${showCheckin ? checkinHtml(p) : ''}
+      ${showCheckin ? checkinHtml(p, inRoom) : ''}
       ${showRecap ? recapHtml(p, mine) : ''}
       ${(showRecap || over) ? '' : mine ? `<button class="btn btn-danger" data-cancel="${p.id}">Cancel this party</button>`
         : going ? `<button class="btn btn-danger" data-unclaim="${p.id}">Give up my spot</button>`
@@ -1983,7 +1982,12 @@ async function renderDetail(){
       ${(showRecap || over) ? '' : `<button class="btn btn-ghost" data-shareparty="${p.id}" style="margin-top:10px">Share with friends</button>`}
       ${mine ? '' : `<button class="danger-link" data-rpparty="${p.id}">Report this party</button>`}
     </div>`;
-  afterDetailRender(p, showCheckin);
+}
+async function renderDetail(){
+  const p = allParties.find(x => x.id === detailId);
+  if(!p){ show(detailFrom); return; }
+  $('#detail-body').innerHTML = await partyPageHtml(p, { back: true });
+  afterDetailRender(p, (myClaims.has(p.id) || p.host_id === me.id) && checkinOpen(p));
 }
 function afterDetailRender(p, showCheckin){
   if(showCheckin && !myCheckIn[p.id] && exactPt[p.id]) watchDistance(p.id); else stopDistance();
