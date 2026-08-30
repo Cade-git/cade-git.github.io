@@ -819,7 +819,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.8</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.9</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1593,7 +1593,7 @@ function whenLabel(ts){
   const d = new Date(ts), now = new Date(), diff = d - now, hrs = diff / 3600000;
   if(diff <= 0) return hrs > -5 ? 'Happening now' : 'Wrapped up';
   if(hrs < 1) return 'Starts in ' + Math.max(1, Math.round(diff / 60000)) + ' min';
-  if(hrs < 6) return 'Starts in ' + Math.round(hrs) + ' hours';
+  if(hrs < 6){ const h = Math.round(hrs); return 'Starts in ' + h + (h === 1 ? ' hour' : ' hours'); }
   const day = new Date(now); day.setHours(0,0,0,0);
   const days = Math.round((new Date(d).setHours(0,0,0,0) - day) / 864e5);
   const t = clockLabel(d);
@@ -2336,18 +2336,45 @@ function hereRollHtml(p, known, n){
      3. the albums still alive           (nothing live)
      4. nothing                          (go find something)
    ------------------------------------------------------------------ */
+/* Priority order, and the reason for each rung:
+   1. the door is open — a party running right now beats everything
+   2. a party you're THROWING, from the second you post it. It used to appear
+      only an hour before doors, so posting a party at noon for 1pm showed you
+      "Nothing going on yet" — which reads as "the post failed". You're the
+      host; watching claims come in is the whole job.
+   3. a ticket you're holding for today
+   4. albums still up from the last few nights */
+function soonest(list){
+  return list.slice().sort((a, b) =>
+    (a.starts_at ? new Date(a.starts_at) : Infinity) - (b.starts_at ? new Date(b.starts_at) : Infinity))[0];
+}
+function isToday(ts){
+  if(!ts) return false;
+  const d = new Date(ts), n = new Date();
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+}
 function tonightState(){
-  const hosting = allParties.find(p => p.host_id === me.id && checkinOpen(p));
+  /* checkinOpen runs 12 hours past the start so a late party still has a door.
+     Now that hosts set a real end time, honour it — a party that's over belongs
+     in the recaps, not still sitting here as though the door were open. */
+  const hosting = allParties.find(p => p.host_id === me.id && checkinOpen(p) && !partyOver(p));
   if(hosting) return { kind: 'hosting', p: hosting };
-  const atOne = allParties.find(p => p.host_id !== me.id && myClaims.has(p.id) && checkinOpen(p));
+  const atOne = allParties.find(p => p.host_id !== me.id && myClaims.has(p.id) && checkinOpen(p) && !partyOver(p));
   if(atOne) return { kind: 'attending', p: atOne };
+  const mineAhead = soonest(allParties.filter(p => p.host_id === me.id && !partyOver(p)));
+  if(mineAhead) return { kind: 'hosting', p: mineAhead };
+  const goingToday = soonest(allParties.filter(p =>
+    p.host_id !== me.id && myClaims.has(p.id) && !partyOver(p) && isToday(p.starts_at)));
+  if(goingToday) return { kind: 'attending', p: goingToday };
   const recaps = allParties.filter(p => recapOpen(p) && (myClaims.has(p.id) || p.host_id === me.id));
   if(recaps.length) return { kind: 'recaps', list: recaps };
   return { kind: 'empty' };
 }
+/* The dot means "something is happening", not "you have a party on the books" —
+   otherwise it burns green all week and stops meaning anything. */
 function tonightLive(){
-  const k = tonightState().kind;
-  return k === 'hosting' || k === 'attending';
+  const st = tonightState();
+  return (st.kind === 'hosting' || st.kind === 'attending') && checkinOpen(st.p);
 }
 function coverFor(p){
   return p.photo_url ? `url('${esc(p.photo_url)}')` : gradFor(p.id);
@@ -2540,7 +2567,8 @@ async function partyPageHtml(p, opts = {}){
       <span class="tag" style="position:absolute;top:12px;right:12px">${esc(whenLabel(p.starts_at))}</span>
     </div>
     <div style="padding:16px 20px 0">
-      ${opts.eyebrow ? `<div class="tn-eyebrow ${mine ? 'host-e' : ''}" style="margin-bottom:6px"><i></i>${mine ? 'You\u2019re hosting' : 'You\u2019re at'}</div>` : ''}
+      ${opts.eyebrow ? `<div class="tn-eyebrow ${mine ? 'host-e' : ''}" style="margin-bottom:6px"><i></i>${
+        mine ? 'You\u2019re hosting' : nowLive ? 'You\u2019re at' : 'You\u2019re going to'}</div>` : ''}
       <h2 style="font-size:22px;margin:0 0 4px">${esc(p.name)}</h2>
       <p style="color:var(--muted);font-size:14px;margin-bottom:10px">
         Hosted by ${esc(mine ? 'you' : (p.profiles?.display_name || 'someone'))}
