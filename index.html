@@ -715,7 +715,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.3</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.4</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -2600,13 +2600,21 @@ function fuzzPoint(lat, lon, id){
    text, and a geocoder answers with the ROAD, not the building — which is
    how a 690ft driveway ends up with the pin in a field. */
 async function resolvePartyPoint(addr, town, zip){
-  if(hostGPS) return { ...hostGPS, exact: true };
+  if(hostGPS) return { ...hostGPS, exact: true, from: 'pin' };
   const tries = [];
   if(addr) tries.push(addr + (town ? ', ' + town : '') + ', USA');
   if(addr && town && !town.includes(',')) tries.push(addr + ', ' + town + ', Missouri, USA');
-  for(const t of tries){ const g = await geocode(t); if(g) return { lat: g.lat, lon: g.lon, exact: false }; }
+  for(const t of tries){ const g = await geocode(t); if(g) return { lat: g.lat, lon: g.lon, exact: false, from: 'address' }; }
+  /* The address didn't resolve. Fall back to the PARTY'S TOWN — never the
+     host's home ZIP. That was the bug: a St. James party whose address didn't
+     geocode got pinned on the host's own street, while the card happily said
+     "St. James" because that's just the text they typed. */
+  if(town){
+    const g = await geocode(town + (town.includes(',') ? '' : ', Missouri') + ', USA');
+    if(g) return { lat: g.lat, lon: g.lon, exact: false, from: 'town' };
+  }
   const z = await zipPoint(zip);
-  return z ? { lat: z.lat, lon: z.lon, exact: false } : null;
+  return z ? { lat: z.lat, lon: z.lon, exact: false, from: 'zip' } : null;
 }
 
 const CAPHEX = {open:'#B4F04B', low:'#FFB454', full:'#FF5C5C'};
@@ -3566,9 +3574,17 @@ function openLocPicker(){
       if(g && locMap) locMap.setView([g.lat, g.lon], addr ? 17 : 14);
     })();
   }
-  navigator.geolocation && navigator.geolocation.getCurrentPosition(pos => {
-    if(!hostGPS && !start && locMap) locMap.setView([pos.coords.latitude, pos.coords.longitude], 18);
-  }, () => {}, { enableHighAccuracy: true, timeout: 12000 });
+  /* Only drift to "where you are" when there is nothing better. Geocoding an
+     address is slower than a cached GPS fix, so without this guard the map
+     would land on the address and then get yanked to the host's own location
+     a moment later — and whatever is centred is what gets saved. */
+  const typedAddr = $('#h-addr').value.trim();
+  if(!typedAddr && !start){
+    navigator.geolocation && navigator.geolocation.getCurrentPosition(pos => {
+      if(!hostGPS && !start && locMap && !$('#h-addr').value.trim())
+        locMap.setView([pos.coords.latitude, pos.coords.longitude], 18);
+    }, () => {}, { enableHighAccuracy: true, timeout: 12000 });
+  }
 }
 $('#loc-cancel').addEventListener('click', () => { $('#loc-sheet').hidden = true; repinId = null; resetLocCopy(); });
 $('#loc-gps').addEventListener('click', () => {
@@ -3587,10 +3603,17 @@ function confirmPin(pid, pt){
   repinId = pid;
   pinConfirmAt = pt;
   $('#loc-sheet').hidden = false;
-  $('#loc-title').textContent = 'Is this the right spot?';
-  $('#loc-hint').textContent = 'We placed this from the address you typed. Addresses point at the road — if your place is down a driveway, drag the map until the pin is on the building.';
-  $('#loc-confirm').textContent = 'Yes, that\u2019s it';
-  $('#loc-cancel').textContent = 'Skip';
+  /* A pin built from the address is roughly right and needs a glance. A pin
+     that fell back to the town centre is NOT the party — say so plainly and
+     don't offer a breezy "yes that's it", or people confirm a pin that is
+     miles from the door and check-in fails on the night. */
+  const vague = pt && (pt.from === 'town' || pt.from === 'zip');
+  $('#loc-title').textContent = vague ? 'We couldn\u2019t find that address' : 'Is this the right spot?';
+  $('#loc-hint').textContent = vague
+    ? 'This pin is only on the town, not your place. Drag the map until the pin is on the building \u2014 without it nobody can check in.'
+    : 'We placed this from the address you typed. Addresses point at the road — if your place is down a driveway, drag the map until the pin is on the building.';
+  $('#loc-confirm').textContent = vague ? 'Use this spot' : 'Yes, that\u2019s it';
+  $('#loc-cancel').textContent = vague ? 'Later' : 'Skip';
   if(!locMap){ openLocPicker(); }
   else { setTimeout(() => { locMap.invalidateSize(); locMap.setView([pt.lat, pt.lon], 18); }, 120); }
   setTimeout(() => { if(locMap) locMap.setView([pt.lat, pt.lon], 18); }, 260);
@@ -3775,6 +3798,8 @@ $('#h-post').addEventListener('click', async () => {
   /* the pin came from text, so it's pointing at a road until proven otherwise.
      One look now beats check-in silently failing on the night. */
   const needsPinCheck = !e2 && pt && !pt.exact;
+  if(pt && (pt.from === 'town' || pt.from === 'zip'))
+    toast('Couldn\u2019t find that address \u2014 set the pin so people can check in');
   hostGPS = null; hostPhoto = null;
   $('#h-photo').classList.remove('has');
   $('#h-photo').style.backgroundImage = '';
