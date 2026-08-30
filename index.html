@@ -544,12 +544,33 @@
     border:1px solid rgba(255,255,255,.14);border-radius:99px;padding:7px 14px;box-shadow:0 4px 16px rgba(0,0,0,.5)}
   .map-hud small{font-size:10.5px;color:var(--muted);background:rgba(14,12,26,.7);border:1px solid var(--line);
     border-radius:99px;padding:3px 10px}
-  /* slide-up party sheet */
+  /* slide-up party sheet — two snap points, drag or tap between them */
   #map-sheet{position:absolute;left:0;right:0;bottom:0;z-index:6;background:var(--surface);
-    border-top:1px solid var(--line);border-radius:24px 24px 0 0;padding:8px 18px 20px;
-    box-shadow:0 -14px 44px rgba(0,0,0,.6);transform:translateY(115%);transition:transform .3s cubic-bezier(.22,1,.36,1)}
-  #map-sheet.on{transform:translateY(0)}
-  .sheet-grab{width:40px;height:4px;border-radius:99px;background:#2E2A44;margin:0 auto 14px}
+    border-top:1px solid var(--line);border-radius:24px 24px 0 0;
+    box-shadow:0 -14px 44px rgba(0,0,0,.6);
+    height:min(82vh, 720px);display:flex;flex-direction:column;
+    transform:translateY(100%);touch-action:none;will-change:transform}
+  #map-sheet.glide{transition:transform .34s cubic-bezier(.22,1,.36,1)}
+  .sheet-grab{width:40px;height:4px;border-radius:99px;background:#2E2A44;margin:9px auto 12px;flex:0 0 auto;
+    transition:background .2s ease}
+  #map-sheet.up .sheet-grab{background:#413B60}
+  /* the part you always see; everything below it is the reveal */
+  #map-sheet-peek{padding:0 18px;flex:0 0 auto}
+  #map-sheet-more{padding:0 18px calc(92px + env(safe-area-inset-bottom));overflow-y:auto;flex:1 1 auto;
+    -webkit-overflow-scrolling:touch;opacity:0;transition:opacity .26s ease}
+  #map-sheet.up #map-sheet-more{opacity:1}
+  #map-sheet:not(.up) #map-sheet-more{pointer-events:none}
+  .ms-hint{display:flex;align-items:center;justify-content:center;gap:6px;font-size:11.5px;color:var(--faint);
+    font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 0 4px;
+    transition:opacity .2s ease}
+  .ms-hint svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  /* fade, never display:none — hiding it would change the height the peek snap is measured from */
+  #map-sheet.up .ms-hint{opacity:0}
+  .ms-cover{height:154px;border-radius:18px;background-size:cover;background-position:center;
+    margin:4px 0 14px;position:relative;overflow:hidden}
+  .ms-sec{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:800;margin:18px 0 8px}
+  #map-sheet-more > *:first-child{margin-top:2px}
+  .ms-desc{font-size:14px;color:var(--text);line-height:1.5;margin:0}
   .ms-head{display:flex;gap:12px;align-items:center;margin-bottom:12px}
   .ms-head h3{font-family:var(--disp);font-size:16.5px;margin:0 0 2px;color:#fff;line-height:1.2}
   .ms-sub{font-size:12.5px;color:var(--muted)}
@@ -580,7 +601,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.7</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.8</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -633,7 +654,8 @@
       <button class="map-fab" id="map-locate" aria-label="Center on me" title="Find me"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.6"/><path d="M12 2.2v3M12 18.8v3M2.2 12h3M18.8 12h3"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg></button>
       <div id="map-sheet">
         <div class="sheet-grab"></div>
-        <div id="map-sheet-body"></div>
+        <div id="map-sheet-peek"></div>
+        <div id="map-sheet-more"></div>
       </div>
     </div>
   </section>
@@ -980,6 +1002,7 @@ let savedFindScroll = 0;
 
 function show(id){
   if(id !== 'detail'){ stopDropTimer(); }
+  if(id !== 'map' && typeof SHEET === 'object' && SHEET.open) closeMapSheet();
   ['chat','detail'].forEach(o => { const el = document.getElementById(o);
     if(el){ el.style.transform = ''; el.style.transition = ''; el.classList.remove('swiping'); } });
   const overlays = ['chat','detail'];
@@ -2243,7 +2266,107 @@ $('#map-layer').addEventListener('click', () => {
 });
 
 /* ── the slide-up party sheet ── */
-function closeMapSheet(){ sheetId = null; $('#map-sheet').classList.remove('on'); }
+/* ── the map sheet: two snap points you can drag or tap between ──
+   The sheet is one tall panel. At PEEK it's pushed down so only the
+   header shows above the tab bar; at FULL it sits at the top of its
+   travel. Dragging moves it with your finger; letting go snaps to
+   whichever point you're heading for. ------------------------------ */
+const SHEET = { y: null, h: 0, peek: 0, open: false };
+function sheetEl(){ return document.getElementById('map-sheet'); }
+function tabbarH(){
+  const t = $('#tabbar');
+  return (t && !t.hidden) ? t.getBoundingClientRect().height : 0;
+}
+function measureSheet(){
+  const el = sheetEl(); if(!el) return;
+  SHEET.h = el.getBoundingClientRect().height;
+  const grab = el.querySelector('.sheet-grab');
+  const peekBody = document.getElementById('map-sheet-peek');
+  const visible = (grab ? grab.offsetHeight + 21 : 30) + (peekBody ? peekBody.offsetHeight : 0) + tabbarH() + 10;
+  SHEET.peek = Math.max(0, SHEET.h - visible);
+}
+function setSheetY(y, glide){
+  const el = sheetEl(); if(!el) return;
+  SHEET.y = y;
+  el.classList.toggle('glide', !!glide);
+  el.style.transform = 'translateY(' + y + 'px)';
+  el.classList.toggle('up', SHEET.peek > 40 && y < SHEET.peek - 24);
+}
+function snapSheet(to){        // 'full' | 'peek' | 'closed'
+  measureSheet();
+  const el = sheetEl(); if(!el) return;
+  /* measured while the map tab is hidden → height reads 0, and snapping to
+     it would leave the sheet wide open next time you land on the map */
+  if(SHEET.h < 100){
+    el.classList.remove('up');
+    el.style.transform = 'translateY(100%)';
+    SHEET.y = null; SHEET.open = false; if(to === 'closed') sheetId = null;
+    return;
+  }
+  if(to === 'closed'){ setSheetY(SHEET.h, true); SHEET.open = false; sheetId = null; return; }
+  SHEET.open = true;
+  setSheetY(to === 'full' ? 0 : SHEET.peek, true);
+  haptic(9);
+}
+function closeMapSheet(){ snapSheet('closed'); }
+
+/* drag the sheet with your finger */
+(function sheetDrag(){
+  const el = sheetEl(); if(!el) return;
+  let startY = 0, startTop = 0, last = 0, lastT = 0, vel = 0, dragging = false, fromScroll = false;
+  const more = () => document.getElementById('map-sheet-more');
+
+  el.addEventListener('touchstart', e => {
+    if(!SHEET.open || e.touches.length !== 1) return;
+    if(e.target.closest('button, a, input, textarea')) return;
+    // if the expanded body is scrolled, let it scroll instead of dragging the sheet
+    const m = more();
+    fromScroll = !!(m && m.contains(e.target) && m.scrollTop > 0);
+    if(fromScroll) return;
+    dragging = true;
+    startY = last = e.touches[0].clientY; lastT = Date.now(); vel = 0;
+    startTop = SHEET.y;
+    el.classList.remove('glide');
+  }, { passive: true });
+
+  el.addEventListener('touchmove', e => {
+    if(!dragging) return;
+    const y = e.touches[0].clientY;
+    const now = Date.now();
+    if(now > lastT){ vel = (y - last) / (now - lastT); last = y; lastT = now; }
+    let next = startTop + (y - startY);
+    if(next < 0) next = next * 0.35;                       // rubber-band past the top
+    if(next > SHEET.h) next = SHEET.h;
+    setSheetY(next, false);
+    if(Math.abs(y - startY) > 6) e.preventDefault();       // we own this gesture now
+  }, { passive: false });
+
+  const release = () => {
+    if(!dragging){ fromScroll = false; return; }
+    dragging = false;
+    const y = SHEET.y, mid = SHEET.peek / 2;
+    if(vel > 0.55) return snapSheet(y > SHEET.peek - 40 ? 'closed' : 'peek');   // flicked down
+    if(vel < -0.55) return snapSheet('full');                                   // flicked up
+    if(y > SHEET.peek + 70) return snapSheet('closed');                         // dragged well below peek
+    snapSheet(y < mid ? 'full' : 'peek');
+  };
+  el.addEventListener('touchend', release);
+  el.addEventListener('touchcancel', () => { dragging = false; fromScroll = false;
+    if(SHEET.open) snapSheet(SHEET.y < SHEET.peek / 2 ? 'full' : 'peek'); });
+
+  /* tapping the card is the same as pulling it up */
+  el.addEventListener('click', e => {
+    if(e.target.closest('button, a, input, textarea')) return;
+    if(!SHEET.open) return;
+    snapSheet(SHEET.y > 24 ? 'full' : 'peek');
+  });
+})();
+window.addEventListener('resize', () => {
+  if(!SHEET.open) return;
+  const wasUp = SHEET.y < SHEET.peek / 2;
+  measureSheet(); setSheetY(wasUp ? 0 : SHEET.peek, false);
+});
+
 function openMapSheet(pid){
   const p = parties.find(x => x.id === pid); if(!p) return;
   sheetId = pid;
@@ -2254,7 +2377,16 @@ function openMapSheet(pid){
   const mine = p.host_id === me.id;
   const going = myClaims.has(p.id);
   const live = isLiveNow(p);
-  $('#map-sheet-body').innerHTML = `
+  const friendIds = new Set(friends.map(f => f.id));
+  const claimers = (p.claims || []).map(c => c.user_id);
+  const fNames = claimers.filter(id => friendIds.has(id))
+    .map(id => nickMap[id] || (profMap[id] || {}).display_name).filter(Boolean);
+  const known = claimers.filter(id => profMap[id]);
+  const addr = unlockedAddr[p.id];
+  const hostCount = allParties.filter(x => x.host_id === p.host_id).length;
+
+  // ── what you always see ──
+  $('#map-sheet-peek').innerHTML = `
     <div class="ms-head">
       ${avatar({ id: p.host_id, display_name: host.display_name, avatar_url: host.avatar_url }, 46, 16)}
       <div style="flex:1;min-width:0">
@@ -2264,19 +2396,47 @@ function openMapSheet(pid){
       ${p.privacy === 'private' ? '<span class="tag" style="color:var(--amber);border:1px solid rgba(255,180,84,.45);background:rgba(255,180,84,.1)">Private</span>' : ''}
     </div>
     <div class="ms-bar"><i class="fill-${cls}" style="width:${pct}%;background:${CAPHEX[cls]}"></i></div>
-    <div class="meta" style="margin:0 0 14px;font-size:13px">
+    <div class="meta" style="margin:0 0 10px;font-size:13px">
       <b class="spots-${cls}">${capLabel(claimed, p.max_people)}</b>
       <span>${esc(p.town || 'nearby')}</span>
       <span>${p.fee > 0 ? '$' + (+p.fee) + ' cover' : 'Free'}</span>
       <span>${p.drinks === 'provided' ? 'Drinks provided' : 'BYOB'}</span>
     </div>
-    ${(going || mine) ? '<p class="hint" style="margin:-6px 0 12px;color:var(--lime)">You’re in — this pin is the real address.</p>' : ''}
-    <button class="btn" data-mapopen="${p.id}">${mine ? 'Manage my party' : going ? 'Open the party' : 'See it and claim a spot'}</button>`;
-  $('#map-sheet').classList.add('on');
+    <div class="ms-hint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14l5-5 5 5"/></svg>pull up for more</div>`;
+
+  // ── what the pull reveals ──
+  $('#map-sheet-more').innerHTML = `
+    ${p.photo_url ? `<div class="ms-cover" style="background-image:url('${esc(p.photo_url)}')"></div>` : ''}
+    ${flameBadge(p.host_id, hostCount) ? `<div style="margin:2px 0 10px">${flameBadge(p.host_id, hostCount)}</div>` : ''}
+    ${p.description ? `<div class="ms-sec">What it is</div><p class="ms-desc">${esc(p.description)}</p>` : ''}
+    ${feeTierHtml(p)}
+    <div class="ms-sec">Where</div>
+    ${(going || mine)
+      ? (addr ? `<p class="addr" style="margin:0">${esc(addr)}</p>`
+         : (dropPending(p)
+            ? `<p class="ms-desc" style="color:var(--mag)">Address drops ${esc(dropWhen(p))} — you're in, it'll appear on its own.</p>`
+            : '<p class="hint" style="margin:0">Unlocking…</p>'))
+      : `<p class="ms-desc" style="color:var(--muted)">${dropPending(p)
+            ? 'The address drops ' + esc(dropWhen(p)) + '.'
+            : 'Address unlocks ' + (p.privacy === 'private' ? 'when the host accepts you' : 'when you claim a spot') + '.'}
+          This pin is approximate — <b style="color:var(--text)">${esc(p.town || 'nearby')}</b>.</p>`}
+    ${claimed ? `<div class="ms-sec">Who's going</div>
+      ${known.length ? `<div style="display:flex;align-items:center;gap:10px">${faceStack(known, 6)}
+        <span style="font-size:13px;color:var(--muted)">${claimed} claimed</span></div>` : ''}
+      ${fNames.length ? `<div class="friendsline" style="margin-top:8px">${esc(friendLine(fNames))}</div>` : ''}` : ''}
+    <button class="btn" data-mapopen="${p.id}" style="margin-top:20px">${mine ? 'Manage my party' : going ? 'Open the party' : 'See it and claim a spot'}</button>
+    ${!mine && !going ? `<button class="btn btn-ghost" data-mapshare="${p.id}" style="margin-top:10px">Share with a friend</button>` : ''}`;
+
+  const el = sheetEl();
+  el.classList.remove('glide');
+  el.style.transform = 'translateY(100%)';
+  requestAnimationFrame(() => { measureSheet(); snapSheet('peek'); });
 }
 $('#map-sheet').addEventListener('click', e => {
   const o = e.target.closest('[data-mapopen]');
-  if(o){ closeMapSheet(); openDetail(o.dataset.mapopen, 'map'); }
+  if(o){ closeMapSheet(); openDetail(o.dataset.mapopen, 'map'); return; }
+  const sh = e.target.closest('[data-mapshare]');
+  if(sh){ openShare(sh.dataset.mapshare); }
 });
 
 /* ── friends ── */
