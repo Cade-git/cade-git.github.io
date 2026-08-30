@@ -328,6 +328,18 @@
   .tk-party{font-family:var(--disp);font-weight:800;font-size:15px;color:#fff;overflow-wrap:anywhere}
   .tk-sub{font-size:12.5px;color:rgba(255,255,255,.66);margin-top:2px}
   .tk-hint{position:relative;font-size:11.5px;color:rgba(255,255,255,.5);padding:0 16px 13px}
+  /* the price warning on an unstamped ticket */
+  .tk-warn{position:relative;margin:0 16px 13px;padding:8px 11px;border-radius:10px;
+    font-size:12px;font-weight:600;line-height:1.35;
+    background:rgba(163,230,53,.12);border:1px solid rgba(163,230,53,.34);color:var(--lime)}
+  .tk-warn.late{background:rgba(255,180,84,.13);border-color:rgba(255,180,84,.4);color:var(--amber)}
+  /* what each guest owes, in the host's door console */
+  .hc-owe{flex:0 0 auto;font-size:12px;font-weight:800;padding:2px 7px;border-radius:99px;
+    font-variant-numeric:tabular-nums;margin-right:2px}
+  .hc-owe.due{background:rgba(163,230,53,.15);color:var(--lime);border:1px solid rgba(163,230,53,.4)}
+  .hc-owe.free{background:var(--raised);color:var(--faint);border:1px solid var(--line)}
+  .hc-take{margin-top:8px;font-size:12.5px;color:var(--muted);line-height:1.4}
+  .hc-take b{color:var(--lime);font-size:15px;font-variant-numeric:tabular-nums}
   .ci-here{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--lime);font-weight:700}
   .ci-here .stack{margin-left:2px}
   .ci-dist{font-variant-numeric:tabular-nums;font-weight:700;color:var(--amber)}
@@ -842,7 +854,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.1</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.2</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1477,7 +1489,13 @@ function show(id){
   }
   if(id === 'friends') loadFriends();
   if(id === 'profile') renderProfile();
-  if(TAB_INTRO[id]) setTimeout(() => maybeTabIntro(id), 420);
+  /* the 420ms breather lets the tab paint first — but if you've already moved
+     on (tapped a party, switched tabs) the sheet would explain a screen you're
+     no longer looking at, so re-check before showing it */
+  if(TAB_INTRO[id]) setTimeout(() => {
+    const on = document.querySelector('.screen.on');
+    if(on && on.id === id) maybeTabIntro(id);
+  }, 420);
 }
 $$('.tab').forEach(t => t.addEventListener('click', () => show(t.dataset.tab)));
 function updateDot(){
@@ -1694,8 +1712,15 @@ function flameBadge(hostId){
   return `<span class="flame">${flameSvg(12)}${sc.avg}</span>`;
 }
 async function refreshData(){
+  /* The feed shows parties from 6 hours ago onward and albums live about a
+     week, so there is no reason to drag every party ever posted across the
+     wire on each refresh — that query grew forever. A 30-day floor covers
+     every window the UI actually reads, with a lot of room to spare. */
+  const floor = new Date(Date.now() - 30 * 864e5).toISOString();
   const [pRes, cRes, rRes] = await Promise.all([
-    db.from('parties').select('*, claims(user_id), profiles!parties_host_id_fkey(id, display_name, zip, avatar_url)').order('created_at', { ascending: false }),
+    db.from('parties').select('*, claims(user_id), profiles!parties_host_id_fkey(id, display_name, zip, avatar_url)')
+      .or(`starts_at.gte.${floor},created_at.gte.${floor}`)
+      .order('created_at', { ascending: false }),
     db.from('claims').select('party_id').eq('user_id', me.id),
     db.from('requests').select('party_id, user_id, profiles(display_name, avatar_url)')
   ]);
@@ -1718,9 +1743,9 @@ async function refreshData(){
         .push({ user_id: r.user_id, name: r.profiles?.display_name || 'Someone', av: r.profiles?.avatar_url || null });
     }
   });
-  await loadBlocks();
-  await loadFriendRows();
-  await loadHostScores();
+  /* these three are independent — running them one after another cost three
+     sequential round trips on every single refresh, on cell data */
+  await Promise.all([loadBlocks(), loadFriendRows(), loadHostScores()]);
   try {
     const { data: lc } = await db.rpc('live_counts');
     liveHere = {};
@@ -1821,7 +1846,7 @@ async function loadParties(){
         ${dropPending(p) && !going ? '<span class="tag drop-tag">' + LOCK_TAG + 'drops ' + esc(dropWhen(p)) + '</span>' : ''}
         ${flames ? `<span class="tag">${flames}</span>` : ''}
         <span style="flex:1"></span>
-        ${p.fee > 0 ? `<span class="tag">$${+p.fee}</span>` : ''}
+        ${feeAt(p) > 0 ? `<span class="tag">$${feeAt(p)}</span>` : ''}
       </div>
       <div class="card-foot">
         <h3>${esc(p.name)}</h3>
@@ -1981,21 +2006,33 @@ function hostConsoleHtml(p){
     return Math.floor(s / 3600) + 'h ago';
   };
   const nameOf = id => esc(nickMap[id] || (profMap[id] || {}).display_name || 'Someone');
-  const row = (id, right, dim) => {
+  /* The answer to "how does the host know they owe the late price?" — the
+     check-in stamp settles it, so every name inside carries what they owe. */
+  const owes = at => {
+    if(!tiered(p) && !(+p.fee > 0)) return '';
+    const n = feeAt(p, at);
+    return `<span class="hc-owe ${n > 0 ? 'due' : 'free'}">${n > 0 ? '$' + n : 'free'}</span>`;
+  };
+  const row = (id, right, dim, at) => {
     const u = profMap[id] || { id, display_name: 'Someone' };
     return `<div class="f-row${dim ? ' dim' : ''}">${avatar(u, 32)}
       <span style="flex:1;font-weight:600;font-size:14px">${nameOf(id)}</span>
+      ${at === undefined ? '' : owes(at)}
       <span class="hc-when">${right}</span></div>`;
   };
+  const takeSoFar = tiered(p) || +p.fee > 0
+    ? roster.reduce((sum, r) => sum + feeAt(p, r.at), 0) : 0;
   return `<div class="hc">
     <h4>Your door</h4>
     <div class="sub">${roster.length ? `<b class="hc-n">${roster.length}</b> inside` : 'Nobody inside yet'}${pending.length ? ` · ${pending.length} claimed, not here` : ''}</div>
+    ${takeSoFar > 0 ? `<div class="hc-take"><b>$${takeSoFar}</b> collected at the door so far${
+        tiered(p) ? ` &middot; ${priceLabel(p.fee)} before ${esc(cutoffLabel(p))}, ${priceLabel(p.fee_late)} after` : ''}</div>` : ''}
     <div class="hc-row">
       <button class="btn" data-hcmsg="${p.id}">Message everyone</button>
       <button class="btn btn-ghost" data-hcroom="${p.id}" style="width:auto;padding:11px 14px;white-space:nowrap">+10 tickets</button>
     </div>
     ${roster.length ? `<div class="hc-grp">Inside</div>
-      <div class="hc-list">${roster.map(r => row(r.user_id, esc(ago(r.at)))).join('')}</div>` : ''}
+      <div class="hc-list">${roster.map(r => row(r.user_id, esc(ago(r.at)), false, r.at)).join('')}</div>` : ''}
     ${pending.length ? `<div class="hc-grp">${over ? 'Never showed' : 'On the way'}</div>
       <div class="hc-list">${pending.map(id => row(id, over ? 'no-show' : 'claimed', true)).join('')}</div>` : ''}
     ${!roster.length && !pending.length ? '<p class="empty" style="padding:8px 0 0">No claims yet.</p>' : ''}
@@ -2093,7 +2130,19 @@ function ticketHtml(p){
     <div class="tk-rip"><span></span><span></span></div>
     <div class="tk-foot">
       <div class="tk-party">${esc(p.name)}</div>
-      <div class="tk-sub">${esc(p.town || '')}${p.fee > 0 ? ' &middot; $' + (+p.fee) + ' at the door' : ''}</div>
+      <div class="tk-sub">${esc(p.town || '')}${(() => {
+        const owed = myFee(p);
+        if(stamped) return owed > 0 ? ' &middot; $' + owed + ' at the door' : ' &middot; got in free';
+        if(!tiered(p)) return owed > 0 ? ' &middot; $' + owed + ' at the door' : '';
+        /* not through the door yet — the price is still moving */
+        return ' &middot; ' + priceLabel(p.fee) + ' before ' + esc(cutoffLabel(p))
+             + ', then ' + priceLabel(p.fee_late);
+      })()}</div>
+    ${(!stamped && tiered(p) && !partyOver(p)) ? `<div class="tk-warn ${feeAt(p) > (+p.fee||0) ? 'late' : ''}">${
+        feeAt(p) > (+p.fee || 0)
+          ? 'It\u2019s past ' + esc(cutoffLabel(p)) + ' \u2014 you\u2019ll owe ' + priceLabel(p.fee_late) + ' at the door.'
+          : 'Get there before ' + esc(cutoffLabel(p)) + ' and you pay ' + priceLabel(p.fee).toLowerCase() + '.'
+      }</div>` : ''}
     </div>
     <div class="tk-hint">${stamped
       ? 'You\u2019re in. This is your stub for the night.'
@@ -2493,6 +2542,28 @@ function dropHtml(p){
     <p>Your ticket is locked in. Nobody gets the address before this — not even in a screenshot.</p>
   </div>`;
 }
+/* THE price question: what does this person owe?
+   A party can be free until 10 and $10 after. Everywhere in the app used to
+   print p.fee — the EARLY price — no matter what time it was, so someone who
+   claimed at 9 and strolled in at 10:30 had a ticket that still said "Free"
+   and a host with no way to know they owed $10.
+   The door decides the price, not the claim. `when` is the moment they walk
+   in: their check-in stamp if they're already inside, otherwise now. */
+function feeAt(p, when){
+  const base = +p.fee || 0;
+  if(!p.fee_late || !p.fee_cutoff) return base;
+  const t = when ? new Date(when).getTime() : Date.now();
+  return t >= new Date(p.fee_cutoff).getTime() ? (+p.fee_late || 0) : base;
+}
+/* what YOU owe: locked once you're checked in, live until then */
+function myFee(p){ return feeAt(p, myCheckIn[p.id] ? checkInAt[p.id] : null); }
+function tiered(p){ return !!(p.fee_late && p.fee_cutoff); }
+function cutoffLabel(p){
+  return new Date(p.fee_cutoff)
+    .toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' })
+    .toLowerCase().replace(' ', '');
+}
+function priceLabel(n){ return +n > 0 ? '$' + (+n) : 'Free'; }
 /* what this person pays, and what it becomes later */
 function feeTierHtml(p){
   if(!p.fee_late || !p.fee_cutoff) return '';
@@ -2612,7 +2683,9 @@ async function partyPageHtml(p, opts = {}){
       ${(!over && (going || myCheckIn[p.id])) ? ticketHtml(p) : ''}
       <div class="meta" style="margin-bottom:14px">
         ${p.starts_at ? `<span style="color:var(--text);font-weight:600">${esc(timeRange(p))}${p.ends_at ? '' : ' till whenever'}</span>` : ''}
-        <span style="${p.fee > 0 ? 'color:var(--lime);font-weight:700' : 'color:var(--faint)'}">${p.fee > 0 ? '$' + (+p.fee) + ' cover at the door' : 'Free entry'}</span>
+        ${(() => { const n = feeAt(p);
+          return `<span style="${n > 0 ? 'color:var(--lime);font-weight:700' : 'color:var(--faint)'}">${
+            n > 0 ? '$' + n + ' cover at the door' + (tiered(p) ? ' now' : '') : 'Free entry' + (tiered(p) ? ' right now' : '')}</span>`; })()}
         <span>${p.drinks === 'provided' ? 'Drinks provided' : 'BYOB'}</span>
         ${priv ? '<span style="color:var(--amber);font-weight:600">Private · host approves</span>' : ''}
       </div>
@@ -2830,7 +2903,14 @@ async function partyActions(e){
       el.disabled = false;
       toast(error.message.includes('party_full') ? 'Beat you to it — party just filled' : error.message);
     } else {
-      celebrate('You’re in', party ? party.name + ' · address unlocked' : 'Address unlocked');
+      /* If the price goes up later, say so NOW. Claiming at 9 for a party
+         that's free until 10 and finding out at the door that you owe $10 is
+         exactly the kind of surprise that makes someone delete an app. */
+      celebrate('You’re in', party
+        ? (tiered(party)
+            ? party.name + ' · ' + priceLabel(party.fee).toLowerCase() + ' if you\u2019re there before ' + cutoffLabel(party) + ', then ' + priceLabel(party.fee_late)
+            : party.name + ' · address unlocked')
+        : 'Address unlocked');
     }
     refreshAfterAction(); return;
   }
@@ -3347,7 +3427,7 @@ function openMapSheet(pid, keepPos){
     <div class="meta" style="margin:0 0 16px;font-size:13px">
       <b class="spots-${cls}">${capLabel(claimed, p.max_people)}</b>
       <span>${esc(p.town || 'nearby')}</span>
-      <span>${p.fee > 0 ? '$' + (+p.fee) + ' cover' : 'Free'}</span>
+      <span>${feeAt(p) > 0 ? '$' + feeAt(p) + ' cover' : 'Free'}</span>
       <span>${p.drinks === 'provided' ? 'Drinks provided' : 'BYOB'}</span>
     </div>
 `;
@@ -4688,10 +4768,44 @@ addSwipeBack($('#detail'), () => show(detailFrom || 'find'));
 })();
 
 /* ── realtime ── */
+/* Realtime fires this on EVERY claim, request and party change — for everyone
+   in the app. Unthrottled, a party where 40 people claim and check in means 40
+   full feed re-fetches and re-renders on every phone in town, on cell data.
+   That was the lag.
+   Throttle with a leading edge: the first event runs immediately so the app
+   still feels live, and everything inside the next second collapses into one
+   trailing run. A busy door goes from ~40 reloads to ~2 without losing a
+   single update. Also guards re-entrancy so a slow fetch can't stack. */
+const RELOAD_GAP = 1000;
+let ciT = null;
+function checkInsSoon(pid){
+  clearTimeout(ciT);
+  ciT = setTimeout(() => { loadCheckIns(pid).then(() => {
+    if($('#detail').classList.contains('on') && detailId === pid) renderDetail();
+  }).catch(() => {}); }, 600);
+}
+let reloadAt = 0, reloadT = null, reloadBusy = false;
+async function runReload(){
+  if(reloadBusy){ scheduleReload(); return; }      // don't stack fetches
+  reloadBusy = true; reloadAt = Date.now();
+  try{
+    const onFind = $('#find').classList.contains('on');
+    const onMap = $('#map').classList.contains('on');
+    const onDetail = $('#detail').classList.contains('on');
+    if(!onFind && !onMap && !onDetail) return;      // nothing on screen needs it
+    await loadParties();
+    if(onMap) renderMap();
+    if(onDetail) await renderDetail();
+  }catch(_){ }
+  finally{ reloadBusy = false; }
+}
+function scheduleReload(){
+  if(reloadT) return;
+  reloadT = setTimeout(() => { reloadT = null; runReload(); }, RELOAD_GAP);
+}
 function maybeReload(){
-  if($('#find').classList.contains('on')) loadParties();
-  if($('#map').classList.contains('on')) loadParties().then(renderMap);
-  if($('#detail').classList.contains('on')) loadParties().then(renderDetail);
+  if(Date.now() - reloadAt >= RELOAD_GAP && !reloadBusy) runReload();
+  else scheduleReload();
 }
 function startRealtime(){
   db.channel('live')
@@ -4708,8 +4822,9 @@ function startRealtime(){
       if($('#friends').classList.contains('on')) loadFriends();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'check_ins' }, () => {
-      if($('#find').classList.contains('on')) loadParties();
-      if(detailId && $('#detail').classList.contains('on')){ loadCheckIns(detailId).then(renderDetail); }
+      /* every person walking through a door hits this for everyone watching */
+      maybeReload();
+      if(detailId && $('#detail').classList.contains('on')) checkInsSoon(detailId);
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, () => {
       if(chatId && $('#chat').classList.contains('on')) renderChat();
