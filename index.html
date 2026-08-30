@@ -42,6 +42,18 @@
   button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
   input,select,textarea{font:inherit;color:var(--text);width:100%;min-width:0;max-width:100%;background:var(--raised);
     border:1px solid var(--line);border-radius:12px;padding:12px 14px;outline:none}
+  /* iOS gives date and time inputs an intrinsic width from their native
+     control and ignores width:100% until the appearance is reset. Desktop
+     browsers lay them out fine, which is why the WHEN field looked correct in
+     every test here and still ran off the side of a real iPhone. */
+  input[type="datetime-local"],input[type="date"],input[type="time"]{
+    -webkit-appearance:none;appearance:none;display:block;
+    width:100%;min-width:0;max-width:100%}
+  input[type="datetime-local"]::-webkit-date-and-time-value{
+    text-align:left;margin:0;min-width:0;max-width:100%}
+  input[type="datetime-local"]::-webkit-datetime-edit{padding:0;min-width:0;overflow:hidden}
+  input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper{padding:0}
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator{margin-left:auto;flex:0 0 auto}
   input:focus,select:focus,textarea:focus{border-color:var(--vio);box-shadow:0 0 0 3px rgba(139,92,246,.25)}
   :is(button,a):focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:8px}
   label{display:block;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
@@ -61,7 +73,11 @@
   .btn-ghost{background:var(--raised);color:var(--text);box-shadow:none;border:1px solid var(--line)}
   .btn-danger{background:var(--raised);color:var(--red);box-shadow:none;border:1px solid var(--line)}
   .seg{display:grid;grid-template-columns:1fr 1fr;gap:5px;background:var(--raised);border:1px solid var(--line);border-radius:14px;padding:5px}
-  .seg button{padding:10px;border-radius:10px;font-weight:600;color:var(--muted)}
+  /* min-width:0 is what lets a track shrink below its label. Without it the
+     button keeps its full text width and spills out of the control — that is
+     how "Provided" ended up hanging off the right edge of the screen. */
+  .seg button{padding:10px 8px;border-radius:10px;font-weight:600;color:var(--muted);
+    min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .seg button.on{background:var(--grad);color:#fff}
   .screen{display:none;flex:1;flex-direction:column;min-height:0;touch-action:pan-y}
   .screen.swiping{transition:none}
@@ -352,6 +368,7 @@
   .panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
   .panel h4{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 10px}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row2 > *{min-width:0}
   .row2 > .field{min-width:0}
   .f-row{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
   .f-row:first-of-type{border-top:none;padding-top:0}
@@ -619,7 +636,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v8.4</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v8.5</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -755,14 +772,12 @@
         </div>
         <p class="hint" id="h-priv-hint">Anyone who claims a spot instantly gets the address.</p>
       </div>
-      <div class="row2">
-        <div class="field"><label for="h-fee">Entry fee ($)</label><input id="h-fee" type="number" min="0" inputmode="decimal" placeholder="Blank = free"></div>
-        <div class="field"><label>Drinks</label>
-          <div class="seg" id="h-drinks">
-            <button class="on" data-drinks="byob">BYOB</button>
-            <button data-drinks="provided">Provided</button>
-          </div></div>
-      </div>
+      <div class="field"><label for="h-fee">Entry fee ($)</label><input id="h-fee" type="number" min="0" inputmode="decimal" placeholder="Blank = free"></div>
+      <div class="field"><label>Drinks</label>
+        <div class="seg" id="h-drinks">
+          <button class="on" data-drinks="byob">BYOB</button>
+          <button data-drinks="provided">Drinks provided</button>
+        </div></div>
       <div class="field">
         <button class="tier-toggle" id="h-tier-on" type="button">
           <span>Charge more after a certain time</span>
@@ -1574,6 +1589,22 @@ function recapUntil(ts){
   if(f - d < 3 * 864e5) f.setDate(f.getDate() + 7);
   return f;
 }
+/* Repaint just the flame row, wherever it is on screen. Cheap enough to run
+   on every tap, and it keeps both party surfaces in sync if both are mounted. */
+function paintRating(pid, n){
+  document.querySelectorAll(`[data-rate="${pid}"]`).forEach(b =>
+    b.classList.toggle('lit', +b.dataset.n <= n));
+  document.querySelectorAll('.rate-row').forEach(row => {
+    if(!row.querySelector(`[data-rate="${pid}"]`)) return;
+    let done = row.nextElementSibling;
+    if(done && !done.classList.contains('rate-done')) done = null;
+    if(!n){ if(done) done.remove(); return; }
+    const p = allParties.find(x => x.id === pid) || {};
+    const txt = `Rated ${n}/5 \u2014 counts toward ${p.host_id === me.id ? 'your' : 'the host\u2019s'} flame`;
+    if(done) done.textContent = txt;
+    else row.insertAdjacentHTML('afterend', `<div class="rate-done">${esc(txt)}</div>`);
+  });
+}
 function recapOpen(p){
   const start = new Date(p.starts_at || p.created_at);
   return Date.now() > start.getTime() && Date.now() < recapUntil(start).getTime();
@@ -2091,10 +2122,18 @@ async function partyActions(e){
   }
   if(el = g('[data-rate]')){
     const pid = el.dataset.rate, n = +el.dataset.n;
-    myRating[pid] = n; haptic(12); repaintParty();
+    myRating[pid] = n; haptic(12);
+    /* Light the flames NOW. This used to call repaintParty(), which on the
+       Tonight tab meant a full refreshData() — every party, claim, request,
+       friend and address refetched — before a single flame lit up. Rating is
+       a local toggle; paint it instantly and let the write land behind it. */
+    paintRating(pid, n);
     const { error } = await db.from('party_ratings')
       .upsert({ party_id: pid, user_id: me.id, flames: n }, { onConflict: 'party_id,user_id' });
-    if(error) toast(error.message.includes('party_ratings') ? 'One sec — the recap needs migration 17' : error.message);
+    if(error){
+      myRating[pid] = 0; paintRating(pid, 0);
+      toast(error.message.includes('party_ratings') ? 'One sec — the recap needs migration 17' : error.message);
+    }
     return;
   }
   if(el = g('[data-addphoto]')){ openAlbumPicker(el.dataset.addphoto); return; }
