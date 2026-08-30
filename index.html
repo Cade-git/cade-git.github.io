@@ -166,7 +166,17 @@
     padding:12px 14px;border-radius:14px;background:var(--raised);border:1px dashed var(--line);
     color:var(--muted);font-size:13.5px;font-weight:600;transition:all .28s var(--spring)}
   .tier-toggle:active{transform:scale(.985)}
-  .tier-toggle.on{border-style:solid;color:#fff;background:var(--surface)}
+  /* Open, this is ONE card: the toggle is its header and the fields live
+     inside it. They used to spill out underneath as loose, unattached inputs
+     with a stray hint floating below them. */
+  .tier-wrap.on{background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    overflow:hidden;box-shadow:0 8px 24px -18px rgba(0,0,0,.9)}
+  .tier-wrap.on .tier-toggle{border:none;background:none;border-radius:0;color:#fff;
+    padding:13px 14px 9px;font-size:14px}
+  .tier-body{padding:0 14px 13px}
+  .tier-body .row2{gap:10px}
+  .tier-body .field{margin-bottom:0}
+  .tier-body .hint{margin:10px 0 0}
   .tier-toggle svg{width:17px;height:17px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;transition:transform .28s var(--spring)}
   .tier-toggle.on svg{transform:rotate(45deg)}
   /* the countdown that replaces the address until it drops */
@@ -636,7 +646,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v8.5</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v8.6</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -773,24 +783,24 @@
         <p class="hint" id="h-priv-hint">Anyone who claims a spot instantly gets the address.</p>
       </div>
       <div class="field"><label for="h-fee">Entry fee ($)</label><input id="h-fee" type="number" min="0" inputmode="decimal" placeholder="Blank = free"></div>
+      <div class="field tier-wrap" id="h-tier-wrap">
+        <button class="tier-toggle" id="h-tier-on" type="button">
+          <span>Charge more after a certain time</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <div id="h-tier" class="tier-body" hidden>
+          <div class="row2">
+            <div class="field"><label for="h-fee-late">Price after ($)</label><input id="h-fee-late" type="number" min="0" inputmode="decimal" placeholder="e.g. 10"></div>
+            <div class="field"><label for="h-cutoff">Goes up at</label><input id="h-cutoff" type="time"></div>
+          </div>
+          <p class="hint">Check-in timestamps when people arrive, so this actually holds — and it gets everyone there early.</p>
+        </div>
+      </div>
       <div class="field"><label>Drinks</label>
         <div class="seg" id="h-drinks">
           <button class="on" data-drinks="byob">BYOB</button>
           <button data-drinks="provided">Drinks provided</button>
         </div></div>
-      <div class="field">
-        <button class="tier-toggle" id="h-tier-on" type="button">
-          <span>Charge more after a certain time</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-        <div id="h-tier" hidden>
-          <div class="row2">
-            <div class="field"><label for="h-fee-late">Price after ($)</label><input id="h-fee-late" type="number" min="0" inputmode="decimal" placeholder="e.g. 10"></div>
-            <div class="field"><label for="h-cutoff">Goes up at</label><input id="h-cutoff" type="time"></div>
-          </div>
-          <p class="hint">Check-in timestamps when people arrive, so this actually holds. Gets everyone there early.</p>
-        </div>
-      </div>
       <div class="field"><label for="h-desc">What&rsquo;s it about?</label><textarea id="h-desc" rows="3" placeholder="Set the vibe."></textarea></div>
       <button class="btn" id="h-post">Post my party</button>
     </div>
@@ -3325,6 +3335,7 @@ $('#h-tier-on').addEventListener('click', () => {
   const box = $('#h-tier');
   box.hidden = !box.hidden;
   $('#h-tier-on').classList.toggle('on', !box.hidden);
+  $('#h-tier-wrap').classList.toggle('on', !box.hidden);
   if(box.hidden){ $('#h-fee-late').value = ''; $('#h-cutoff').value = ''; }
   haptic(8);
 });
