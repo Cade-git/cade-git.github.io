@@ -1,5 +1,5 @@
 /* Turnout service worker — push + self-updating app shell */
-const VERSION = 'turnout-v4.2';
+const VERSION = 'turnout-v4.3';
 
 self.addEventListener('install', () => self.skipWaiting());
 

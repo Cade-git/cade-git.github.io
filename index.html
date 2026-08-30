@@ -232,10 +232,44 @@
     display:inline-flex;align-items:center;gap:4px}
   .tag.drop-tag svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
   /* the standing invitation to host — the job Turnout is actually for */
+  .psearch{position:relative;margin:0 0 14px}
+  .psearch svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:17px;height:17px;
+    fill:none;stroke:var(--faint);stroke-width:2;stroke-linecap:round;pointer-events:none}
+  .psearch input{padding-left:38px;padding-right:38px}
+  #psearch-x{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:28px;height:28px;
+    border-radius:99px;color:var(--muted);font-size:19px;line-height:1}
+  /* last few nights, across the top — a reason to open the app the day after */
+  .rs-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 9px}
+  .rs-head b{font-size:13px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+  .rs-row{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:18px}
+  .rs-row::-webkit-scrollbar{display:none}
+  .rs-card{flex:0 0 auto;width:116px;text-align:left;padding:6px 4px 0;background:none;border:none;
+    color:inherit;font-family:inherit;transition:transform .28s var(--spring)}
+  .rs-card:active{transform:scale(.95)}
+  /* a little stack of the night's photos, face down until the album opens */
+  .rs-img{display:block;position:relative;width:108px;height:108px;margin:0 auto}
+  .rs-layer{position:absolute;inset:0;border-radius:15px;overflow:hidden;
+    background-color:#1B1730;border:1px solid rgba(255,255,255,.09);box-shadow:0 5px 16px rgba(0,0,0,.45)}
+  /* the blur lives on an inner fill so it can't smear past the rounded corners */
+  .rs-fill{position:absolute;inset:0;background-size:cover;background-position:center}
+  .rs-layer.b2{transform:rotate(-7deg) translate(-5px,3px);opacity:.55}
+  .rs-layer.b1{transform:rotate(5deg) translate(5px,1px);opacity:.75}
+  .rs-layer.top{z-index:2}
+  .rs-img.sealed .rs-fill{filter:blur(9px) saturate(.75) brightness(.6);transform:scale(1.25)}
+  .rs-cap{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;gap:4px;
+    align-items:center;justify-content:center;text-align:center;padding:0 6px}
+  .rs-cap svg{width:19px;height:19px;fill:none;stroke:#fff;stroke-width:1.9;opacity:.95;
+    filter:drop-shadow(0 1px 5px rgba(0,0,0,.7))}
+  .rs-cap b{font-size:10.5px;font-weight:700;color:#fff;line-height:1.15;
+    text-shadow:0 1px 6px rgba(0,0,0,.85)}
+  .rs-img.open .rs-cap{justify-content:flex-end;padding-bottom:8px}
+  .rs-name{display:block;font-size:12px;font-weight:600;margin-top:8px;line-height:1.25;overflow:hidden;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-align:center}
   .host-cta{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin:0 0 16px;padding:13px 14px;
     border-radius:18px;background:var(--surface);border:1px solid var(--line);
     transition:transform .28s var(--spring),border-color .28s var(--spring)}
   .host-cta:active{transform:scale(.985);border-color:rgba(255,255,255,.18)}
+  .host-cta[hidden]{display:none}
   .host-cta-ic{flex:0 0 auto;width:38px;height:38px;border-radius:13px;display:flex;align-items:center;justify-content:center;
     background:linear-gradient(135deg,var(--mag),var(--vio))}
   .host-cta-ic svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round}
@@ -265,6 +299,26 @@
   .here-row:first-child{border-top:none;padding-top:2px}
   .here-name{flex:1;min-width:0;font-weight:600;font-size:14.5px;overflow-wrap:anywhere}
   .here-tag{font-size:11.5px;color:#FF9CC4;font-weight:700;flex:0 0 auto}
+  /* a real ticket: stub, perforation, and a name you can read across a porch */
+  .ticket{position:relative;border-radius:18px;overflow:hidden;margin:16px 0 12px;
+    background:linear-gradient(135deg,#221B44,#171331);border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 16px 44px -22px #000}
+  .ticket::before{content:'';position:absolute;inset:0;background:var(--grad);opacity:.18}
+  .tk-top{position:relative;display:flex;align-items:center;gap:12px;padding:15px 16px 13px}
+  .tk-who{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
+  .tk-name{min-width:0}
+  .tk-name b{display:block;font-family:var(--disp);font-size:17px;color:#fff;overflow-wrap:anywhere;line-height:1.15}
+  .tk-name i{display:block;font-style:normal;font-size:12px;color:rgba(255,255,255,.66);margin-top:2px}
+  .tk-no{flex:0 0 auto;font-family:var(--disp);font-weight:800;font-size:15px;color:#fff;
+    background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.16);border-radius:9px;padding:5px 9px;
+    font-variant-numeric:tabular-nums}
+  .tk-rip{position:relative;height:0;border-top:2px dashed rgba(255,255,255,.22);margin:0 14px}
+  .tk-rip span{position:absolute;top:-9px;width:16px;height:16px;border-radius:99px;background:var(--ink)}
+  .tk-rip span:first-child{left:-22px} .tk-rip span:last-child{right:-22px}
+  .tk-foot{position:relative;padding:12px 16px 14px}
+  .tk-party{font-family:var(--disp);font-weight:800;font-size:15px;color:#fff;overflow-wrap:anywhere}
+  .tk-sub{font-size:12.5px;color:rgba(255,255,255,.66);margin-top:2px}
+  .tk-hint{position:relative;font-size:11.5px;color:rgba(255,255,255,.5);padding:0 16px 13px}
   .ci-here{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--lime);font-weight:700}
   .ci-here .stack{margin-left:2px}
   .ci-dist{font-variant-numeric:tabular-nums;font-weight:700;color:var(--amber)}
@@ -288,6 +342,22 @@
   .rate-row button.lit{color:var(--amber);background:rgba(255,180,84,.14);border-color:rgba(255,180,84,.45)}
   .rate-row button:active{transform:scale(.88)}
   .rate-done{font-size:12.5px;color:var(--lime);font-weight:600;margin-top:4px}
+  /* the sealed album: a leaning stack of blurred corners you can't read yet */
+  .sealed{display:flex;align-items:center;gap:16px;margin-top:14px}
+  .sealed-stack{position:relative;flex:0 0 auto;width:104px;height:104px;padding:0}
+  .sl-card{position:absolute;inset:0;border-radius:15px;background-size:cover;background-position:center;
+    filter:blur(9px) saturate(1.1);border:1px solid var(--line);transition:transform .3s var(--spring)}
+  .sl-empty{background:linear-gradient(135deg,#241f42,#171331)}
+  .sl-0{transform:rotate(-7deg) translate(-5px,3px)}
+  .sl-1{transform:rotate(5deg) translate(5px,-2px)}
+  .sl-2{transform:rotate(-1deg)}
+  .sealed-stack:active .sl-0{transform:rotate(-11deg) translate(-8px,4px)}
+  .sealed-stack:active .sl-1{transform:rotate(9deg) translate(8px,-4px)}
+  .sl-face{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:5px;border-radius:15px;background:rgba(10,9,20,.34)}
+  .sl-face svg{fill:none;stroke:#fff;stroke-width:1.9;opacity:.9}
+  .sl-face b{font-size:11.5px;font-weight:700;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.75)}
+  .sealed-add{flex:1;margin-top:0}
   .album{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:14px}
   .album-cell{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#191630}
   .album-cell img{width:100%;height:100%;object-fit:cover;display:block;
@@ -299,18 +369,6 @@
     font-size:10.5px;font-weight:700;text-align:center;line-height:1.2;padding:6px}
   .album-add svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .album-empty{font-size:12.5px;color:var(--faint);margin-top:12px}
-  /* recap strip on the feed */
-  .recap-strip{display:flex;gap:10px;overflow-x:auto;margin:0 -20px 18px;padding:0 20px 4px;scrollbar-width:none}
-  .recap-strip::-webkit-scrollbar{display:none}
-  .rs-card{flex:0 0 auto;width:132px;border-radius:16px;overflow:hidden;position:relative;aspect-ratio:1;
-    background:#191630;transition:transform .28s var(--spring)}
-  .rs-card:active{transform:scale(.95)}
-  .rs-img{position:absolute;inset:0;background-size:cover;background-position:center}
-  .rs-scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(8,7,16,.92),rgba(8,7,16,.05) 60%)}
-  .rs-txt{position:absolute;left:0;right:0;bottom:0;padding:0 10px 9px}
-  .rs-txt b{display:block;font-family:var(--disp);font-size:12px;color:#fff;line-height:1.2;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .rs-txt span{font-size:10px;color:var(--amber);font-weight:700}
   /* drag-the-map location picker */
   #loc-sheet{position:fixed;inset:0;z-index:55;background:var(--ink);display:flex;flex-direction:column}
   #loc-sheet[hidden]{display:none}
@@ -332,6 +390,31 @@
     align-items:center;justify-content:center;gap:7px;color:var(--muted);font-size:13px;font-weight:600;position:relative;overflow:hidden}
   .cover-pick svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .cover-pick.has{border-style:solid;border-color:transparent;color:#fff}
+  .cover-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px}
+  .cover-opt{margin-top:0;padding:10px;font-size:13.5px;display:flex;align-items:center;justify-content:center;gap:6px}
+  .vip-pip{font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:2px 5px;border-radius:5px;
+    background:linear-gradient(120deg,var(--amber),var(--mag));color:#1a1206}
+  /* the VIP pitch — shown once, when someone reaches for a paid feature */
+  #vip-sheet{position:fixed;inset:0;z-index:84;display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(0,0,0,.7);backdrop-filter:blur(4px)}
+  #vip-sheet[hidden]{display:none}
+  .vip-card{width:min(440px,100%);background:var(--surface);border:1px solid rgba(255,180,84,.34);
+    border-radius:24px 24px 0 0;padding:24px 20px calc(20px + env(safe-area-inset-bottom));
+    max-height:86dvh;overflow-y:auto;animation:sheetup .28s var(--spring)}
+  .vip-crown{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(130deg,var(--amber),var(--mag));margin-bottom:12px}
+  .vip-crown svg{width:27px;height:27px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linejoin:round}
+  .vip-card h3{font-family:var(--disp);font-size:21px;margin:0 0 4px}
+  .vip-card h3 span{background:linear-gradient(120deg,var(--amber),var(--mag));-webkit-background-clip:text;
+    background-clip:text;color:transparent}
+  .vip-card .sub{color:var(--muted);font-size:14px;margin-bottom:16px}
+  .vip-perk{display:flex;gap:11px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line)}
+  .vip-perk:first-of-type{border-top:none}
+  .vip-perk i{flex:0 0 auto;width:22px;height:22px;border-radius:7px;display:flex;align-items:center;
+    justify-content:center;background:rgba(255,180,84,.16);color:var(--amber);font-style:normal;font-size:12px;font-weight:800}
+  .vip-perk b{display:block;font-size:14px;color:#fff}
+  .vip-perk small{display:block;font-size:12.5px;color:var(--muted);margin-top:1px;line-height:1.4}
+  .vip-price{background:linear-gradient(120deg,var(--amber),var(--mag));color:#1a1206;font-weight:800}
   .cover-pick.has .cp-label{background:rgba(8,7,16,.72);backdrop-filter:blur(8px);padding:6px 13px;border-radius:999px;
     border:1px solid rgba(255,255,255,.18)}
   .cover-pick.has svg{display:none}
@@ -397,18 +480,33 @@
   .qa-txt{flex:1;min-width:0}
   .qa-txt b{display:block;font-size:14.5px;font-weight:600;overflow-wrap:anywhere}
   .qa-txt i{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:1px}
-  .qa-btn{flex:0 0 auto;padding:8px 15px;border-radius:10px;font-size:13px;font-weight:700;
-    background:var(--grad);color:#fff}
-  .qa-btn[disabled]{background:var(--raised);color:var(--muted);border:1px solid var(--line)}
+  /* Instagram's shape: a filled button to act, a quiet outline once you have.
+     Tapping "Requested" takes it back — the request used to be a one-way door. */
+  .qa-btn{flex:0 0 auto;min-width:92px;padding:9px 16px;border-radius:11px;font-size:13.5px;font-weight:700;
+    background:var(--grad);color:#fff;border:1px solid transparent;transition:all .2s var(--spring)}
+  .qa-btn.sent{background:var(--raised);color:var(--muted);border-color:var(--line)}
+  .qa-btn.accept{background:linear-gradient(120deg,var(--lime),#4ade80);color:#12210A}
+  .qa-btn.done{background:none;color:var(--lime);border-color:rgba(163,230,53,.4);font-weight:600}
+  .qa-btn[disabled]{opacity:.6}
   .qa-btn:active{transform:scale(.94)}
   .f-row{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
   .f-row:first-of-type{border-top:none;padding-top:0}
   .f-av{border-radius:13px;display:flex;align-items:center;justify-content:center;
     font-family:var(--disp);font-weight:700;color:#fff;flex:0 0 auto}
   .avimg{border-radius:13px;object-fit:cover;flex:0 0 auto}
-  .mini-btn{padding:11px 16px;border-radius:10px;font-size:13px;font-weight:700}
+  /* these sit next to a name that has to stay readable — keep them compact
+     so "wants to be friends" doesn't wrap onto three lines on a small phone */
+  .mini-btn{flex:0 0 auto;padding:9px 13px;border-radius:10px;font-size:12.5px;font-weight:700;white-space:nowrap}
   .acc{background:rgba(180,240,75,.14);color:var(--lime);border:1px solid rgba(180,240,75,.4)}
   .den{background:var(--raised);color:var(--muted);border:1px solid var(--line)}
+  .freq{position:relative}
+  .freq h4{padding-right:22px}
+  /* deliberately small and quiet — it puts the card away, it isn't a decline */
+  .freq-x{position:absolute;top:7px;right:7px;width:19px;height:19px;border-radius:99px;
+    display:flex;align-items:center;justify-content:center;background:none;
+    border:none;padding:0;opacity:.55}
+  .freq-x svg{width:11px;height:11px;fill:none;stroke:var(--muted);stroke-width:2.3;stroke-linecap:round}
+  .freq-x:active{transform:scale(.9)}
   .req-strip{border-top:1px dashed var(--line);margin-top:4px;padding-top:10px;margin-bottom:10px}
   /* friends: conversation list */
   .fl-row{display:flex;gap:14px;align-items:center;width:100%;text-align:left;
@@ -715,7 +813,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.5</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.6</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -746,7 +844,11 @@
     <div class="top"><button class="me-dot" data-me aria-label="Your profile"></button><span class="wordmark">TURNOUT</span><span class="loc-pill">near <b id="loc-zip"></b></span></div>
     <div class="ptr" id="ptr">Release to refresh</div>
     <div class="scroll">
+      <div id="recap-strip" hidden></div>
       <h2 id="find-greet" style="font-size:19px;margin:0 0 12px">Parties near you</h2>
+      <div class="psearch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/></svg>
+        <input id="party-search" placeholder="Search parties" autocomplete="off" enterkeyhint="search">
+        <button id="psearch-x" hidden aria-label="Clear">&times;</button></div>
       <button class="host-cta" id="host-cta">
         <span class="host-cta-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span>
         <span class="host-cta-t"><b id="host-cta-h">Throwing something?</b><i id="host-cta-s">Post it and run the door from your phone.</i></span>
@@ -828,7 +930,11 @@
       <p style="color:var(--muted);margin-bottom:18px;font-size:14.5px">Post it and everyone on here sees it live, instantly.</p>
       <div class="field"><label for="h-name">Party name</label><input id="h-name" placeholder="e.g. End of Summer Blowout"></div>
       <div class="field"><label>Cover photo</label>
-        <button class="cover-pick" id="h-photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg><span class="cp-label">Add a photo — it becomes the card</span></button>
+        <button class="cover-pick" id="h-photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg><span class="cp-label">Add or generate a cover</span></button>
+        <div class="cover-row">
+          <button class="btn btn-ghost cover-opt" id="h-photo-add">Add a photo</button>
+          <button class="btn btn-ghost cover-opt" id="h-photo-gen">Generate <span class="vip-pip">VIP</span></button>
+        </div>
         <input id="h-photo-file" type="file" accept="image/*" hidden></div>
       <div class="field"><label for="h-when">When</label><input id="h-when" type="datetime-local"></div>
       <div class="field"><label for="h-addr">Address</label><input id="h-addr" placeholder="Street address">
@@ -841,7 +947,7 @@
           <button data-drop="120">2 hrs before</button>
           <button data-drop="start">At start</button>
         </div>
-        <p class="hint" id="h-drop-hint">Everyone who claims a spot gets the address immediately.</p>
+        <p class="hint" id="h-drop-hint">Everyone with a ticket gets the address immediately.</p>
       </div>
       <div class="row2">
         <div class="field"><label for="h-town">Town</label><input id="h-town" placeholder="Town"></div>
@@ -852,7 +958,7 @@
           <button class="on" data-priv="public">Public</button>
           <button data-priv="private">Private</button>
         </div>
-        <p class="hint" id="h-priv-hint">Anyone who claims a spot instantly gets the address.</p>
+        <p class="hint" id="h-priv-hint">Anyone who claims a ticket instantly gets the address.</p>
       </div>
       <div class="field"><label for="h-fee">Entry fee ($)</label><input id="h-fee" type="number" min="0" inputmode="decimal" placeholder="Blank = free"></div>
       <div class="field tier-wrap" id="h-tier-wrap">
@@ -895,12 +1001,12 @@
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/></svg>Find</button>
     <button class="tab" data-tab="map">
       <svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.2-6.5-10.2a6.5 6.5 0 0 1 13 0C18.5 15.8 12 21 12 21z"/><circle cx="12" cy="10.6" r="2.3"/></svg>Map</button>
+    <button class="tab" data-tab="tonight">
+      <svg viewBox="0 0 24 24"><path d="M4 19V9.5l8-5.5 8 5.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M9.5 20v-5h5v5"/></svg>Tonight<span class="dot live" id="tonight-dot" hidden></span></button>
     <button class="tab" data-tab="friends">
       <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1.2-3.4 4-5 6.5-5s5.3 1.6 6.5 5"/><circle cx="17" cy="9" r="3"/><path d="M16.5 15.5c2.3.3 4.2 1.8 5 4.5"/></svg>Friends<span class="dot" id="friends-dot" hidden></span></button>
     <button class="tab" data-tab="host">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Host</button>
-    <button class="tab" data-tab="tonight">
-      <svg viewBox="0 0 24 24"><path d="M4 19V9.5l8-5.5 8 5.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M9.5 20v-5h5v5"/></svg>Tonight<span class="dot live" id="tonight-dot" hidden></span></button>
   </nav>
 </div>
 
@@ -915,6 +1021,22 @@
   </div>
 </div>
 
+<div id="vip-sheet" hidden>
+  <div class="vip-card">
+    <button class="wc-x" id="vip-x" aria-label="Close" style="position:absolute;top:14px;right:16px"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="vip-crown"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l4.2 3.2L12 5l4.8 6.2L21 8l-1.6 10H4.6z"/></svg></div>
+    <h3>Turnout <span>VIP</span></h3>
+    <p class="sub" id="vip-why">Everything below, for the price of a coffee once a month.</p>
+    <div class="vip-perk"><i>1</i><div><b>Generate your cover art</b><small>Describe the vibe and get a cover made for the party. No photo needed.</small></div></div>
+    <div class="vip-perk"><i>2</i><div><b>See new parties first</b><small>They land on your feed the second they post. Everyone else waits ten minutes.</small></div></div>
+    <div class="vip-perk"><i>3</i><div><b>Knock on full parties</b><small>Ask the host for a ticket even after it caps, and go first on the waitlist.</small></div></div>
+    <div class="vip-perk"><i>4</i><div><b>No service fee on covers</b><small>When a party charges at the door, you pay the ticket price and nothing on top.</small></div></div>
+    <div class="vip-perk"><i>5</i><div><b>A VIP badge hosts can see</b><small>Hosts know who actually turns up. Yours says it for you.</small></div></div>
+    <button class="btn vip-price" id="vip-get" style="margin-top:18px">Get VIP &mdash; $2.99/mo</button>
+    <button class="btn btn-ghost" id="vip-later" style="margin-top:9px">Not now</button>
+    <p class="hint" id="vip-note" style="margin-top:10px;text-align:center"></p>
+  </div>
+</div>
 <div id="legal" hidden>
   <div class="sheet lg-sheet">
     <button class="wc-x" id="lg-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -926,7 +1048,7 @@
       <h5>What we store</h5>
       <p>Your name, ZIP, email, and profile picture. If you host, the party&rsquo;s address. When you check in, the fact that you were there and roughly when. Photos you put in an album or send in a message.</p>
       <h5>Who can see it</h5>
-      <p>A party address is only readable by the host and people who claimed a spot &mdash; it is locked in the database, not just hidden in the app. Album photos are only visible to people who checked in at that party. Messages and the photos in them are only visible to you and the person you sent them to. Your home address, if you save one, is never shown to anyone.</p>
+      <p>A party address is only readable by the host and people holding a ticket &mdash; it is locked in the database, not just hidden in the app. Album photos are only visible to people who checked in at that party. Messages and the photos in them are only visible to you and the person you sent them to. Your home address, if you save one, is never shown to anyone.</p>
       <h5>Location</h5>
       <p>Check-in compares your location to the host&rsquo;s spot on your phone and sends the result, not a trail of where you&rsquo;ve been. Party pins on the map are deliberately fuzzed until you&rsquo;re in.</p>
       <h5>What&rsquo;s not allowed</h5>
@@ -947,11 +1069,11 @@
     <div class="wc-head">
       <div class="wc-eyebrow">Welcome to</div>
       <div class="wc-mark">TURNOUT</div>
-      <p class="wc-sub">Find the party. Claim your spot. Show up.</p>
+      <p class="wc-sub">Find the party. Claim your ticket. Show up.</p>
     </div>
     <div class="wc-steps">
       <div class="wc-step"><span class="wc-ic wc-1"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg></span>
-        <div><b>Find a party</b><i>Claim a spot and the address unlocks. No spot, no address.</i></div></div>
+        <div><b>Find a party</b><i>Claim a ticket and the address unlocks. No ticket, no address.</i></div></div>
       <div class="wc-step"><span class="wc-ic wc-2"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span>
         <div><b>Throw your own</b><i>Post it, cap the numbers, and run the door from your phone.</i></div></div>
       <div class="wc-step"><span class="wc-ic wc-3"><svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.4"/><path d="M3.2 19c.5-3.2 3-5 5.8-5s5.3 1.8 5.8 5"/><path d="M17 8h5M19.5 5.5v5"/></svg></span>
@@ -1325,7 +1447,8 @@ function show(id){
 }
 $$('.tab').forEach(t => t.addEventListener('click', () => show(t.dataset.tab)));
 function updateDot(){
-  $('#friends-dot').hidden = !(unreadFrom.size || pendingIn.length);
+  const liveReqs = pendingIn.some(p => !freqHidden.has(p.id));
+  $('#friends-dot').hidden = !(unreadFrom.size || liveReqs);
 }
 
 /* ── auth ── */
@@ -1396,6 +1519,13 @@ async function loadFriendRows(){
   }
   friends = acceptedIds.map(id => profMap[id]).filter(Boolean);
   pendingIn = inIds.map(id => profMap[id]).filter(Boolean);
+  /* Someone who withdrew, or whom you accepted, shouldn't stay in the
+     put-away set forever — otherwise a request from them a month later
+     would arrive already hidden. */
+  const stillPending = new Set(inIds);
+  let pruned = false;
+  [...freqHidden].forEach(id => { if(!stillPending.has(id)){ freqHidden.delete(id); pruned = true; } });
+  if(pruned) saveFreqHidden();
   updateDot();
 }
 function capClass(claimed, max){
@@ -1407,8 +1537,8 @@ function capClass(claimed, max){
 function capLabel(claimed, max){
   const left = max - claimed;
   if(left <= 0) return 'Full';
-  if(left === 1) return 'Only 1 spot left';
-  return left + ' spots left';
+  if(left === 1) return 'Only 1 ticket left';
+  return left + ' tickets left';
 }
 function clockLabel(d){
   let h = d.getHours(); const m = d.getMinutes(), ap = h >= 12 ? 'PM' : 'AM';
@@ -1483,6 +1613,20 @@ function friendLine(names){
   return names[0] + ' + ' + (names.length - 1) + (names.length === 2 ? ' other' : ' others') + ' going';
 }
 
+let checkInAt = {};    // party id -> when I checked in, for the ticket stub
+/* Requests you've tucked away with the X. Not a decline — the row is still
+   pending in the database, it just stops shouting at you every time you open
+   the tab. A brand new request from someone else is not in this set, so the
+   card comes right back for them. */
+let freqHidden = new Set();
+function freqKey(){ return 'to-freq-hidden-' + (me && me.id ? me.id : 'x'); }
+function loadFreqHidden(){
+  try{ freqHidden = new Set(JSON.parse(localStorage.getItem(freqKey()) || '[]')); }
+  catch(_){ freqHidden = new Set(); }
+}
+function saveFreqHidden(){
+  try{ localStorage.setItem(freqKey(), JSON.stringify([...freqHidden])); }catch(_){ }
+}
 let hostScores = {};   // host id -> { avg, votes }
 let liveHere = {};     // party id -> how many are inside right now
 async function loadHostScores(){
@@ -1498,11 +1642,14 @@ async function loadHostScores(){
     Object.entries(acc).forEach(([h, v]) => hostScores[h] = { avg: Math.round(v.sum / v.votes * 10) / 10, votes: v.votes });
   } catch(_){ }
 }
-function flameBadge(hostId, partyCount){
+/* The flame is your average rating out of 5 — nothing else. It used to double
+   as a "hosted 3 parties" trophy, which meant the same icon sometimes showed a
+   count and sometimes a score, and nobody could tell which. One number, one
+   meaning: what guests actually thought. */
+function flameBadge(hostId){
   const sc = hostScores[hostId];
-  if(sc && sc.votes >= 2) return `<span class="flame">${flameSvg(12)}${sc.avg}</span>`;
-  if(partyCount >= 3) return `<span class="flame">${flameSvg(12)}${partyCount}</span>`;
-  return '';
+  if(!sc || !sc.votes) return '';
+  return `<span class="flame">${flameSvg(12)}${sc.avg}</span>`;
 }
 async function refreshData(){
   const [pRes, cRes, rRes] = await Promise.all([
@@ -1579,7 +1726,19 @@ async function loadParties(){
   // recaps and anything live now live in the Tonight tab
   const _sb = document.querySelector('#find .scroll');
   const _st = _sb ? _sb.scrollTop : 0;
-  const sorted = parties.slice().sort((a, b) => bucketOf(a) - bucketOf(b)
+  /* while you're searching, the feed is the only thing on screen — the recap
+     strip and the "throw one" card are noise between you and the result */
+  const q = (findQuery || '').trim().toLowerCase();
+  $('#host-cta').hidden = !!q;
+  const shown = q
+    ? parties.filter(x => (x.name || '').toLowerCase().includes(q) || (x.town || '').toLowerCase().includes(q))
+    : parties;
+  if(q && !shown.length){
+    $('#party-list').innerHTML = `<p class="empty">Nothing matching &ldquo;${esc(q)}&rdquo;.</p>`;
+    renderRecapStrip();
+    return;
+  }
+  const sorted = shown.slice().sort((a, b) => bucketOf(a) - bucketOf(b)
       || (a.starts_at ? new Date(a.starts_at) : Infinity) - (b.starts_at ? new Date(b.starts_at) : Infinity));
   let lastBucket = -1;
   $('#party-list').innerHTML = sorted.map(p => {
@@ -1599,7 +1758,7 @@ async function loadParties(){
     const pct = Math.min(100, claimed / p.max_people * 100);
     const full = claimed >= p.max_people;
     const addr = unlockedAddr[p.id];
-    const flames = flameBadge(p.host_id, hostCount[p.host_id] || 0);
+    const flames = flameBadge(p.host_id);
     const reqCount = mine && priv ? (hostRequests[p.id] || []).length : 0;
     const status = going ? (dropPending(p)
         ? `<div class="friendsline" style="color:var(--mag)">You’re in — address drops ${esc(dropWhen(p))}</div>`
@@ -1629,19 +1788,72 @@ async function loadParties(){
           ${fIds.length ? faceStack(fIds, 3) : '<span style="font-size:12.5px;color:rgba(255,255,255,.6);font-weight:600">hosted by ' + esc(mine ? 'you' : (nickMap[p.host_id] || p.profiles?.display_name || 'someone')) + '</span>'}
           ${live && here
             ? `<span class="here-n">${here}<small>here now</small></span>`
-            : `<span class="spots-n spots-${cls}">${full ? 'Full' : (p.max_people - claimed)}${full ? '' : `<small>spot${p.max_people - claimed === 1 ? '' : 's'} left</small>`}</span>`}
+            : `<span class="spots-n spots-${cls}">${full ? 'Full' : (p.max_people - claimed)}${full ? '' : `<small>ticket${p.max_people - claimed === 1 ? '' : 's'} left</small>`}</span>`}
         </div>
       </div>
       <div class="card-bar"><i class="fill-${cls}" style="width:${pct}%"></i></div>
     </button>`;
   }).join('');
   if(_sb) _sb.scrollTop = _st;
+  renderRecapStrip();
+}
+/* ── the last few nights, across the top of Find ──────────────────────
+   Albums you can get into, newest first. Sealed ones still show — a blurred
+   stack with a lock is the reason to come back tomorrow. */
+function renderRecapStrip(){
+  const wrap = $('#recap-strip'); if(!wrap) return;
+  const mine = allParties.filter(p => {
+    if(!recapOpen(p)) return false;
+    return p.host_id === me.id || myCheckIn[p.id];
+  }).sort((a, b) => new Date(b.starts_at || b.created_at) - new Date(a.starts_at || a.created_at)).slice(0, 8);
+  if(!mine.length || (findQuery || '').trim()){ wrap.hidden = true; return; }
+  wrap.innerHTML = `<div class="rs-head"><b>The last few nights</b></div>
+    <div class="rs-row">${mine.map(p => {
+      const open = albumOpen(p);
+      const shots = (recapPhotos[p.id] || []);
+      const bg = i => {
+        const sh = shots[i];
+        return sh ? `url('${esc(sh.src || sh.url)}')` : coverFor(p);
+      };
+      const n = Math.min(3, Math.max(1, shots.length));
+      const layer = (cls, i) => `<span class="rs-layer ${cls}"><span class="rs-fill" style="background-image:${bg(i)}"></span></span>`;
+      const layers = [
+        n > 2 ? layer('b2', 2) : '',
+        n > 1 ? layer('b1', 1) : '',
+        layer('top', 0),
+      ].join('');
+      const cap = open
+        ? `<b>${shots.length ? shots.length + ' photo' + (shots.length === 1 ? '' : 's') : 'Add the first'}</b>`
+        : `${lockSvg(19)}<b>Opens ${esc(albumOpensLabel(p))}</b>`;
+      return `<button class="rs-card" data-open="${p.id}">
+        <span class="rs-img ${open ? 'open' : 'sealed'}">
+          ${layers}
+          <span class="rs-cap">${cap}</span>
+        </span>
+        <span class="rs-name">${esc(p.name)}</span>
+      </button>`;
+    }).join('')}</div>`;
+  wrap.hidden = false;
 }
 
 /* This card sits on the Find screen; its handler used to live inside the
    #profile-body listener, so the main "throw a party" call to action on the
    busiest screen in the app did nothing at all when tapped. */
 $('#host-cta').addEventListener('click', () => { show('host'); haptic(10); });
+let findQuery = '';
+$('#recap-strip').addEventListener('click', e => {
+  const c = e.target.closest('[data-open]');
+  if(c) openDetail(c.dataset.open, 'find');
+});
+$('#party-search').addEventListener('input', e => {
+  findQuery = e.target.value;
+  $('#psearch-x').hidden = !findQuery;
+  clearTimeout(window.__psT);
+  window.__psT = setTimeout(() => loadParties(), 160);
+});
+$('#psearch-x').addEventListener('click', () => {
+  findQuery = ''; $('#party-search').value = ''; $('#psearch-x').hidden = true; loadParties();
+});
 $('#party-list').addEventListener('click', e => {
   const c = e.target.closest('[data-open]');
   if(c) openDetail(c.dataset.open, 'find');
@@ -1738,7 +1950,7 @@ function hostConsoleHtml(p){
     <div class="sub">${roster.length ? `<b class="hc-n">${roster.length}</b> inside` : 'Nobody inside yet'}${pending.length ? ` · ${pending.length} claimed, not here` : ''}</div>
     <div class="hc-row">
       <button class="btn" data-hcmsg="${p.id}">Message everyone</button>
-      <button class="btn btn-ghost" data-hcroom="${p.id}" style="width:auto;padding:11px 14px;white-space:nowrap">+10 spots</button>
+      <button class="btn btn-ghost" data-hcroom="${p.id}" style="width:auto;padding:11px 14px;white-space:nowrap">+10 tickets</button>
     </div>
     ${roster.length ? `<div class="hc-grp">Inside</div>
       <div class="hc-list">${roster.map(r => row(r.user_id, esc(ago(r.at)))).join('')}</div>` : ''}
@@ -1766,11 +1978,13 @@ async function loadCheckIns(pid){
        an empty list means "you're not in" — not "nobody's here". The count
        comes from an RPC so the hook still works for someone deciding to come. */
     const [rows, cnt] = await Promise.all([
-      db.from('check_ins').select('user_id').eq('party_id', pid),
+      db.from('check_ins').select('user_id, created_at').eq('party_id', pid),
       db.rpc('here_count', { pid })
     ]);
     checkIns[pid] = (rows.data || []).map(r => r.user_id);
     myCheckIn[pid] = checkIns[pid].includes(me.id);
+    const mineRow = (rows.data || []).find(r => r.user_id === me.id);
+    if(mineRow) checkInAt[pid] = mineRow.created_at;       // stamped on the ticket
     hereCount[pid] = typeof cnt.data === 'number' ? cnt.data : checkIns[pid].length;
     /* Pull the profiles for everyone inside. Without this, faces only appeared
        for people already cached — friends and hosts — so a room full of people
@@ -1804,6 +2018,34 @@ function watchDistance(pid){
   }, () => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
 }
 function stopDistance(){ if(ciWatch !== null){ navigator.geolocation.clearWatch(ciWatch); ciWatch = null; } ciDist = null; }
+/* The door ticket. An address can be forwarded to anyone; this can't — it only
+   exists on the phone of someone who claimed a ticket AND stood at the door to
+   check in, and it carries their name and face for whoever is working the door.
+   The stub number is derived from the party and the person, so the same guest
+   always shows the same one and the host can call it out. */
+function ticketNo(pid, uid){
+  let h = 0; const str = String(pid) + String(uid);
+  for(let i = 0; i < str.length; i++){ h = (h * 31 + str.charCodeAt(i)) >>> 0; }
+  return String(h % 9000 + 1000);
+}
+function ticketHtml(p){
+  const when = checkInAt[p.id];
+  const t = when ? new Date(when) : null;
+  return `<div class="ticket">
+    <div class="tk-top">
+      <div class="tk-who">${avatar(me, 42)}
+        <div class="tk-name"><b>${esc(nickMap[me.id] || me.display_name)}</b><i>Checked in${t ? ' &middot; ' + esc(t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })) : ''}</i></div>
+      </div>
+      <div class="tk-no">#${ticketNo(p.id, me.id)}</div>
+    </div>
+    <div class="tk-rip"><span></span><span></span></div>
+    <div class="tk-foot">
+      <div class="tk-party">${esc(p.name)}</div>
+      <div class="tk-sub">${esc(p.town || '')}${p.fee > 0 ? ' &middot; $' + (+p.fee) + ' at the door' : ''}</div>
+    </div>
+    <div class="tk-hint">Show this at the door. It only exists on your phone.</div>
+  </div>`;
+}
 function checkinHtml(p, rollShown){
   const here = checkIns[p.id] || [];
   const mineIn = myCheckIn[p.id];
@@ -1811,7 +2053,7 @@ function checkinHtml(p, rollShown){
   const n = hereCount[p.id] || here.length;
   if(mineIn){
     return `<div class="ci done">
-      <h4>You’re checked in</h4>
+      <h4>You&rsquo;re checked in</h4>
       <p>The album and the guest list are open to you now.</p>
       ${(n && !rollShown) ? `<div class="ci-here">${n} here now ${known.length ? faceStack(known, 4) : ''}</div>` : ''}
     </div>`;
@@ -1828,6 +2070,23 @@ function checkinHtml(p, rollShown){
 }
 /* ── the recap: albums that die on Friday ── */
 let recapPhotos = {}, myRating = {}, recapBusy = false;
+/* The album seals until the next calendar day. You can add to it all night —
+   you just can't scroll it. That's the point: everyone comes back the next
+   morning to see what actually happened. */
+function albumOpensAt(p){
+  const d = new Date(p.starts_at || p.created_at);
+  const open = new Date(d); open.setHours(0, 0, 0, 0);
+  open.setDate(open.getDate() + 1);           // midnight after the night of
+  return open;
+}
+function albumOpen(p){ return Date.now() >= albumOpensAt(p).getTime(); }
+function albumOpensLabel(p){
+  const t = albumOpensAt(p), h = (t - Date.now()) / 36e5;
+  if(h <= 0) return 'now';
+  if(h < 1) return 'in ' + Math.max(1, Math.round(h * 60)) + ' min';
+  if(h < 13) return 'at midnight';
+  return 'tomorrow';
+}
 function recapUntil(ts){
   const d = new Date(ts);
   const dow = (d.getDay() + 6) % 7 + 1;           // Mon=1 … Sun=7, same as Postgres
@@ -1938,6 +2197,24 @@ function recapHtml(p, mine){
       </div>
     </div>`;
   }
+  if(!albumOpen(p)){
+    /* sealed: a stack of blurred corners, a count, and the one thing you CAN
+       do tonight — add to it */
+    const peek = photos.slice(0, 3);
+    return `<div class="recap">
+      <div class="recap-h"><b>The Recap</b><span>Opens ${esc(albumOpensLabel(p))}</span></div>
+      <div class="recap-sub">Everyone's photos unlock together ${esc(albumOpensLabel(p))}. Add yours tonight.</div>
+      <div class="sealed">
+        <button class="sealed-stack" data-addphoto="${p.id}" aria-label="Add to album">
+          ${peek.map((ph, i) => `<span class="sl-card sl-${i}" style="background-image:url('${esc(ph.src || ph.url)}')"></span>`).join('')}
+          ${peek.length ? '' : '<span class="sl-card sl-0 sl-empty"></span>'}
+          <span class="sl-face">${lockSvg(20)}<b>${photos.length || 'No'} photo${photos.length === 1 ? '' : 's'}</b></span>
+        </button>
+        <button class="btn sealed-add" data-addphoto="${p.id}">Add to album</button>
+      </div>
+      ${rated ? `<div class="rate-done" style="margin-top:12px">Rated ${rated}/5</div>` : ''}
+    </div>`;
+  }
   return `<div class="recap">
     <div class="recap-h"><b>The Recap</b><span>${esc(diesIn(p))}</span></div>
     <div class="recap-sub">Only the people who checked in can see this.</div>
@@ -1990,6 +2267,7 @@ async function doCheckIn(pid, btn){
     return fail(why === 'too far' ? `You're ${r.feet} ft away — get within ${r.need}` : why);
   }
   myCheckIn[pid] = true;
+  checkInAt[pid] = new Date().toISOString();
   await loadCheckIns(pid);
   stopDistance();
   celebrate('Checked in', 'You’re on the list for tonight’s recap');
@@ -2131,7 +2409,7 @@ function dropHtml(p){
   return `<div class="drop">
     <div class="drop-h">The address drops ${esc(dropWhen(p))}</div>
     <div class="cd" id="drop-cd">${esc(dropLeft(p) || '0:00')}</div>
-    <p>Your spot is locked in. Nobody gets the address before this — not even in a screenshot.</p>
+    <p>Your ticket is locked in. Nobody gets the address before this — not even in a screenshot.</p>
   </div>`;
 }
 /* what this person pays, and what it becomes later */
@@ -2247,8 +2525,9 @@ async function partyPageHtml(p, opts = {}){
       <h2 style="font-size:22px;margin:0 0 4px">${esc(p.name)}</h2>
       <p style="color:var(--muted);font-size:14px;margin-bottom:10px">
         Hosted by ${esc(mine ? 'you' : (p.profiles?.display_name || 'someone'))}
-        ${flameBadge(p.host_id, hostCount)}
+        ${flameBadge(p.host_id)}
         · ${esc(p.town || 'nearby')}</p>
+      ${(showCheckin && myCheckIn[p.id]) ? ticketHtml(p) : ''}
       <div class="meta" style="margin-bottom:14px">
         <span style="${p.fee > 0 ? 'color:var(--lime);font-weight:700' : 'color:var(--faint)'}">${p.fee > 0 ? '$' + (+p.fee) + ' cover at the door' : 'Free entry'}</span>
         <span>${p.drinks === 'provided' ? 'Drinks provided' : 'BYOB'}</span>
@@ -2270,10 +2549,10 @@ async function partyPageHtml(p, opts = {}){
                   <span style="flex:1;font-weight:600">${esc(nickMap[gp.id] || gp.display_name)}${gp.id === me.id ? ' (you)' : ''}</span></button>
                   ${friendIds.has(gp.id) ? '<span style="font-size:12px;color:#FF9CC4;font-weight:600">friend</span>' : ''}
                 </div>`).join('')
-              : `<p class="empty" style="padding:6px">${(showRecap || over) ? 'Nobody claimed a spot.' : 'Nobody yet \u2014 first claim gets bragging rights.'}</p>`)
+              : `<p class="empty" style="padding:6px">${(showRecap || over) ? 'Nobody claimed a ticket.' : 'Nobody yet \u2014 first claim gets bragging rights.'}</p>`)
           : `${fNames.length ? `<div class="friendsline" style="margin:0 0 8px">${esc(friendLine(fNames))}</div>` : ''}
-             <p class="hint" style="margin:0">${priv ? 'Get accepted and the whole guest list opens up.' : 'Claim a spot to see everyone going.'}</p>`}
-        ${inRoom && claimed ? `<p class="hint" style="margin:10px 0 0">${claimed} claimed a spot.</p>` : ''}
+             <p class="hint" style="margin:0">${priv ? 'Get accepted and the whole guest list opens up.' : 'Claim a ticket to see everyone going.'}</p>`}
+        ${inRoom && claimed ? `<p class="hint" style="margin:10px 0 0">${claimed} claimed a ticket.</p>` : ''}
       </div>
       <div class="panel">
         <h4>${nowLive ? 'Where' : (showRecap || over) ? 'Where it was' : 'Location'}</h4>
@@ -2282,7 +2561,7 @@ async function partyPageHtml(p, opts = {}){
           ? (addr ? `<p class="addr" style="margin:0">${esc(addr)}</p>`
              : (dropPending(p) ? dropHtml(p)
                 : `<p class="hint" style="margin:0">${over ? 'The address is closed now.' : 'Unlocking\u2026'}</p>`))
-          : `<p class="hint" style="margin:0">Address ${dropPending(p) ? 'drops ' + esc(dropWhen(p)) : 'unlocks ' + (priv ? 'when the host accepts you' : 'when you claim a spot')}. For now: <b style="color:var(--text)">${esc(p.town || 'nearby')}</b>.</p>`}
+          : `<p class="hint" style="margin:0">Address ${dropPending(p) ? 'drops ' + esc(dropWhen(p)) : 'unlocks ' + (priv ? 'when the host accepts you' : 'when you claim a ticket')}. For now: <b style="color:var(--text)">${esc(p.town || 'nearby')}</b>.</p>`}
         ${feeTierHtml(p)}
       </div>
       ${reqs.length ? `<div class="panel" style="border-color:rgba(255,180,84,.4)">
@@ -2300,11 +2579,11 @@ async function partyPageHtml(p, opts = {}){
       ${showRecap ? recapHtml(p, mine) : ''}
       ${over && mine ? `<button class="btn btn-danger" data-delparty="${p.id}">Delete this party</button>` : ''}
       ${(showRecap || over) ? '' : mine ? `<button class="btn btn-danger" data-cancel="${p.id}">Cancel this party</button>`
-        : going ? `<button class="btn btn-danger" data-unclaim="${p.id}">Give up my spot</button>`
+        : going ? `<button class="btn btn-danger" data-unclaim="${p.id}">Give up my ticket</button>`
         : requested ? `<div class="waiting">Request sent — waiting on ${esc((nickMap[p.host_id] || p.profiles?.display_name || 'the host').split(' ')[0])}</div>
             <button class="btn btn-danger" data-cancelreq="${p.id}">Cancel request</button>`
-        : priv ? `<button class="btn" data-request="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Request a spot'}</button>`
-        : `<button class="btn" data-claim="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Claim my spot'}</button>`}
+        : priv ? `<button class="btn" data-request="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Request a ticket'}</button>`
+        : `<button class="btn" data-claim="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Claim ticket'}</button>`}
       ${(showRecap || over) ? '' : `<button class="btn btn-ghost" data-shareparty="${p.id}" style="margin-top:10px">Share with friends</button>`}
       ${mine ? '' : `<button class="danger-link" data-rpparty="${p.id}">Report this party</button>`}
     </div>`;
@@ -2396,7 +2675,7 @@ async function partyActions(e){
   if(el = g('[data-hcmsg]')){
     const pid = el.dataset.hcmsg;
     const body = await askText({ title: 'Message the room',
-      sub: 'Goes to everyone who claimed a spot at this party.',
+      sub: 'Goes to everyone holding a ticket to this party.',
       placeholder: 'Doors are open — pull around back', yes: 'Send' });
     if(!body || !body.trim()) return;
     el.disabled = true; el.textContent = 'Sending…';
@@ -2497,11 +2776,11 @@ async function partyActions(e){
     toast('Denied'); refreshAfterAction(); return;
   }
   if(el = g('[data-unclaim]')){
-    if(!await askYes({ title: 'Give up your spot?',
+    if(!await askYes({ title: 'Give up your ticket?',
       sub: 'It goes back to whoever wants it.', yes: 'Give it up', danger: true })) return;
     await db.from('claims').delete().eq('party_id', el.dataset.unclaim).eq('user_id', me.id);
     delete unlockedAddr[el.dataset.unclaim];
-    toast('Spot released'); refreshAfterAction(); return;
+    toast('Ticket released'); refreshAfterAction(); return;
   }
   if(el = g('[data-cancel]')){
     if(!await askYes({ title: 'Cancel this party?',
@@ -2939,7 +3218,7 @@ function msAction(p, mine, going){
       (recapOpen(p) ? `<button class="btn btn-ghost" data-msalbum="${p.id}" style="margin-top:10px">Add to album</button>` : '');
   }
   if(!going){
-    return `<button class="btn" data-mapopen="${p.id}" style="margin-top:20px">See it and claim a spot</button>` + share;
+    return `<button class="btn" data-mapopen="${p.id}" style="margin-top:20px">Claim ticket</button>` + share;
   }
   // you're in. the door comes before the album.
   if(checkinOpen(p) && !myCheckIn[p.id]){
@@ -2993,7 +3272,7 @@ function openMapSheet(pid, keepPos){
   // ── what the pull reveals ──
   $('#map-sheet-more').innerHTML = `
     ${p.photo_url ? `<div class="ms-cover" style="background-image:url('${esc(p.photo_url)}')"></div>` : ''}
-    ${flameBadge(p.host_id, hostCount) ? `<div style="margin:2px 0 10px">${flameBadge(p.host_id, hostCount)}</div>` : ''}
+    ${flameBadge(p.host_id) ? `<div style="margin:2px 0 10px">${flameBadge(p.host_id)}</div>` : ''}
     ${p.description ? `<div class="ms-sec">What it is</div><p class="ms-desc">${esc(p.description)}</p>` : ''}
     ${feeTierHtml(p)}
     <div class="ms-sec">Where</div>
@@ -3004,7 +3283,7 @@ function openMapSheet(pid, keepPos){
             : '<p class="hint" style="margin:0">Unlocking…</p>'))
       : `<p class="ms-desc" style="color:var(--muted)">${dropPending(p)
             ? 'The address drops ' + esc(dropWhen(p)) + '.'
-            : 'Address unlocks ' + (p.privacy === 'private' ? 'when the host accepts you' : 'when you claim a spot') + '.'}
+            : 'Address unlocks ' + (p.privacy === 'private' ? 'when the host accepts you' : 'when you claim a ticket') + '.'}
           This pin is approximate — <b style="color:var(--text)">${esc(p.town || 'nearby')}</b>.</p>`}
     ${claimed ? `<div class="ms-sec">Who's going</div>
       ${known.length ? `<div style="display:flex;align-items:center;gap:10px">${faceStack(known, 6)}
@@ -3038,10 +3317,28 @@ $('#map-sheet').addEventListener('click', e => {
 /* Quick add — nobody wants to type names into a search box to find people
    they were standing next to on Saturday. Rank by shared nights: people whose
    parties you claimed, people who claimed yours, then anyone else nearby. */
+/* Cade's account sees every user on Turnout in quick add instead of just his
+   region — it's how he brings the first people in by hand. No data is exposed
+   that "Search anyone by name" doesn't already return to any signed-in user;
+   this only saves the typing. */
+/* Every place you can add someone renders the same four states, so "Add" and
+   "Requested" never look like two different features. */
+function addBtn(id, name){
+  const n = esc(name || 'them');
+  if(friends.some(f => f.id === id)) return `<button class="qa-btn done" disabled>Friends</button>`;
+  if(pendingIn.some(x => x.id === id)) return `<button class="qa-btn accept" data-fracc="${id}">Accept</button>`;
+  if(pendingOut.has(id)) return `<button class="qa-btn sent" data-unreq="${id}" data-name="${n}">Requested</button>`;
+  return `<button class="qa-btn" data-add="${id}" data-name="${n}">Add</button>`;
+}
+const OWNER_ID = '8f0d10ae-6e29-4b26-935d-4a05812bf531';
+let SEES_EVERYONE = false;
 async function loadQuickAdd(){
+  SEES_EVERYONE = !!me && me.id === OWNER_ID;
   const wrap = $('#quick-wrap'), box = $('#quick-add');
   if(!wrap || !box) return;
-  const known = new Set([me.id, ...friends.map(f => f.id), ...pendingOut, ...pendingIn.map(p => p.id), ...blocked]);
+  /* pendingOut stays OUT of `known` on purpose: someone you've requested has
+     to keep showing up so you can tap "Requested" again to take it back. */
+  const known = new Set([me.id, ...friends.map(f => f.id), ...pendingIn.map(p => p.id), ...blocked]);
   const score = {}, why = {};
   const bump = (id, n, reason) => {
     if(!id || known.has(id)) return;
@@ -3059,15 +3356,22 @@ async function loadQuickAdd(){
       bump(p.host_id, 1, 'hosts near you');
     }
   });
-  let ids = Object.keys(score).sort((a, b) => score[b] - score[a]).slice(0, 6);
-  if(ids.length < 4){
-    /* new account with no history — show a few real people from their area */
+  let ids = Object.keys(score).sort((a, b) => score[b] - score[a]).slice(0, SEES_EVERYONE ? 25 : 6);
+  if(ids.length < (SEES_EVERYONE ? 999 : 4)){
+    /* Nobody from a shared party yet, so widen to the region. An exact ZIP
+       match was far too tight — Rolla is 65401 and St. James is 65559, fifteen
+       minutes apart, and neither would ever see the other. The first three
+       digits are how mail is regionally sorted and never cross a state line,
+       so 654xx is "round here". */
     try{
-      const { data } = await db.from('profiles').select('id, display_name, avatar_url, zip')
-        .eq('zip', me.zip || '').limit(12);
+      const pre = (me.zip || '').slice(0, 3);
+      let q = db.from('profiles').select('id, display_name, avatar_url, zip').neq('id', me.id);
+      q = SEES_EVERYONE ? q.limit(60) : q.like('zip', pre + '%').limit(40);
+      const { data } = await q;
       (data || []).forEach(pr => { if(!known.has(pr.id) && !score[pr.id]){
-        profMap[pr.id] = profMap[pr.id] || pr; bump(pr.id, 0.5, 'near you'); } });
-      ids = Object.keys(score).sort((a, b) => score[b] - score[a]).slice(0, 6);
+        profMap[pr.id] = profMap[pr.id] || pr;
+        bump(pr.id, 0.5, SEES_EVERYONE ? (pr.zip || 'on Turnout') : 'near you'); } });
+      ids = Object.keys(score).sort((a, b) => score[b] - score[a]).slice(0, SEES_EVERYONE ? 25 : 6);
     }catch(_){ }
   }
   if(!ids.length){ wrap.hidden = true; return; }
@@ -3083,7 +3387,7 @@ async function loadQuickAdd(){
         ${avatar(u, 36)}
         <span class="qa-txt"><b>${esc(u.display_name || 'Someone')}</b><i>${esc(why[id] || 'near you')}</i></span>
       </button>
-      <button class="qa-btn" data-add="${id}" data-name="${esc(u.display_name || 'them')}">Add</button>
+      ${addBtn(id, u.display_name)}
     </div>`;
   }).filter(Boolean).join('');
   if(!rows){ wrap.hidden = true; return; }
@@ -3092,16 +3396,21 @@ async function loadQuickAdd(){
 }
 async function loadFriends(){
   await loadFriendRows();
-  $('#freq-wrap').innerHTML = pendingIn.length ? `
-    <div class="panel" style="border-color:rgba(255,180,84,.4)">
-      <h4 style="color:var(--amber)">Friend requests (${pendingIn.length})</h4>
-      ${pendingIn.map(p => `<div class="f-row">
+  /* One button, not two. Declining a friend is a decision nobody wants to
+     make at a glance, so the X just puts the card away — the request itself
+     stays pending and the person still turns up in search with "Accept". */
+  const shownReqs = pendingIn.filter(p => !freqHidden.has(p.id));
+  $('#freq-wrap').innerHTML = shownReqs.length ? `
+    <div class="panel freq" style="border-color:rgba(255,180,84,.4)">
+      <button class="freq-x" id="freq-x" aria-label="Hide requests">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <h4 style="color:var(--amber)">Friend requests (${shownReqs.length})</h4>
+      ${shownReqs.map(p => `<div class="f-row">
         <button data-viewuser="${p.id}" style="display:flex;flex:1;gap:10px;align-items:center;background:none;border:none;padding:0;min-width:0;text-align:left;color:inherit;font-family:inherit">
         ${avatar(p, 44, 14)}
         <div style="flex:1;min-width:0"><div style="font-weight:700">${esc(p.display_name)}</div>
           <div style="font-size:12.5px;color:var(--faint)">wants to be friends</div></div></button>
         <button class="mini-btn acc" data-fracc="${p.id}" style="background:var(--grad);color:#fff;border:none">Accept</button>
-        <button class="mini-btn den" data-frdec="${p.id}">Decline</button>
       </div>`).join('')}
     </div>` : '';
   // last message per friend -> preview, time, unread count
@@ -3131,9 +3440,9 @@ async function loadFriends(){
   $('#friend-list').innerHTML = rows.length ? rows.map(f => {
     const p = prev[f.id];
     const un = p ? p.unread : 0;
-    const line = !p ? 'Say hey — start the chat'
-      : (p.m.sender_id === me.id ? 'You: ' : '')
-        + (p.m.image_url ? CAM_GLYPH + 'Photo' : p.m.party_id ? 'Shared a party' : esc(p.m.text || ''));
+    const body = p ? (p.m.image_url ? CAM_GLYPH + 'Photo' : p.m.party_id ? 'Shared a party' : esc(p.m.text || '')) : '';
+    const line = (!p || !body) ? 'Say hey — start the chat'
+      : (p.m.sender_id === me.id ? 'You: ' : '') + body;
     return `<button class="fl-row" data-chat="${f.id}">
       <span data-viewuser="${f.id}" style="display:flex">${avatar(f, 50, 16)}</span>
       <div class="fl-main">
@@ -3165,26 +3474,34 @@ $('#friend-search').addEventListener('input', () => {
         ${avatar(p, 40)}
         <div style="flex:1;min-width:0"><div style="font-weight:600">${esc(p.display_name)}</div>
           <div style="font-size:12px;color:var(--faint)">${esc(p.zip || '')}</div></div></button>
-        ${fids.has(p.id) ? '<span class="mini-btn den">Friends ✓</span>'
-          : pendingOut.has(p.id) ? '<span class="mini-btn den">Requested</span>'
-          : inIds.has(p.id) ? `<button class="mini-btn acc" data-fracc="${p.id}">Accept</button>`
-          : `<button class="mini-btn acc" data-add="${p.id}" data-name="${esc(p.display_name)}">Add</button>`}
+        ${addBtn(p.id, p.display_name)}
       </div>`).join('') : '<p class="empty" style="padding:6px">Nobody by that name yet — get them to sign up.</p>';
   }, 300);
 });
 $('#friends').addEventListener('click', async e => {
   let el;
   if(el = e.target.closest('[data-viewuser]')){ openUserCard(el.dataset.viewuser); return; }
+  if(el = e.target.closest('[data-unreq]')){
+    const id = el.dataset.unreq;
+    el.disabled = true; el.textContent = 'Cancelling\u2026';
+    const { error } = await db.from('friendships').delete().eq('user_id', me.id).eq('friend_id', id);
+    if(error){ el.disabled = false; el.textContent = 'Requested'; toast(error.message); return; }
+    pendingOut.delete(id); haptic(8);
+    toast('Request to ' + (el.dataset.name || 'them') + ' cancelled');
+    await loadFriends(); loadQuickAdd(); $('#friend-search').dispatchEvent(new Event('input'));
+    return;
+  }
   if(el = e.target.closest('[data-add]')){
     /* answer the tap instantly — the insert can take a moment on cell data and
        a button that just sits there reads as broken */
     const btn = el.matches('.qa-btn') ? el : null;
-    if(btn){ btn.disabled = true; btn.textContent = 'Sent'; }
+    if(btn){ btn.disabled = true; btn.textContent = 'Requested'; btn.classList.add('sent'); }
     const { error } = await db.from('friendships').insert({ user_id: me.id, friend_id: el.dataset.add });
     if(error){
-      if(btn){ btn.disabled = false; btn.textContent = 'Add'; }
+      if(btn){ btn.disabled = false; btn.textContent = 'Add'; btn.classList.remove('sent'); }
       toast(error.message.includes('duplicate') ? 'Request already out' : error.message); return;
     }
+    if(btn){ btn.disabled = false; btn.dataset.unreq = el.dataset.add; btn.removeAttribute('data-add'); }
     haptic(9);
     toast('Request sent to ' + el.dataset.name);
     await loadFriends();
@@ -3198,6 +3515,13 @@ $('#friends').addEventListener('click', async e => {
     if(!error) haptic([10, 40, 18]);
     toast(error ? error.message : 'You’re friends now');
     await loadFriends(); $('#friend-search').dispatchEvent(new Event('input'));
+    return;
+  }
+  if(e.target.closest('#freq-x')){
+    pendingIn.forEach(p => freqHidden.add(p.id));
+    saveFreqHidden(); haptic(6);
+    $('#freq-wrap').innerHTML = ''; updateDot();
+    toast('Put away \u2014 they\u2019re still waiting on you');
     return;
   }
   if(el = e.target.closest('[data-frdec]')){
@@ -3225,7 +3549,7 @@ function msgHtml(m, opts){
       <div class="pshare-scrim"></div>
       <div class="pshare-txt">
         <b>${esc(p.name)}</b>
-        <span>${esc(whenLabel(p.starts_at))} · ${left > 0 ? left + ' spot' + (left === 1 ? '' : 's') + ' left' : 'Full'}</span>
+        <span>${esc(whenLabel(p.starts_at))} · ${left > 0 ? left + ' ticket' + (left === 1 ? '' : 's') + ' left' : 'Full'}</span>
       </div></button>`;
   }
   if(m.image_url)
@@ -3695,6 +4019,14 @@ $('#loc-confirm').addEventListener('click', async () => {
 });
 let hostPhoto = null; // cover photo url once uploaded
 $('#h-photo').addEventListener('click', () => $('#h-photo-file').click());
+$('#h-photo-add').addEventListener('click', () => $('#h-photo-file').click());
+$('#h-photo-gen').addEventListener('click', () => {
+  if(me && me.is_vip){ toast('Cover generation is coming — pick a photo for now'); $('#h-photo-file').click(); return; }
+  /* pitch it, then still let them do the free thing — a wall with no door
+     just loses you the party */
+  openVip('Generated covers are a VIP thing. Here\u2019s everything else that comes with it.',
+          () => $('#h-photo-file').click());
+});
 $('#h-photo-file').addEventListener('change', async e => {
   const file = e.target.files && e.target.files[0];
   e.target.value = '';
@@ -3745,7 +4077,7 @@ $('#h-priv').addEventListener('click', e => {
   hPriv = b.dataset.priv;
   $$('#h-priv button').forEach(x => x.classList.toggle('on', x === b));
   $('#h-priv-hint').textContent = hPriv === 'public'
-    ? 'Anyone who claims a spot instantly gets the address.'
+    ? 'Anyone who claims a ticket instantly gets the address.'
     : 'You see every request and accept who gets in. Only accepted guests get the address.';
 });
 $('#h-drinks').addEventListener('click', e => {
@@ -3757,7 +4089,7 @@ $('#h-drinks').addEventListener('click', e => {
       the start time, 'start' = exactly at kickoff ── */
 let hDrop = '0';
 const DROP_HINT = {
-  '0':     'Everyone who claims a spot gets the address immediately.',
+  '0':     'Everyone with a ticket gets the address immediately.',
   '60':    'The address appears an hour before you start. Nobody can pass it around early.',
   '120':   'The address appears two hours before you start.',
   'start': 'The address appears the moment your party starts.'
@@ -3841,7 +4173,7 @@ $('#h-post').addEventListener('click', async () => {
   hostGPS = null; hostPhoto = null;
   $('#h-photo').classList.remove('has');
   $('#h-photo').style.backgroundImage = '';
-  $('#h-photo').querySelector('.cp-label').textContent = 'Add a photo — it becomes the card';
+  $('#h-photo').querySelector('.cp-label').textContent = 'Add or generate a cover';
   $('#h-gps').innerHTML = PIN_IC + 'Set the spot on a map';
   $('#h-addr-hint').textContent = 'Locked in the database — only your guests can ever read it.';
   ['h-name','h-addr','h-town','h-desc','h-when','h-fee'].forEach(id => $('#' + id).value = '');
@@ -3852,7 +4184,7 @@ $('#h-post').addEventListener('click', async () => {
   ['h-fee-late','h-cutoff'].forEach(id => $('#' + id).value = '');
   $$('#h-priv button').forEach(x => x.classList.toggle('on', x.dataset.priv === 'public'));
   $$('#h-drinks button').forEach(x => x.classList.toggle('on', x.dataset.drinks === 'byob'));
-  $('#h-priv-hint').textContent = 'Anyone who claims a spot instantly gets the address. They still have to check in at the door.';
+  $('#h-priv-hint').textContent = 'Anyone who claims a ticket instantly gets the address. They still have to check in at the door.';
   show('find');
   if(needsPinCheck) setTimeout(() => confirmPin(p.id, pt), 900);
 });
@@ -3896,11 +4228,10 @@ async function renderProfile(){
       <p class="hint" id="loc-note" style="margin-top:10px"></p>
     </div>
     <div class="panel"><h4>Host flame</h4>
-      ${(hostScores[me.id] && hostScores[me.id].votes >= 2)
-        ? `<p class="flame" style="font-size:19px">${flameSvg(19)} ${hostScores[me.id].avg} <span style="font-size:13px;color:var(--muted);font-weight:600">from ${hostScores[me.id].votes} ratings · ${hosted.length} parties hosted</span></p>`
-        : hosted.length >= 3
-        ? `<p class="flame" style="font-size:16px">${flameSvg(16)} ${hosted.length} parties hosted — rate a couple of recaps and your real score shows up here</p>`
-        : `<p style="color:var(--muted);font-size:14px">${hosted.length} of 3 parties hosted. Once guests start rating your recaps, your flame score lands here.</p>`}
+      ${(hostScores[me.id] && hostScores[me.id].votes)
+        ? `<p class="flame" style="font-size:22px">${flameSvg(22)} ${hostScores[me.id].avg}<span style="font-size:15px;color:var(--muted);font-weight:600"> / 5</span></p>
+           <p style="font-size:13px;color:var(--muted);margin-top:4px">Average of ${hostScores[me.id].votes} rating${hostScores[me.id].votes === 1 ? '' : 's'} from ${hosted.length} part${hosted.length === 1 ? 'y' : 'ies'}.</p>`
+        : `<p style="color:var(--muted);font-size:14px">No ratings yet. Throw a party — everyone who checked in can rate the recap out of 5, and the average lands here.</p>`}
     </div>
     <div class="panel"><h4>Bring people in</h4>
       <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Parties only work when your people are here. One tap sends them the app.</p>
@@ -3951,7 +4282,7 @@ $('#profile-body').addEventListener('click', async e => {
   }
   if(e.target.id === 'legal-btn'){ openLegal(); return; }
   if(e.target.id === 'invite-btn'){
-    const text = me.display_name.split(' ')[0] + ' is on Turnout — where the party is. Claim a spot, get the address.';
+    const text = me.display_name.split(' ')[0] + ' is on Turnout — where the party is. Claim a ticket, get the address.';
     const url = 'https://jointurnout.app';
     try {
       if(navigator.share){ await navigator.share({ title: 'Turnout', text, url }); haptic(10); return; }
@@ -4151,7 +4482,7 @@ function closeOverlay(el, target){
 addSwipeBack($('#chat'), () => show('friends'));
 
 /* swipe left/right anywhere to move between the five tabs */
-const TAB_ORDER = ['find','map','friends','host','tonight'];
+const TAB_ORDER = ['find','map','tonight','friends','host'];
 (function tabSwipe(){
   const shell = document.querySelector('.shell');
   let sx = 0, sy = 0, dx = 0, cur = null, nb = null, dir = 0, dragging = false, decided = false;
@@ -4299,6 +4630,28 @@ function closeWelcome(){
   try{ if(me) localStorage.setItem('turnout-welcomed-' + me.id, '1'); }catch(_){ }
   haptic(8);
 }
+/* Shown when someone reaches for a paid feature, not on a timer. `why` names
+   the thing they just tried to do, so the pitch answers a question they are
+   already asking. */
+let vipAfter = null;
+function openVip(why, after){
+  $('#vip-why').textContent = why || 'Everything below, for the price of a coffee once a month.';
+  vipAfter = after || null;
+  $('#vip-note').textContent = me && me.is_vip ? 'You already have VIP.' : '';
+  $('#vip-sheet').hidden = false;
+  haptic(8);
+}
+function closeVip(){ $('#vip-sheet').hidden = true; vipAfter = null; }
+$('#vip-x').addEventListener('click', closeVip);
+$('#vip-later').addEventListener('click', () => { const f = vipAfter; closeVip(); if(f) f(); });
+$('#vip-sheet').addEventListener('click', e => { if(e.target.id === 'vip-sheet') closeVip(); });
+$('#vip-get').addEventListener('click', () => {
+  /* Nothing charges money yet, and pretending otherwise would be a lie the
+     first person to tap this would catch. */
+  $('#vip-note').textContent = 'Payments aren\u2019t switched on yet \u2014 VIP is free while we build it.';
+  toast('VIP is free for now — enjoy it');
+  closeVip();
+});
 function openLegal(){ $('#legal').hidden = false; }
 function closeLegal(){ $('#legal').hidden = true; }
 $('#lg-close').addEventListener('click', closeLegal);
@@ -4319,6 +4672,7 @@ async function boot(){
   me = await loadMe();
   if(!me){ show('auth'); dropSplash(); return; }
   loadLocPref();
+  loadFreqHidden();
   try{
     if(pendingHomeAddr){
       await db.from('home_addresses').upsert({ user_id: me.id, address: pendingHomeAddr });
