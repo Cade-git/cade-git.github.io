@@ -28,6 +28,9 @@
   }
   *{box-sizing:border-box;margin:0}
   html,body{height:100%;overflow-x:hidden}
+  /* user-typed names, towns and addresses can be one long unbroken word —
+     wrap them instead of letting them run off the right edge */
+  h2, h3, h4, .addr, .card-when, .f-row span, .tn-title{overflow-wrap:anywhere}
   body{background:var(--ink);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.5;
     display:flex;justify-content:center;min-height:100dvh}
   body::before{content:"";position:fixed;inset:0;pointer-events:none;
@@ -72,6 +75,8 @@
   .top{display:flex;align-items:center;justify-content:space-between;padding:calc(16px + env(safe-area-inset-top, 0px)) 20px 12px;
     border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,10,20,.85);backdrop-filter:blur(10px);z-index:5}
   .top .wordmark{font-size:20px}
+  .opt{font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);
+    background:var(--raised);border:1px solid var(--line);border-radius:99px;padding:2px 7px;margin-left:6px;vertical-align:1px}
   .loc-pill{font-size:13px;color:var(--muted);background:var(--raised);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
   .loc-pill b{color:var(--cyan);font-weight:600}
   .tabbar{position:absolute;bottom:0;left:0;right:0;display:flex;z-index:6;background:rgba(16,14,26,.92);
@@ -169,6 +174,9 @@
     border:1.5px solid var(--line);background:var(--raised);
     transition:transform .28s var(--spring),border-color .28s var(--spring)}
   .me-dot:active{transform:scale(.9)}
+  /* the map is full-bleed, so its dot floats over the tiles like the FABs do */
+  .map-me{position:absolute;top:calc(14px + env(safe-area-inset-top, 0px));left:14px;z-index:401;
+    background:rgba(11,10,20,.65);backdrop-filter:blur(8px);box-shadow:0 6px 18px -6px rgba(0,0,0,.7)}
   .me-dot .f-av,.me-dot .avimg{width:100%!important;height:100%!important;border-radius:0!important;font-size:14px!important}
   .tab .dot.live{background:var(--lime);box-shadow:0 0 0 0 rgba(163,230,53,.6);animation:tabpulse 1.9s ease-out infinite}
   @keyframes tabpulse{
@@ -245,7 +253,7 @@
   .here-locked b{color:var(--lime);font-variant-numeric:tabular-nums}
   .rate-row{display:flex;gap:7px;margin:2px 0 4px}
   .rate-row button{width:42px;height:42px;border-radius:13px;background:var(--raised);border:1px solid var(--line);
-    display:flex;align-items:center;justify-content:center;color:#3A3552;transition:all .28s var(--spring)}
+    display:flex;align-items:center;justify-content:center;color:#6F6796;transition:all .28s var(--spring)}
   .rate-row button.lit{color:var(--amber);background:rgba(255,180,84,.14);border-color:rgba(255,180,84,.45)}
   .rate-row button:active{transform:scale(.88)}
   .rate-done{font-size:12.5px;color:var(--lime);font-weight:600;margin-top:4px}
@@ -307,9 +315,10 @@
   .tag.going{background:rgba(180,240,75,.92);color:#12210A;border-color:transparent}
   .tag.priv{background:rgba(255,180,84,.9);color:#241503;border-color:transparent}
   .card h3{font-family:var(--disp);font-weight:800;font-size:18px;margin:0 0 3px;color:#fff;line-height:1.15;
-    text-shadow:0 2px 14px rgba(0,0,0,.65);letter-spacing:-.01em}
+    text-shadow:0 2px 14px rgba(0,0,0,.65);letter-spacing:-.01em;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .card-when{font-size:12px;color:rgba(255,255,255,.72);font-weight:500;margin-bottom:9px;
-    text-shadow:0 1px 8px rgba(0,0,0,.6)}
+    text-shadow:0 1px 8px rgba(0,0,0,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .card-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .spots-n{font-family:var(--disp);font-weight:800;font-size:16.5px;font-variant-numeric:tabular-nums;
     letter-spacing:-.01em;text-shadow:0 1px 10px rgba(0,0,0,.7);white-space:nowrap}
@@ -539,7 +548,8 @@
   .map-fab.on{background:var(--grad);border-color:transparent}
   #map-layer{top:calc(12px + env(safe-area-inset-top, 0px))}
   #map-locate{top:calc(62px + env(safe-area-inset-top, 0px))}
-  .map-hud{position:absolute;left:12px;top:calc(12px + env(safe-area-inset-top, 0px));z-index:5;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+  .map-hud{position:absolute;left:62px;top:calc(12px + env(safe-area-inset-top, 0px));z-index:5;display:flex;flex-direction:column;gap:6px;align-items:flex-start;
+    max-width:calc(100% - 130px)}
   .map-hud b{font-family:var(--disp);font-size:13px;color:#fff;background:rgba(14,12,26,.82);backdrop-filter:blur(10px);
     border:1px solid rgba(255,255,255,.14);border-radius:99px;padding:7px 14px;box-shadow:0 4px 16px rgba(0,0,0,.5)}
   .map-hud small{font-size:10.5px;color:var(--muted);background:rgba(14,12,26,.7);border:1px solid var(--line);
@@ -595,7 +605,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v8.0</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v8.1</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -605,8 +615,8 @@
           <div class="field"><label for="a-zip">ZIP code</label><input id="a-zip" inputmode="numeric" maxlength="5" placeholder="65401"></div>
           <div class="field"><label for="a-email">Email</label><input id="a-email" type="email" placeholder="you@email.com" autocomplete="email"></div>
         </div>
-        <div class="field"><label for="a-addr">Home address</label><input id="a-addr" placeholder="Street address" autocomplete="street-address">
-          <p class="hint">Auto-fills when you host. Locked in the database — nobody else can ever read it.</p></div>
+        <div class="field"><label for="a-addr">Home address <span class="opt">optional</span></label><input id="a-addr" placeholder="Street address" autocomplete="street-address">
+          <p class="hint">Only so it can auto-fill if you ever host — skip it and nothing changes. Locked in the database; nobody else can ever read it.</p></div>
         <div class="field"><label for="a-pass">Password</label><input id="a-pass" type="password" placeholder="6+ characters" autocomplete="new-password"></div>
         <button class="btn" id="do-signup">Create my account</button>
         <button class="btn-ghost btn" id="to-signin" style="margin-top:10px">I already have an account</button>
@@ -640,6 +650,7 @@
   <section class="screen" id="map">
     <div class="map-wrap">
       <div id="realmap" aria-label="Party map"></div>
+      <button class="me-dot map-me" data-me aria-label="Your profile"></button>
       <div class="map-hud">
         <b id="map-home">Turnout map</b>
         <small id="map-note">tap a face to see the party</small>
@@ -1121,6 +1132,15 @@ function isLive(p){
   if(!p.starts_at) return false;
   const t = new Date(p.starts_at).getTime(), now = Date.now();
   return now >= t - 30 * 60000 && now <= t + 6 * 3600000;
+}
+/* Done for good: past its end time, or past a sane 6 hours after the start
+   when no end was given. Once this is true nobody should be claiming a spot,
+   giving one up, or cancelling — it already happened. */
+function partyOver(p){
+  if(!p.starts_at) return false;
+  const end = p.ends_at ? new Date(p.ends_at).getTime()
+                        : new Date(p.starts_at).getTime() + 6 * 3600000;
+  return Date.now() > end;
 }
 /* the feed reads differently at 9pm Friday than 2pm Tuesday */
 function bucketOf(p){
@@ -1786,6 +1806,10 @@ async function renderDetail(){
   if(showRecap && !recapPhotos[p.id]) await loadRecap(p.id);
   if((showCheckin || showRecap) && !checkIns[p.id]) await loadCheckIns(p.id);
   const showHostConsole = mine && (checkinOpen(p) || recapOpen(p));
+  /* Every label on this page is written in one of three tenses. Drive them
+     off the clock, not off whether the album happens to still be open —
+     a party five days gone was still saying "who's going / 49 spots left". */
+  const nowLive = isLive(p), over = partyOver(p) && !nowLive;
   if(showHostConsole && !hcRoster[p.id]) await loadRoster(p.id);
   const claimers = (p.claims || []).map(c => c.user_id);
   const claimed = claimers.length;
@@ -1797,15 +1821,32 @@ async function renderDetail(){
   const cls = capClass(claimed, p.max_people);
   const pct = Math.min(100, claimed / p.max_people * 100);
   const full = claimed >= p.max_people;
+  /* refreshData only pre-fetches addresses for parties still in the feed, so
+     anything older than the 6-hour cutoff used to sit on "Unlocking…" forever.
+     Fetch it here on demand for anyone entitled to it. */
+  if((going || mine) && !unlockedAddr[p.id] && !dropPending(p)){
+    try{ const { data: ad } = await db.rpc('get_party_address', { pid: p.id });
+         if(ad) unlockedAddr[p.id] = ad; }catch(_){ }
+  }
   const addr = unlockedAddr[p.id];
   const hostCount = allParties.filter(x => x.host_id === p.host_id).length;
   const reqs = mine && priv ? (hostRequests[p.id] || []) : [];
   // guest list — RLS already limits what comes back; UI saves the full list for people who are in
+  /* Build the roster from the claim IDs we already trust, not from the
+     embedded profile join. That join can come back empty — RLS, a dropped
+     embed, one deleted profile — and the old code then printed "Nobody yet"
+     directly under "(3)", which reads to a host as "nobody is coming".
+     Never say nobody when the count says otherwise. */
   let guests = [];
   if(claimed){
-    const { data: gRows } = await db.from('claims')
-      .select('user_id, profiles(id, display_name, avatar_url)').eq('party_id', p.id);
-    guests = (gRows || []).map(r => r.profiles).filter(Boolean);
+    const byId = {};
+    try{
+      const { data: gRows } = await db.from('claims')
+        .select('user_id, profiles(id, display_name, avatar_url)').eq('party_id', p.id);
+      (gRows || []).forEach(r => { if(r.profiles) byId[r.profiles.id] = r.profiles; });
+    }catch(_){ }
+    guests = claimers.map(id =>
+      byId[id] || (id === me.id ? me : null) || profMap[id] || { id, display_name: 'Someone' });
   }
   body.innerHTML = `
     <div class="d-cover" style="background:${gradFor(p.id)}">
@@ -1826,13 +1867,13 @@ async function renderDetail(){
       </div>
       ${p.description ? `<div class="panel"><h4>The rundown</h4><p style="font-size:14.5px">${esc(p.description)}</p></div>` : ''}
       <div class="panel">
-        <h4>${showRecap ? 'Turnout' : 'Capacity'}</h4>
-        <div class="capline" style="margin-top:0"><b>${claimed} / ${p.max_people} ${showRecap ? 'showed up' : 'going'}</b>
-          ${showRecap ? '' : `<b class="spots-${cls}">${capLabel(claimed, p.max_people)}</b>`}</div>
+        <h4>${(showRecap || over) ? 'Turnout' : 'Capacity'}</h4>
+        <div class="capline" style="margin-top:0"><b>${claimed} / ${p.max_people} ${nowLive ? 'in' : (showRecap || over) ? 'showed up' : 'going'}</b>
+          ${(showRecap || over) ? '' : `<b class="spots-${cls}">${capLabel(claimed, p.max_people)}</b>`}</div>
         <div class="capbar" style="margin-bottom:0"><i class="fill-${cls}" style="width:${pct}%"></i></div>
       </div>
       <div class="panel">
-        <h4>${showRecap ? 'Who was there' : 'Who&rsquo;s going'} (${claimed})</h4>
+        <h4>${nowLive ? 'Who&rsquo;s here' : (showRecap || over) ? 'Who was there' : 'Who&rsquo;s going'} (${claimed})</h4>
         ${(going || mine)
           ? (guests.length
               ? guests.map(gp => `<div class="f-row">
@@ -1840,16 +1881,17 @@ async function renderDetail(){
                   <span style="flex:1;font-weight:600">${esc(nickMap[gp.id] || gp.display_name)}${gp.id === me.id ? ' (you)' : ''}</span></button>
                   ${friendIds.has(gp.id) ? '<span style="font-size:12px;color:#FF9CC4;font-weight:600">friend</span>' : ''}
                 </div>`).join('')
-              : `<p class="empty" style="padding:6px">${showRecap ? 'Nobody claimed a spot.' : 'Nobody yet — first claim gets bragging rights.'}</p>`)
+              : `<p class="empty" style="padding:6px">${(showRecap || over) ? 'Nobody claimed a spot.' : 'Nobody yet \u2014 first claim gets bragging rights.'}</p>`)
           : `${fNames.length ? `<div class="friendsline" style="margin:0 0 8px">${esc(friendLine(fNames))}</div>` : ''}
              <p class="hint" style="margin:0">${priv ? 'Get accepted and the whole guest list opens up.' : 'Claim a spot to see everyone going.'}</p>`}
       </div>
       <div class="panel">
-        <h4>${showRecap ? 'Where it was' : 'Location'}</h4>
+        <h4>${nowLive ? 'Where' : (showRecap || over) ? 'Where it was' : 'Location'}</h4>
         ${mine ? `<button class="btn btn-ghost" data-repin="${p.id}" style="padding:9px;margin-bottom:10px;font-size:13px">${PIN_IC}${exactPt[p.id] ? 'Fix the map pin' : 'Set the map pin'}</button>` : ''}
         ${(going || mine)
           ? (addr ? `<p class="addr" style="margin:0">${esc(addr)}</p>`
-             : (dropPending(p) ? dropHtml(p) : '<p class="hint" style="margin:0">Unlocking…</p>'))
+             : (dropPending(p) ? dropHtml(p)
+                : `<p class="hint" style="margin:0">${over ? 'The address is closed now.' : 'Unlocking\u2026'}</p>`))
           : `<p class="hint" style="margin:0">Address ${dropPending(p) ? 'drops ' + esc(dropWhen(p)) : 'unlocks ' + (priv ? 'when the host accepts you' : 'when you claim a spot')}. For now: <b style="color:var(--text)">${esc(p.town || 'nearby')}</b>.</p>`}
         ${feeTierHtml(p)}
       </div>
@@ -1866,13 +1908,13 @@ async function renderDetail(){
       ${showHostConsole ? hostConsoleHtml(p) : ''}
       ${showCheckin ? checkinHtml(p) : ''}
       ${showRecap ? recapHtml(p, mine) : ''}
-      ${showRecap ? '' : mine ? `<button class="btn btn-danger" data-cancel="${p.id}">Cancel this party</button>`
+      ${(showRecap || over) ? '' : mine ? `<button class="btn btn-danger" data-cancel="${p.id}">Cancel this party</button>`
         : going ? `<button class="btn btn-danger" data-unclaim="${p.id}">Give up my spot</button>`
         : requested ? `<div class="waiting">Request sent — waiting on ${esc((nickMap[p.host_id] || p.profiles?.display_name || 'the host').split(' ')[0])}</div>
             <button class="btn btn-danger" data-cancelreq="${p.id}">Cancel request</button>`
         : priv ? `<button class="btn" data-request="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Request a spot'}</button>`
         : `<button class="btn" data-claim="${p.id}" ${full ? 'disabled' : ''}>${full ? 'Party’s full' : 'Claim my spot'}</button>`}
-      ${showRecap ? '' : `<button class="btn btn-ghost" data-shareparty="${p.id}" style="margin-top:10px">Share with friends</button>`}
+      ${(showRecap || over) ? '' : `<button class="btn btn-ghost" data-shareparty="${p.id}" style="margin-top:10px">Share with friends</button>`}
       ${mine ? '' : `<button class="danger-link" data-rpparty="${p.id}">Report this party</button>`}
     </div>`;
   afterDetailRender(p, showCheckin);
@@ -2215,15 +2257,22 @@ async function renderMap(){
     placed++;
   }
   $('#map-home').textContent = placed ? placed + (placed === 1 ? ' party nearby' : ' parties nearby') : 'No parties yet';
-  $('#map-note').textContent = pending.length ? 'placing ' + pending.length + ' more…'
+  /* only count the ones still worth waiting on — a party we already failed to
+     place would otherwise leave "placing 1 more…" on screen forever */
+  const waiting = pending.filter(x => !unplaceable.has(x.id)).length;
+  $('#map-note').textContent = waiting ? 'placing ' + waiting + ' more…'
     : (placed ? 'pins are approximate until you’re in' : 'host one and it lands here');
   if(!mapCentered && pts.length > 1){
     mapCentered = true;
     lmap.fitBounds(L.latLngBounds(pts).pad(0.35), { maxZoom: 14 });
   }
-  // one-time backfill for parties posted before coordinates existed
-  if(pending.length) backfillPoints(pending, run);
+  // one-time backfill for parties posted before coordinates existed.
+  // Never re-enter for one we already gave up on: backfillPoints ends with a
+  // renderMap() to settle the label, and retrying here would ping-pong forever.
+  const todo = pending.filter(x => !unplaceable.has(x.id));
+  if(todo.length) backfillPoints(todo, run);
 }
+const unplaceable = new Set();
 async function backfillPoints(list, run){
   for(const p of list){
     const z = await zipPoint(p.profiles && p.profiles.zip);
@@ -2248,8 +2297,11 @@ async function backfillPoints(list, run){
       }
     }
     if(!pt && z){ const f = fuzzPoint(z.lat, z.lon, p.id); p.approx_lat = f.lat; p.approx_lon = f.lon; pt = f; }
+    if(!pt) unplaceable.add(p.id);          // nothing left to try for this one
     if(pt && run === mapRun) renderMap();
   }
+  /* settle the label even when every remaining party failed to place */
+  if(run === mapRun) renderMap();
 }
 $('#map-locate').addEventListener('click', () => {
   if(!lmap) return;
@@ -2576,12 +2628,6 @@ $('#friends').addEventListener('click', async e => {
   if(el = e.target.closest('[data-frdec]')){
     await db.from('friendships').delete().eq('user_id', el.dataset.frdec).eq('friend_id', me.id);
     toast('Declined'); loadFriends(); return;
-  }
-  if(el = e.target.closest('[data-unfriend]')){
-    if(!confirm('Remove this friend?')) return;
-    await db.from('friendships').delete().eq('user_id', me.id).eq('friend_id', el.dataset.unfriend);
-    await db.from('friendships').delete().eq('user_id', el.dataset.unfriend).eq('friend_id', me.id);
-    loadFriends(); return;
   }
   if(el = e.target.closest('[data-chat]')){
     openChat(el.dataset.chat);
