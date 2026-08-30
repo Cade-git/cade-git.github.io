@@ -842,7 +842,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.0</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.1</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -854,7 +854,7 @@
         </div>
         <div class="field"><label for="a-addr">Home address <span class="opt">optional</span></label><input id="a-addr" placeholder="Street address" autocomplete="street-address">
           <p class="hint">Only so it can auto-fill if you ever host — skip it and nothing changes. Locked in the database; nobody else can ever read it.</p></div>
-        <div class="field"><label for="a-pass">Password</label><input id="a-pass" type="password" placeholder="6+ characters" autocomplete="new-password"></div>
+        <div class="field"><label for="a-pass">Password</label><input id="a-pass" type="password" placeholder="8+ characters" autocomplete="new-password"></div>
         <button class="btn" id="do-signup">Create my account</button>
         <button class="btn-ghost btn" id="to-signin" style="margin-top:10px">I already have an account</button>
       </div>
@@ -1493,7 +1493,7 @@ $('#do-signup').addEventListener('click', async () => {
   const email = $('#a-email').value.trim(), pass = $('#a-pass').value;
   if(!name){ toast('Tell us your name'); return; }
   if(!/^\d{5}$/.test(zip)){ toast('Enter a 5-digit ZIP'); return; }
-  if(!email || pass.length < 6){ toast('Email + a 6-character password'); return; }
+  if(!email || pass.length < 8){ toast('Email + a password of at least 8 characters'); return; }
   const { error } = await db.auth.signUp({ email, password: pass, options: { data: { display_name: name, zip } } });
   if(error){ toast(error.message); return; }
   pendingHomeAddr = $('#a-addr').value.trim() || null;
