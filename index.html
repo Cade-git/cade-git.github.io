@@ -522,7 +522,10 @@
   .rp-opt{width:100%;text-align:left;padding:13px 15px;border-radius:14px;border:1px solid var(--line);
     background:var(--raised);margin-bottom:8px;font-size:14.5px;font-weight:600;transition:all .2s var(--spring)}
   .rp-opt.on{border-color:var(--mag);background:rgba(255,61,138,.14)}
-  #ask-sheet{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.62);backdrop-filter:blur(2px)}
+  /* Above everything that can trigger it. At z-index 60 it tied with the
+     lightbox and lost on DOM order, so "Remove this photo?" rendered BEHIND
+     the photo it was asking about. */
+  #ask-sheet{position:fixed;inset:0;z-index:95;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.72);backdrop-filter:blur(3px)}
   /* display:flex beats the browser's own [hidden] rule, so every overlay in
      here needs this companion line or it is permanently on screen */
   #ask-sheet[hidden]{display:none}
@@ -700,7 +703,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.1</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.2</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1846,7 +1849,7 @@ function recapHtml(p, mine){
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg>
         Add to album</button>
       ${photos.map(ph => `<div class="album-cell ${ph.user_id === me.id ? 'mine' : ''}"
-          data-rphoto="${esc(ph.src || ph.url)}" data-rid="${ph.id}" data-rown="${mine ? '1' : ''}">
+          data-rphoto="${esc(ph.src || ph.url)}" data-rid="${ph.id}" data-rown="${ph.user_id === me.id || mine ? '1' : ''}">
         <img src="${esc(ph.src || ph.url)}" alt="" draggable="false" loading="lazy"></div>`).join('')}
     </div>
     ${photos.length ? '' : '<div class="album-empty">No photos yet — the camera goes straight here, nothing saves to your phone.</div>'}
@@ -3370,8 +3373,11 @@ $('#lightbox').addEventListener('click', async e => {
     }
     if(!gone) toast('Removed from the album, but the file would not delete');
     haptic(10);
-    box.hidden = true; $('#lb-img').src = ''; box.dataset.rid = '';
-    if(pid){ await loadRecap(pid); renderDetail(); }
+    box.hidden = true; $('#lb-img').src = ''; box.dataset.rid = ''; box.dataset.pid = '';
+    /* repaintParty, not renderDetail — removing a photo from the Tonight tab
+       used to redraw the party page hiding behind it, so the tile you just
+       deleted stayed on screen until you left and came back */
+    if(pid){ await loadRecap(pid); repaintParty(); }
     return;
   }
   box.hidden = true; $('#lb-img').src = ''; box.dataset.rid = '';
