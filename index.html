@@ -392,29 +392,10 @@
   .cover-pick.has{border-style:solid;border-color:transparent;color:#fff}
   .cover-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px}
   .cover-opt{margin-top:0;padding:10px;font-size:13.5px;display:flex;align-items:center;justify-content:center;gap:6px}
-  .vip-pip{font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:2px 5px;border-radius:5px;
-    background:linear-gradient(120deg,var(--amber),var(--mag));color:#1a1206}
-  /* the VIP pitch — shown once, when someone reaches for a paid feature */
-  #vip-sheet{position:fixed;inset:0;z-index:84;display:flex;align-items:flex-end;justify-content:center;
-    background:rgba(0,0,0,.7);backdrop-filter:blur(4px)}
-  #vip-sheet[hidden]{display:none}
-  .vip-card{width:min(440px,100%);background:var(--surface);border:1px solid rgba(255,180,84,.34);
-    border-radius:24px 24px 0 0;padding:24px 20px calc(20px + env(safe-area-inset-bottom));
-    max-height:86dvh;overflow-y:auto;animation:sheetup .28s var(--spring)}
-  .vip-crown{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;
-    background:linear-gradient(130deg,var(--amber),var(--mag));margin-bottom:12px}
-  .vip-crown svg{width:27px;height:27px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linejoin:round}
-  .vip-card h3{font-family:var(--disp);font-size:21px;margin:0 0 4px}
-  .vip-card h3 span{background:linear-gradient(120deg,var(--amber),var(--mag));-webkit-background-clip:text;
-    background-clip:text;color:transparent}
-  .vip-card .sub{color:var(--muted);font-size:14px;margin-bottom:16px}
-  .vip-perk{display:flex;gap:11px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line)}
-  .vip-perk:first-of-type{border-top:none}
-  .vip-perk i{flex:0 0 auto;width:22px;height:22px;border-radius:7px;display:flex;align-items:center;
-    justify-content:center;background:rgba(255,180,84,.16);color:var(--amber);font-style:normal;font-size:12px;font-weight:800}
-  .vip-perk b{display:block;font-size:14px;color:#fff}
-  .vip-perk small{display:block;font-size:12.5px;color:var(--muted);margin-top:1px;line-height:1.4}
-  .vip-price{background:linear-gradient(120deg,var(--amber),var(--mag));color:#1a1206;font-weight:800}
+  /* VIP is shelved until payments are real — the whole feature is kept
+     verbatim in shelf/vip.md. This pip is all that's left of it. */
+  .soon-pip{font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:2px 5px;border-radius:5px;
+    background:var(--raised);border:1px solid var(--line);color:var(--muted)}
   .cover-pick.has .cp-label{background:rgba(8,7,16,.72);backdrop-filter:blur(8px);padding:6px 13px;border-radius:999px;
     border:1px solid rgba(255,255,255,.18)}
   .cover-pick.has svg{display:none}
@@ -813,7 +794,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.6</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.7</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -933,7 +914,7 @@
         <button class="cover-pick" id="h-photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg><span class="cp-label">Add or generate a cover</span></button>
         <div class="cover-row">
           <button class="btn btn-ghost cover-opt" id="h-photo-add">Add a photo</button>
-          <button class="btn btn-ghost cover-opt" id="h-photo-gen">Generate <span class="vip-pip">VIP</span></button>
+          <button class="btn btn-ghost cover-opt" id="h-photo-gen">Generate <span class="soon-pip">SOON</span></button>
         </div>
         <input id="h-photo-file" type="file" accept="image/*" hidden></div>
       <div class="field"><label for="h-when">When</label><input id="h-when" type="datetime-local"></div>
@@ -1021,22 +1002,6 @@
   </div>
 </div>
 
-<div id="vip-sheet" hidden>
-  <div class="vip-card">
-    <button class="wc-x" id="vip-x" aria-label="Close" style="position:absolute;top:14px;right:16px"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    <div class="vip-crown"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l4.2 3.2L12 5l4.8 6.2L21 8l-1.6 10H4.6z"/></svg></div>
-    <h3>Turnout <span>VIP</span></h3>
-    <p class="sub" id="vip-why">Everything below, for the price of a coffee once a month.</p>
-    <div class="vip-perk"><i>1</i><div><b>Generate your cover art</b><small>Describe the vibe and get a cover made for the party. No photo needed.</small></div></div>
-    <div class="vip-perk"><i>2</i><div><b>See new parties first</b><small>They land on your feed the second they post. Everyone else waits ten minutes.</small></div></div>
-    <div class="vip-perk"><i>3</i><div><b>Knock on full parties</b><small>Ask the host for a ticket even after it caps, and go first on the waitlist.</small></div></div>
-    <div class="vip-perk"><i>4</i><div><b>No service fee on covers</b><small>When a party charges at the door, you pay the ticket price and nothing on top.</small></div></div>
-    <div class="vip-perk"><i>5</i><div><b>A VIP badge hosts can see</b><small>Hosts know who actually turns up. Yours says it for you.</small></div></div>
-    <button class="btn vip-price" id="vip-get" style="margin-top:18px">Get VIP &mdash; $2.99/mo</button>
-    <button class="btn btn-ghost" id="vip-later" style="margin-top:9px">Not now</button>
-    <p class="hint" id="vip-note" style="margin-top:10px;text-align:center"></p>
-  </div>
-</div>
 <div id="legal" hidden>
   <div class="sheet lg-sheet">
     <button class="wc-x" id="lg-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -4021,11 +3986,11 @@ let hostPhoto = null; // cover photo url once uploaded
 $('#h-photo').addEventListener('click', () => $('#h-photo-file').click());
 $('#h-photo-add').addEventListener('click', () => $('#h-photo-file').click());
 $('#h-photo-gen').addEventListener('click', () => {
-  if(me && me.is_vip){ toast('Cover generation is coming — pick a photo for now'); $('#h-photo-file').click(); return; }
-  /* pitch it, then still let them do the free thing — a wall with no door
-     just loses you the party */
-  openVip('Generated covers are a VIP thing. Here\u2019s everything else that comes with it.',
-          () => $('#h-photo-file').click());
+  /* Cover generation isn't built and VIP is shelved, so there's nothing to
+     gate and nothing to sell. Say so, then do the thing they actually came
+     here for. */
+  toast('Generated covers are coming \u2014 pick a photo for now');
+  $('#h-photo-file').click();
 });
 $('#h-photo-file').addEventListener('change', async e => {
   const file = e.target.files && e.target.files[0];
@@ -4201,15 +4166,8 @@ async function renderProfile(){
       <input id="bn-file" type="file" accept="image/*" hidden>
     </div>
     <div style="margin:0 2px 18px">
-      <h2 style="font-size:20px;margin:0">${esc(me.display_name)}
-        ${me.is_vip ? '<span class="tag" style="color:var(--amber);border:1px solid rgba(255,180,84,.45);background:rgba(255,180,84,.1);vertical-align:3px">VIP</span>' : ''}</h2>
+      <h2 style="font-size:20px;margin:0">${esc(me.display_name)}</h2>
       <p style="color:var(--muted);font-size:14px">${esc(me.zip)}${me.avatar_url ? '' : ' · tap your pic to set one'}</p>
-    </div>
-    <div class="panel" style="border-color:rgba(255,180,84,.4)">
-      <h4 style="color:var(--amber)">Turnout VIP ${me.is_vip ? '· active' : '· $2.99/mo'}</h4>
-      <p style="font-size:13.5px;color:var(--muted);margin-bottom:12px">New parties the second they post — everyone else waits 10 minutes. Knock on full parties. First in line on waitlists. No service fees on covers. A VIP badge hosts can see.</p>
-      <button class="btn ${me.is_vip ? 'btn-ghost' : ''}" id="vip-toggle" style="${me.is_vip ? '' : 'background:linear-gradient(100deg,var(--amber),var(--mag))'}">${me.is_vip ? 'VIP is on — turn off (demo)' : 'Try VIP (demo)'}</button>
-      <p class="hint" style="margin-top:8px">The perks switch on as we ship them — the badge is live now.</p>
     </div>
     <div class="panel">
       <h4>Notifications</h4>
@@ -4249,7 +4207,7 @@ async function renderProfile(){
         <span><b style="color:var(--text)">${friends.length}</b> friends</span>
       </div></div>
     <div class="panel"><h4>Coming next</h4>
-      <p style="font-size:13.5px;color:var(--muted)">VIP perks going live · covers charged in-app · recap albums that disappear Friday · the real map with real distances. One drop at a time.</p></div>
+      <p style="font-size:13.5px;color:var(--muted)">A buzz the morning your album opens · one-tap sign-in · locking your ticket from your phone. One drop at a time.</p></div>
     <button class="btn btn-ghost" id="signout">Sign out</button>
     <button class="btn btn-ghost" id="legal-btn" style="margin-top:14px">The rules &amp; your privacy</button>
     <button class="danger-link" id="delete-acct" style="margin-top:14px">Delete my account</button>`;
@@ -4271,14 +4229,6 @@ $('#profile-body').addEventListener('click', async e => {
     if(error){ toast(error.message.includes('home_addresses') ? 'One sec — run migration12 first' : error.message); return; }
     myHomeAddr = v; toast('Saved — hosting just got faster');
     return;
-  }
-  if(e.target.id === 'vip-toggle'){
-    const next = !me.is_vip;
-    const { error } = await db.from('profiles').update({ is_vip: next }).eq('id', me.id);
-    if(error){ toast(error.message); return; }
-    me.is_vip = next;
-    toast(next ? 'VIP is on — gold badge unlocked' : 'VIP turned off');
-    renderProfile(); return;
   }
   if(e.target.id === 'legal-btn'){ openLegal(); return; }
   if(e.target.id === 'invite-btn'){
@@ -4396,8 +4346,7 @@ async function openUserCard(uid){
     <div class="pf-banner" style="background:${bannerCss(p.banner_url, p.id)};background-size:cover;background-position:center;height:96px;margin-bottom:40px">
       <div class="pf-avslot">${avatar(p, 64, 20)}</div>
     </div>
-    <h3 style="font-size:18px${isFriend ? ';cursor:pointer' : ''}"${isFriend ? ` data-ucnick="${uid}" title="Tap to set a nickname"` : ''}>${esc(nickMap[uid] || p.display_name)}
-      ${p.is_vip ? '<span class="tag" style="color:var(--amber);border:1px solid rgba(255,180,84,.45);background:rgba(255,180,84,.1);vertical-align:2px">VIP</span>' : ''}</h3>
+    <h3 style="font-size:18px${isFriend ? ';cursor:pointer' : ''}"${isFriend ? ` data-ucnick="${uid}" title="Tap to set a nickname"` : ''}>${esc(nickMap[uid] || p.display_name)}</h3>
     ${nickMap[uid] ? `<p class="sub" style="margin-bottom:4px">${esc(p.display_name)}</p>` : ''}
     <div class="uc-stats">
       ${hosted >= 3 ? `<span class="flame">${flameSvg(14)} <b>${hosted}</b>&nbsp;hosted</span>` : `<span><b>${hosted}</b> hosted</span>`}
@@ -4633,25 +4582,6 @@ function closeWelcome(){
 /* Shown when someone reaches for a paid feature, not on a timer. `why` names
    the thing they just tried to do, so the pitch answers a question they are
    already asking. */
-let vipAfter = null;
-function openVip(why, after){
-  $('#vip-why').textContent = why || 'Everything below, for the price of a coffee once a month.';
-  vipAfter = after || null;
-  $('#vip-note').textContent = me && me.is_vip ? 'You already have VIP.' : '';
-  $('#vip-sheet').hidden = false;
-  haptic(8);
-}
-function closeVip(){ $('#vip-sheet').hidden = true; vipAfter = null; }
-$('#vip-x').addEventListener('click', closeVip);
-$('#vip-later').addEventListener('click', () => { const f = vipAfter; closeVip(); if(f) f(); });
-$('#vip-sheet').addEventListener('click', e => { if(e.target.id === 'vip-sheet') closeVip(); });
-$('#vip-get').addEventListener('click', () => {
-  /* Nothing charges money yet, and pretending otherwise would be a lie the
-     first person to tap this would catch. */
-  $('#vip-note').textContent = 'Payments aren\u2019t switched on yet \u2014 VIP is free while we build it.';
-  toast('VIP is free for now — enjoy it');
-  closeVip();
-});
 function openLegal(){ $('#legal').hidden = false; }
 function closeLegal(){ $('#legal').hidden = true; }
 $('#lg-close').addEventListener('click', closeLegal);
