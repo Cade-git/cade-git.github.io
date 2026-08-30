@@ -700,7 +700,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.0</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.1</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1846,7 +1846,7 @@ function recapHtml(p, mine){
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg>
         Add to album</button>
       ${photos.map(ph => `<div class="album-cell ${ph.user_id === me.id ? 'mine' : ''}"
-          data-rphoto="${esc(ph.src || ph.url)}" data-rid="${ph.id}" data-rown="${ph.user_id === me.id || mine ? '1' : ''}">
+          data-rphoto="${esc(ph.src || ph.url)}" data-rid="${ph.id}" data-rown="${mine ? '1' : ''}">
         <img src="${esc(ph.src || ph.url)}" alt="" draggable="false" loading="lazy"></div>`).join('')}
     </div>
     ${photos.length ? '' : '<div class="album-empty">No photos yet — the camera goes straight here, nothing saves to your phone.</div>'}
@@ -3342,12 +3342,33 @@ $('#lightbox').addEventListener('click', async e => {
     /* delete the FILE too, not just the row. This used to drop the database
        record and leave the image sitting in storage forever, which is not what
        "it disappears for everyone" means. */
-    let vpath = null;
-    try{ const { data: row } = await db.from('party_photos').select('url').eq('id', rid).maybeSingle();
-         if(row && isVaultPath(row.url)) vpath = row.url; }catch(_){ }
+    /* Two generations of photo live in here: new ones are a vault path, old
+       ones are a full public-bucket URL. Work out which, and delete the actual
+       file from the right bucket — clearing the row alone leaves the image
+       reachable, which is exactly the bug this button was hiding. */
+    let target = null;
+    try{
+      const { data: row } = await db.from('party_photos').select('url').eq('id', rid).maybeSingle();
+      const v = row && row.url;
+      if(v){
+        if(isVaultPath(v)) target = { bucket: 'vault', path: v };
+        else {
+          const m = v.split('/object/public/')[1];
+          if(m){ const i = m.indexOf('/');
+                 target = { bucket: m.slice(0, i), path: m.slice(i + 1).split('?')[0] }; }
+        }
+      }
+    }catch(_){ }
     const { error } = await db.from('party_photos').delete().eq('id', rid);
     if(error){ toast(error.message); return; }
-    if(vpath){ try{ await db.storage.from('vault').remove([vpath]); delete SIGNED[vpath]; }catch(_){ } }
+    let gone = true;
+    if(target){
+      try{
+        const { error: se } = await db.storage.from(target.bucket).remove([decodeURIComponent(target.path)]);
+        if(se) gone = false; else delete SIGNED[target.path];
+      }catch(_){ gone = false; }
+    }
+    if(!gone) toast('Removed from the album, but the file would not delete');
     haptic(10);
     box.hidden = true; $('#lb-img').src = ''; box.dataset.rid = '';
     if(pid){ await loadRecap(pid); renderDetail(); }
