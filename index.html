@@ -481,6 +481,12 @@
   .rp-opt{width:100%;text-align:left;padding:13px 15px;border-radius:14px;border:1px solid var(--line);
     background:var(--raised);margin-bottom:8px;font-size:14.5px;font-weight:600;transition:all .2s var(--spring)}
   .rp-opt.on{border-color:var(--mag);background:rgba(255,61,138,.14)}
+  #ask-sheet{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.62);backdrop-filter:blur(2px)}
+  @keyframes sheetup{from{transform:translateY(14%)}to{transform:none}}
+  #ask-sheet .sheet{animation:sheetup .26s var(--spring)}
+  #ask-input{margin:2px 0 4px}
+  .ask-row{display:flex;gap:9px;margin-top:14px}
+  .ask-row .btn{margin-top:0}
   #share-sheet,#nick-sheet,#pfp-sheet,#user-sheet,#bn-sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;
     background:rgba(0,0,0,.55)}
   #share-sheet[hidden],#nick-sheet[hidden],#pfp-sheet[hidden],#user-sheet[hidden],#bn-sheet[hidden]{display:none}
@@ -605,7 +611,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v8.1</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v8.2</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -804,6 +810,17 @@
   </div>
 </div>
 
+<div id="ask-sheet" hidden>
+  <div class="sheet">
+    <h3 id="ask-title"></h3>
+    <p class="sub" id="ask-sub"></p>
+    <textarea id="ask-input" rows="2" hidden></textarea>
+    <div class="ask-row">
+      <button class="btn btn-ghost" id="ask-no" style="flex:1"></button>
+      <button class="btn" id="ask-yes" style="flex:1"></button>
+    </div>
+  </div>
+</div>
 <div id="nick-sheet" hidden>
   <div class="sheet">
     <div class="nick-head">
@@ -1063,14 +1080,16 @@ $('#do-signin').addEventListener('click', async () => {
   boot();
 });
 $('#forgot').addEventListener('click', async () => {
-  const email = $('#s-email').value.trim() || prompt('Your account email:');
+  const email = $('#s-email').value.trim() || await askText({ title: 'Reset your password',
+    sub: 'We\u2019ll email you a link.', placeholder: 'you@email.com', yes: 'Send link' });
   if(!email) return;
   const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
   toast(error ? error.message : 'Reset link sent — check your email');
 });
 if(configured) db.auth.onAuthStateChange(async (event) => {
   if(event === 'PASSWORD_RECOVERY'){
-    const p = prompt('Set your new password (6+ characters):');
+    const p = await askText({ title: 'Set a new password',
+      sub: 'At least 6 characters.', placeholder: 'new password', yes: 'Save' });
     if(p && p.length >= 6){
       const { error } = await db.auth.updateUser({ password: p });
       toast(error ? error.message : 'Password updated — you’re signed in');
@@ -1350,6 +1369,10 @@ async function loadParties(){
   if(_sb) _sb.scrollTop = _st;
 }
 
+/* This card sits on the Find screen; its handler used to live inside the
+   #profile-body listener, so the main "throw a party" call to action on the
+   busiest screen in the app did nothing at all when tapped. */
+$('#host-cta').addEventListener('click', () => { show('host'); haptic(10); });
 $('#party-list').addEventListener('click', e => {
   const c = e.target.closest('[data-open]');
   if(c) openDetail(c.dataset.open, 'find');
@@ -1394,7 +1417,9 @@ $('#rp-send').addEventListener('click', async () => {
 });
 $('#rp-block').addEventListener('click', async () => {
   if(!rpTarget) return;
-  if(!confirm('Block them? They won’t be able to message you, and you won’t see each other’s parties.')) return;
+  if(!await askYes({ title: 'Block them?',
+    sub: 'They won\u2019t be able to message you, and you won\u2019t see each other\u2019s parties.',
+    yes: 'Block', danger: true })) return;
   const { error } = await db.rpc('block_user', { target: rpTarget });
   if(error){ toast(error.message.includes('block_user') ? 'One sec — this needs migration 20' : error.message); return; }
   blocked.add(rpTarget);
@@ -1633,8 +1658,8 @@ function openAlbumPicker(pid){
     inp.type = 'file'; inp.id = 'recap-file'; inp.accept = 'image/*';
     inp.setAttribute('capture', 'environment');   // straight to the camera on a phone
     inp.hidden = true;
-    /* it lives in #detail-body no matter who opened it — the change listener
-       is bound there, and a hidden input works from anywhere in the DOM */
+    /* parked on the party page; the change listener is bound to every party
+       surface, and a hidden input fires from anywhere in the DOM */
     $('#detail-body').appendChild(inp);
   }
   inp.dataset.pid = pid;
@@ -1925,18 +1950,21 @@ function afterDetailRender(p, showCheckin){
 }
 async function refreshAfterAction(){
   await loadParties();
+  /* repaint whichever party surface is on screen, not just the party page */
   if(detailId && $('#detail').classList.contains('on')) renderDetail();
+  if($('#tonight').classList.contains('on')) renderTonight();
 }
 
-$('#detail-body').addEventListener('change', async e => {
+async function recapFileChosen(e){
   if(e.target.id !== 'recap-file') return;
   const file = e.target.files && e.target.files[0];
   const pid = e.target.dataset.pid;
   e.target.value = '';
   if(!file || !pid || recapBusy) return;
   recapBusy = true;
-  const btn = document.querySelector('[data-addphoto]');
-  if(btn) btn.textContent = 'Adding…';
+  const live = $('#tonight').classList.contains('on') ? $('#tonight-body') : $('#detail-body');
+  const btn = live.querySelector('[data-addphoto]');
+  if(btn) btn.textContent = 'Adding\u2026';
   try {
     const blob = await shrinkImage(file, 1400, .82);
     const path = me.id + '/recap/' + pid + '-' + Date.now() + '.jpg';
@@ -1947,20 +1975,40 @@ $('#detail-body').addEventListener('change', async e => {
     if(e2) throw e2;
     haptic(12);
     await loadRecap(pid);
-    renderDetail();
+    repaintParty();
   } catch(err){
     toast((err && err.message || '').includes('party_photos') ? 'One sec — the recap needs migration 17'
         : (err && err.message) || 'That photo would not add');
-    renderDetail();
+    repaintParty();
   } finally { recapBusy = false; }
-});
-$('#detail-body').addEventListener('click', async e => {
+}
+/* every surface that renders party controls — keep this list in one place */
+const PARTY_SURFACES = ['#detail-body', '#tonight-body'];
+PARTY_SURFACES.forEach(sel => $(sel).addEventListener('change', recapFileChosen));
+/* Repaint whichever surface the person is actually looking at. Adding a photo
+   from the Tonight tab used to re-render the party page behind it, so the grid
+   they were staring at never changed. */
+function repaintParty(){
+  if($('#tonight').classList.contains('on')) renderTonight();
+  if($('#detail').classList.contains('on')) renderDetail();
+}
+/* Every party control — check in, rate, add a photo, message the room, open
+   the page — is rendered into TWO places: the party page (#detail-body) and
+   the Tonight tab (#tonight-body). This used to be an anonymous listener on
+   #detail-body alone, which left every button on Tonight silently dead: they
+   rendered, they pressed, nothing happened and nothing threw. It is bound to
+   both bodies now, so adding a third surface means adding it to PARTY_SURFACES
+   and nothing else. */
+async function partyActions(e){
   const g = sel => e.target.closest(sel);
   let el;
+  if(el = g('[data-open]')){ openDetail(el.dataset.open, curScreen()); return; }
   if(el = g('[data-rpparty]')){ openReport({ party: el.dataset.rpparty }); return; }
   if(el = g('[data-hcmsg]')){
     const pid = el.dataset.hcmsg;
-    const body = prompt('Message everyone who claimed a spot:');
+    const body = await askText({ title: 'Message the room',
+      sub: 'Goes to everyone who claimed a spot at this party.',
+      placeholder: 'Doors are open — pull around back', yes: 'Send' });
     if(!body || !body.trim()) return;
     el.disabled = true; el.textContent = 'Sending…';
     const { data, error } = await db.rpc('host_broadcast', { pid, body: body.trim() });
@@ -1978,7 +2026,7 @@ $('#detail-body').addEventListener('click', async e => {
     if(error){ toast(error.message); return; }
     party.max_people = next; haptic(12);
     toast('Room for ' + next + ' now');
-    renderDetail(); return;
+    repaintParty(); return;
   }
   if(el = g('[data-repin]')){
     repinId = el.dataset.repin;
@@ -1993,12 +2041,12 @@ $('#detail-body').addEventListener('click', async e => {
     const pid = el.dataset.checkin, pt = exactPt[pid];
     if(!pt) return;
     if(ciDist === null || ciDist > CHECKIN_FT){ toast('You need to be within ' + CHECKIN_FT + ' feet'); return; }
-    if(await doCheckIn(pid, el)) renderDetail();
+    if(await doCheckIn(pid, el)) repaintParty();
     return;
   }
   if(el = g('[data-rate]')){
     const pid = el.dataset.rate, n = +el.dataset.n;
-    myRating[pid] = n; haptic(12); renderDetail();
+    myRating[pid] = n; haptic(12); repaintParty();
     const { error } = await db.from('party_ratings')
       .upsert({ party_id: pid, user_id: me.id, flames: n }, { onConflict: 'party_id,user_id' });
     if(error) toast(error.message.includes('party_ratings') ? 'One sec — the recap needs migration 17' : error.message);
@@ -2052,19 +2100,59 @@ $('#detail-body').addEventListener('click', async e => {
     toast('Denied'); refreshAfterAction(); return;
   }
   if(el = g('[data-unclaim]')){
-    if(!confirm('Give up your spot at this party?')) return;
+    if(!await askYes({ title: 'Give up your spot?',
+      sub: 'It goes back to whoever wants it.', yes: 'Give it up', danger: true })) return;
     await db.from('claims').delete().eq('party_id', el.dataset.unclaim).eq('user_id', me.id);
     delete unlockedAddr[el.dataset.unclaim];
     toast('Spot released'); refreshAfterAction(); return;
   }
   if(el = g('[data-cancel]')){
-    if(!confirm('Cancel this party? Everyone’s claims disappear and it can’t be undone.')) return;
+    if(!await askYes({ title: 'Cancel this party?',
+      sub: 'Everyone\u2019s claims disappear and this can\u2019t be undone.',
+      yes: 'Cancel it', no: 'Keep it', danger: true })) return;
     await db.from('parties').delete().eq('id', el.dataset.cancel);
     toast('Party canceled'); refreshAfterAction(); return;
   }
   if(el = g('[data-shareparty]')){
     openShare(el.dataset.shareparty);
   }
+}
+PARTY_SURFACES.forEach(sel => $(sel).addEventListener('click', partyActions));
+
+/* ── ask: our own prompt() and confirm() ──────────────────────────────
+   The native ones are a grey iOS box with a blue OK — they look like the
+   page was hijacked, they can't be styled, and they block the whole thread.
+   Same job, in the app's own voice. Both resolve a promise, so callers read
+   exactly like the built-ins they replace. */
+let askDone = null;
+function closeAsk(v){
+  $('#ask-sheet').hidden = true;
+  const f = askDone; askDone = null;
+  if(f) f(v);
+}
+function ask({ title, sub = '', yes = 'OK', no = 'Cancel', input = false, placeholder = '', danger = false }){
+  if(askDone) closeAsk(input ? null : false);      // never strand an earlier caller
+  $('#ask-title').textContent = title;
+  $('#ask-sub').textContent = sub;
+  $('#ask-sub').hidden = !sub;
+  const box = $('#ask-input');
+  box.hidden = !input; box.value = ''; box.placeholder = placeholder;
+  $('#ask-yes').textContent = yes;
+  $('#ask-no').textContent = no;
+  $('#ask-yes').className = 'btn' + (danger ? ' btn-danger' : '');
+  $('#ask-sheet').hidden = false;
+  if(input) setTimeout(() => box.focus(), 60);
+  return new Promise(res => { askDone = res; });
+}
+const askText = o => ask({ ...o, input: true });
+const askYes  = o => ask({ ...o, input: false });
+$('#ask-yes').addEventListener('click', () => {
+  const box = $('#ask-input');
+  closeAsk(box.hidden ? true : (box.value.trim() || null));
+});
+$('#ask-no').addEventListener('click', () => closeAsk($('#ask-input').hidden ? false : null));
+$('#ask-sheet').addEventListener('click', e => {
+  if(e.target.id === 'ask-sheet') closeAsk($('#ask-input').hidden ? false : null);
 });
 
 /* ── share sheet ── */
@@ -2897,7 +2985,8 @@ $('#lightbox').addEventListener('click', async e => {
   if(e.target.closest('#lb-remove')){
     const rid = box.dataset.rid, pid = box.dataset.pid;
     if(!rid) return;
-    if(!confirm('Remove this photo from the album?')) return;
+    if(!await askYes({ title: 'Remove this photo?',
+      sub: 'It disappears from the album for everyone.', yes: 'Remove', danger: true })) return;
     const { error } = await db.from('party_photos').delete().eq('id', rid);
     if(error){ toast(error.message); return; }
     haptic(10);
@@ -2962,7 +3051,8 @@ $('#nick-save').addEventListener('click', async () => {
 $('#nick-remove').addEventListener('click', async () => {
   if(!nickTarget) return;
   const f = profMap[nickTarget];
-  if(!confirm('Remove ' + (f?.display_name || 'this friend') + '? They won’t be notified.')) return;
+  if(!await askYes({ title: 'Remove ' + (f?.display_name || 'this friend') + '?',
+    sub: 'They won\u2019t be notified.', yes: 'Remove', danger: true })) return;
   await db.from('friendships').delete().eq('user_id', me.id).eq('friend_id', nickTarget);
   await db.from('friendships').delete().eq('user_id', nickTarget).eq('friend_id', me.id);
   await db.from('nicknames').delete().eq('owner_id', me.id).eq('friend_id', nickTarget);
@@ -3310,9 +3400,6 @@ $('#profile-body').addEventListener('click', async e => {
     toast(next ? 'VIP is on — gold badge unlocked' : 'VIP turned off');
     renderProfile(); return;
   }
-  if(e.target.closest && e.target.closest('#host-cta')){
-    show('host'); haptic(10); return;
-  }
   if(e.target.id === 'invite-btn'){
     const text = me.display_name.split(' ')[0] + ' is on Turnout — where the party is. Claim a spot, get the address.';
     const url = 'https://jointurnout.app';
@@ -3325,8 +3412,12 @@ $('#profile-body').addEventListener('click', async e => {
     return;
   }
   if(e.target.id === 'delete-acct'){
-    if(!confirm('Delete your account?\n\nYour parties, photos, messages and friends are all permanently erased. This cannot be undone.')) return;
-    if(!confirm('Last check — this is permanent. Delete everything?')) return;
+    if(!await askYes({ title: 'Delete your account?',
+      sub: 'Your parties, photos, messages and friends are all permanently erased. This cannot be undone.',
+      yes: 'Delete', danger: true })) return;
+    if(!await askYes({ title: 'Last check',
+      sub: 'This is permanent. Delete everything?',
+      yes: 'Delete everything', no: 'Keep my account', danger: true })) return;
     const { error } = await db.rpc('delete_my_account');
     if(error){ toast(error.message.includes('delete_my_account') ? 'One sec — this needs migration 20' : error.message); return; }
     await db.auth.signOut();
