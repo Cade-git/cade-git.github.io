@@ -380,6 +380,15 @@
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .row2 > *{min-width:0}
   .row2 > .field{min-width:0}
+  .qa-row{display:flex;align-items:center;gap:11px;padding:9px 0;border-top:1px solid var(--line)}
+  .qa-row:first-child{border-top:none;padding-top:2px}
+  .qa-txt{flex:1;min-width:0}
+  .qa-txt b{display:block;font-size:14.5px;font-weight:600;overflow-wrap:anywhere}
+  .qa-txt i{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:1px}
+  .qa-btn{flex:0 0 auto;padding:8px 15px;border-radius:10px;font-size:13px;font-weight:700;
+    background:var(--grad);color:#fff}
+  .qa-btn[disabled]{background:var(--raised);color:var(--muted);border:1px solid var(--line)}
+  .qa-btn:active{transform:scale(.94)}
   .f-row{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
   .f-row:first-of-type{border-top:none;padding-top:0}
   .f-av{border-radius:13px;display:flex;align-items:center;justify-content:center;
@@ -517,6 +526,51 @@
   /* display:flex beats the browser's own [hidden] rule, so every overlay in
      here needs this companion line or it is permanently on screen */
   #ask-sheet[hidden]{display:none}
+  /* Held over everything until boot() knows whether you're signed in, so a
+     returning user never sees a flash of the signup form. */
+  #legal{position:fixed;inset:0;z-index:82;display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(0,0,0,.66);backdrop-filter:blur(3px)}
+  #legal[hidden]{display:none}
+  .lg-sheet{position:relative;max-height:84dvh;animation:sheetup .28s var(--spring)}
+  .lg-body h5{font-size:13px;font-weight:700;color:#fff;margin:14px 0 4px;letter-spacing:.02em}
+  .lg-body p{font-size:13.5px;color:var(--muted);line-height:1.5;margin:0}
+  .lg-body b{color:var(--text)}
+  #welcome{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+    padding:18px;background:rgba(6,5,12,.78);backdrop-filter:blur(6px);overflow-y:auto}
+  #welcome[hidden]{display:none}
+  .wc-card{position:relative;width:min(400px,100%);background:var(--surface);border:1px solid var(--line);
+    border-radius:24px;padding:26px 20px 20px;box-shadow:0 26px 70px -28px #000;animation:sheetup .3s var(--spring)}
+  .wc-x{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:11px;background:var(--raised);
+    border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+  .wc-x svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+  .wc-head{text-align:center;margin-bottom:20px}
+  .wc-eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+  .wc-mark{font-family:var(--disp);font-weight:800;font-size:28px;letter-spacing:.01em;margin:2px 0 6px;
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .wc-sub{color:var(--muted);font-size:14px;margin:0}
+  .wc-steps{display:flex;flex-direction:column;gap:14px;margin-bottom:20px}
+  .wc-step{display:flex;gap:12px;align-items:flex-start}
+  .wc-step b{display:block;font-size:14.5px;color:#fff;margin-bottom:2px}
+  .wc-step i{display:block;font-style:normal;font-size:13px;color:var(--muted);line-height:1.45}
+  .wc-ic{flex:0 0 auto;width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+  .wc-ic svg{width:19px;height:19px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .linkish-sm{display:block;width:100%;margin-top:11px;font-size:12.5px;color:var(--muted);
+    text-decoration:underline;text-underline-offset:3px}
+  .wc-1{background:linear-gradient(135deg,var(--mag),#b45cf0)}
+  .wc-2{background:linear-gradient(135deg,#b45cf0,var(--vio))}
+  .wc-3{background:linear-gradient(135deg,var(--vio),var(--cyan))}
+  .wc-4{background:linear-gradient(135deg,var(--lime),#4ade80)}
+  .wc-5{background:linear-gradient(135deg,var(--cyan),#38bdf8)}
+  #splash{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:18px;background:var(--ink);transition:opacity .3s ease}
+  #splash[hidden]{display:none}
+  #splash.gone{opacity:0;pointer-events:none}
+  .sp-mark{font-family:var(--disp);font-weight:800;font-size:26px;letter-spacing:.02em;
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sp-dots{display:flex;gap:6px}
+  .sp-dots i{width:7px;height:7px;border-radius:99px;background:var(--faint);animation:dotty 1.1s infinite}
+  .sp-dots i:nth-child(2){animation-delay:.15s}
+  .sp-dots i:nth-child(3){animation-delay:.3s}
   @keyframes sheetup{from{transform:translateY(14%)}to{transform:none}}
   #ask-sheet .sheet{animation:sheetup .26s var(--spring)}
   #ask-input{margin:2px 0 4px}
@@ -643,10 +697,10 @@
 <div class="shell">
 
   <!-- ══ AUTH ══ -->
-  <section class="screen on" id="auth">
+  <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v8.6</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.0</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -719,6 +773,9 @@
       <h2 style="font-size:22px;margin:2px 0 14px">Friends</h2>
       <div id="freq-wrap"></div>
       <div id="friend-list" style="margin-bottom:20px"></div>
+      <div class="panel" id="quick-wrap" hidden><h4>Quick add</h4>
+        <div id="quick-add"></div>
+      </div>
       <div class="panel"><h4>Add friends</h4>
         <input id="friend-search" placeholder="Search anyone by name" autocomplete="off" style="margin-bottom:10px">
         <div id="search-results"><p class="empty" style="padding:6px">Type a name — everyone on Turnout shows up here.</p></div>
@@ -843,6 +900,57 @@
   </div>
 </div>
 
+<div id="legal" hidden>
+  <div class="sheet lg-sheet">
+    <button class="wc-x" id="lg-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h3>The rules &amp; your privacy</h3>
+    <p class="sub">Short version, in plain English.</p>
+    <div class="lg-body">
+      <h5>Who can use Turnout</h5>
+      <p>You need to be <b>16 or older</b>. Turnout is for finding real parties with real people. Don&rsquo;t use it if you&rsquo;re younger.</p>
+      <h5>What we store</h5>
+      <p>Your name, ZIP, email, and profile picture. If you host, the party&rsquo;s address. When you check in, the fact that you were there and roughly when. Photos you put in an album or send in a message.</p>
+      <h5>Who can see it</h5>
+      <p>A party address is only readable by the host and people who claimed a spot &mdash; it is locked in the database, not just hidden in the app. Album photos are only visible to people who checked in at that party. Messages and the photos in them are only visible to you and the person you sent them to. Your home address, if you save one, is never shown to anyone.</p>
+      <h5>Location</h5>
+      <p>Check-in compares your location to the host&rsquo;s spot on your phone and sends the result, not a trail of where you&rsquo;ve been. Party pins on the map are deliberately fuzzed until you&rsquo;re in.</p>
+      <h5>What&rsquo;s not allowed</h5>
+      <p>Fake parties, harassment, posting someone&rsquo;s address without permission, photos of people who don&rsquo;t want to be posted, and anything illegal. Report anyone doing it &mdash; every profile and party has a report option, and blocking someone cuts contact both ways.</p>
+      <h5>Parties are not ours</h5>
+      <p>Turnout helps you find a party. It doesn&rsquo;t run it, vouch for it, or take responsibility for what happens there. Use your judgement, tell someone where you&rsquo;re going, and look out for each other.</p>
+      <h5>Deleting your stuff</h5>
+      <p>Profile &rarr; Delete my account removes your account, your parties, your photos and your messages for good.</p>
+      <h5>Questions</h5>
+      <p>Message Cade on the app or at <b>jointurnout.app</b>.</p>
+    </div>
+    <button class="btn btn-ghost" id="lg-ok" style="margin-top:14px">Close</button>
+  </div>
+</div>
+<div id="welcome" hidden>
+  <div class="wc-card">
+    <button class="wc-x" id="wc-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="wc-head">
+      <div class="wc-eyebrow">Welcome to</div>
+      <div class="wc-mark">TURNOUT</div>
+      <p class="wc-sub">Find the party. Claim your spot. Show up.</p>
+    </div>
+    <div class="wc-steps">
+      <div class="wc-step"><span class="wc-ic wc-1"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg></span>
+        <div><b>Find a party</b><i>Claim a spot and the address unlocks. No spot, no address.</i></div></div>
+      <div class="wc-step"><span class="wc-ic wc-2"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span>
+        <div><b>Throw your own</b><i>Post it, cap the numbers, and run the door from your phone.</i></div></div>
+      <div class="wc-step"><span class="wc-ic wc-3"><svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.4"/><path d="M3.2 19c.5-3.2 3-5 5.8-5s5.3 1.8 5.8 5"/><path d="M17 8h5M19.5 5.5v5"/></svg></span>
+        <div><b>Add your friends</b><i>See who&rsquo;s going before you commit, and who actually showed.</i></div></div>
+      <div class="wc-step"><span class="wc-ic wc-4"><svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.6"/><path d="M10.5 5.5h3"/></svg></span>
+        <div><b>Add Turnout to your Home Screen</b><i id="wc-install">Tap Share, then Add to Home Screen, and open it from the new icon.</i></div></div>
+      <div class="wc-step"><span class="wc-ic wc-5"><svg viewBox="0 0 24 24"><path d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg></span>
+        <div><b>Turn on location &amp; notifications</b><i>Open your profile (your picture, top left) and switch both on. Location is what lets you check in at a party &mdash; no check-in, no album and no guest list.</i></div></div>
+    </div>
+    <button class="btn" id="wc-go">Let&rsquo;s go</button>
+    <button class="linkish-sm" id="wc-legal">The rules &amp; your privacy</button>
+  </div>
+</div>
+<div id="splash"><div class="sp-mark">TURNOUT</div><div class="sp-dots"><i></i><i></i><i></i></div></div>
 <div id="ask-sheet" hidden>
   <div class="sheet">
     <h3 id="ask-title"></h3>
@@ -967,6 +1075,42 @@ if('serviceWorker' in navigator && location.protocol === 'https:'){
     if(hadController && !window.__swReloaded){ window.__swReloaded = true; location.reload(); }
   });
 }
+/* Location is asked for HERE, on purpose. Prompting the moment someone walks
+   in reads as creepy and gets denied; asking on the profile, next to the
+   reason, gets a yes. Once denied, the browser won't ask again — so we say
+   what to do instead of silently failing. */
+async function locState(){
+  if(!navigator.geolocation) return 'unsupported';
+  try{
+    if(navigator.permissions){
+      const st = await navigator.permissions.query({ name: 'geolocation' });
+      return st.state === 'granted' ? 'on' : st.state === 'denied' ? 'blocked' : 'off';
+    }
+  }catch(_){ }
+  return 'off';
+}
+async function paintLocState(){
+  const box = $('#loc-state'); if(!box) return;
+  const st = await locState();
+  if(st === 'on') box.innerHTML = '<p style="color:var(--lime);font-weight:600;font-size:14px">On \u2014 you can check in at parties</p>';
+  else if(st === 'blocked') box.innerHTML = '<p style="color:var(--muted);font-size:14px">Blocked in your phone\u2019s settings. On iPhone: <b style="color:var(--text)">Settings \u2192 Turnout \u2192 Location</b>, set it to <b style="color:var(--text)">While Using</b>, then come back.</p>';
+  else if(st === 'unsupported') box.innerHTML = '<p style="color:var(--muted);font-size:14px">This browser can\u2019t do location \u2014 use the app on your phone.</p>';
+}
+function askLocation(){
+  if(!navigator.geolocation){ toast('This browser can\u2019t do location'); return; }
+  const btn = $('#loc-enable');
+  if(btn){ btn.disabled = true; btn.textContent = 'Asking\u2026'; }
+  navigator.geolocation.getCurrentPosition(
+    () => { haptic(10); toast('Location on \u2014 you can check in now'); paintLocState(); },
+    err => {
+      if(btn){ btn.disabled = false; btn.textContent = 'Turn on location'; }
+      toast(err && err.code === 1
+        ? 'You said no \u2014 turn it on in Settings \u2192 Turnout \u2192 Location'
+        : 'Could not get a location fix \u2014 try again outside');
+      paintLocState();
+    },
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+}
 async function pushState(){
   if(!('serviceWorker' in navigator) || !('PushManager' in window) || location.protocol !== 'https:') return 'unsupported';
   if(isIOS && !isStandalone) return 'needs-install';
@@ -1076,6 +1220,8 @@ function show(id){
   });
   if(id === 'map') loadParties().then(renderMap);
   if(id === 'tonight') renderTonight();
+  if(id === 'friends') loadQuickAdd();
+  if(id === 'profile') setTimeout(paintLocState, 60);
   if(id === 'host'){
     if(myHomeAddr && !$('#h-addr').value.trim()){
       $('#h-addr').value = myHomeAddr;
@@ -1615,6 +1761,39 @@ function paintRating(pid, n){
     else row.insertAdjacentHTML('afterend', `<div class="rate-done">${esc(txt)}</div>`);
   });
 }
+/* ── private photos ───────────────────────────────────────────────────
+   Recap and DM photos live in the `vault` bucket, which is not public: the
+   only way to see one is a short-lived signed URL, and the database decides
+   whether you get one. Before this, "only the people who checked in can see
+   this" was true in the UI and false on the file — anyone with the link could
+   open any album photo, signed out, forever.
+
+   Values that still start with http are legacy public-bucket URLs from before
+   the move; they're passed through so old albums don't break. */
+const SIGNED = {};                       // path -> { url, exp }
+const SIGN_TTL = 3600;
+function isVaultPath(v){ return !!v && !/^https?:/i.test(v); }
+async function signOne(path){
+  if(!isVaultPath(path)) return path;
+  const hit = SIGNED[path];
+  if(hit && hit.exp > Date.now() + 60000) return hit.url;
+  const { data, error } = await db.storage.from('vault').createSignedUrl(path, SIGN_TTL);
+  if(error || !data) return null;
+  SIGNED[path] = { url: data.signedUrl, exp: Date.now() + SIGN_TTL * 1000 };
+  return data.signedUrl;
+}
+async function signMany(paths){
+  const need = [...new Set(paths.filter(isVaultPath))]
+    .filter(x => !(SIGNED[x] && SIGNED[x].exp > Date.now() + 60000));
+  if(need.length){
+    const { data } = await db.storage.from('vault').createSignedUrls(need, SIGN_TTL);
+    (data || []).forEach(r => { if(r.signedUrl && !r.error)
+      SIGNED[r.path] = { url: r.signedUrl, exp: Date.now() + SIGN_TTL * 1000 }; });
+  }
+  const out = {};
+  paths.forEach(x => { out[x] = isVaultPath(x) ? (SIGNED[x] || {}).url || '' : x; });
+  return out;
+}
 function recapOpen(p){
   const start = new Date(p.starts_at || p.created_at);
   return Date.now() > start.getTime() && Date.now() < recapUntil(start).getTime();
@@ -1635,6 +1814,8 @@ async function loadRecap(pid){
     ]);
     recapPhotos[pid] = ph.data || [];
     myRating[pid] = rt.data ? rt.data.flames : 0;
+    const map = await signMany(recapPhotos[pid].map(x => x.url));
+    recapPhotos[pid].forEach(x => { x.src = map[x.url] || ''; });
   } catch(_){ recapPhotos[pid] = recapPhotos[pid] || []; }
 }
 function recapHtml(p, mine){
@@ -1665,8 +1846,8 @@ function recapHtml(p, mine){
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg>
         Add to album</button>
       ${photos.map(ph => `<div class="album-cell ${ph.user_id === me.id ? 'mine' : ''}"
-          data-rphoto="${ph.url}" data-rid="${ph.id}" data-rown="${ph.user_id === me.id || mine ? '1' : ''}">
-        <img src="${esc(ph.url)}" alt="" draggable="false" loading="lazy"></div>`).join('')}
+          data-rphoto="${esc(ph.src || ph.url)}" data-rid="${ph.id}" data-rown="${ph.user_id === me.id || mine ? '1' : ''}">
+        <img src="${esc(ph.src || ph.url)}" alt="" draggable="false" loading="lazy"></div>`).join('')}
     </div>
     ${photos.length ? '' : '<div class="album-empty">No photos yet — the camera goes straight here, nothing saves to your phone.</div>'}
   </div>`;
@@ -2053,10 +2234,12 @@ async function recapFileChosen(e){
   if(btn) btn.textContent = 'Adding\u2026';
   try {
     const blob = await shrinkImage(file, 1400, .82);
-    const path = me.id + '/recap/' + pid + '-' + Date.now() + '.jpg';
-    const { error } = await db.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg' });
+    /* recap/{party}/{uploader}-{ts}.jpg — the policy reads the party id out of
+       the path, so the shape matters */
+    const path = 'recap/' + pid + '/' + me.id + '-' + Date.now() + '.jpg';
+    const { error } = await db.storage.from('vault').upload(path, blob, { contentType: 'image/jpeg' });
     if(error) throw error;
-    const url = db.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+    const url = path;                      // store the path; sign it on the way out
     const { error: e2 } = await db.from('party_photos').insert({ party_id: pid, user_id: me.id, url });
     if(e2) throw e2;
     haptic(12);
@@ -2707,6 +2890,61 @@ $('#map-sheet').addEventListener('click', e => {
 });
 
 /* ── friends ── */
+/* Quick add — nobody wants to type names into a search box to find people
+   they were standing next to on Saturday. Rank by shared nights: people whose
+   parties you claimed, people who claimed yours, then anyone else nearby. */
+async function loadQuickAdd(){
+  const wrap = $('#quick-wrap'), box = $('#quick-add');
+  if(!wrap || !box) return;
+  const known = new Set([me.id, ...friends.map(f => f.id), ...pendingOut, ...pendingIn.map(p => p.id), ...blocked]);
+  const score = {}, why = {};
+  const bump = (id, n, reason) => {
+    if(!id || known.has(id)) return;
+    score[id] = (score[id] || 0) + n;
+    if(!why[id]) why[id] = reason;
+  };
+  const mineIds = new Set(allParties.filter(p => p.host_id === me.id).map(p => p.id));
+  allParties.forEach(p => {
+    const claimers = (p.claims || []).map(c => c.user_id);
+    if(mineIds.has(p.id)) claimers.forEach(id => bump(id, 3, 'came to your party'));
+    else if(myClaims.has(p.id)){
+      bump(p.host_id, 3, 'hosted a party you went to');
+      claimers.forEach(id => bump(id, 2, 'was at the same party'));
+    } else {
+      bump(p.host_id, 1, 'hosts near you');
+    }
+  });
+  let ids = Object.keys(score).sort((a, b) => score[b] - score[a]).slice(0, 6);
+  if(ids.length < 4){
+    /* new account with no history — show a few real people from their area */
+    try{
+      const { data } = await db.from('profiles').select('id, display_name, avatar_url, zip')
+        .eq('zip', me.zip || '').limit(12);
+      (data || []).forEach(pr => { if(!known.has(pr.id) && !score[pr.id]){
+        profMap[pr.id] = profMap[pr.id] || pr; bump(pr.id, 0.5, 'near you'); } });
+      ids = Object.keys(score).sort((a, b) => score[b] - score[a]).slice(0, 6);
+    }catch(_){ }
+  }
+  if(!ids.length){ wrap.hidden = true; return; }
+  const missing = ids.filter(id => !profMap[id]);
+  if(missing.length){
+    const { data: profs } = await db.from('profiles').select('id, display_name, avatar_url').in('id', missing);
+    (profs || []).forEach(pr => profMap[pr.id] = pr);
+  }
+  const rows = ids.map(id => {
+    const u = profMap[id]; if(!u) return '';
+    return `<div class="qa-row">
+      <button data-viewuser="${id}" style="display:flex;gap:11px;align-items:center;flex:1;min-width:0;background:none;border:none;padding:0;text-align:left;color:inherit;font-family:inherit">
+        ${avatar(u, 36)}
+        <span class="qa-txt"><b>${esc(u.display_name || 'Someone')}</b><i>${esc(why[id] || 'near you')}</i></span>
+      </button>
+      <button class="qa-btn" data-add="${id}" data-name="${esc(u.display_name || 'them')}">Add</button>
+    </div>`;
+  }).filter(Boolean).join('');
+  if(!rows){ wrap.hidden = true; return; }
+  box.innerHTML = rows;
+  wrap.hidden = false;
+}
 async function loadFriends(){
   await loadFriendRows();
   $('#freq-wrap').innerHTML = pendingIn.length ? `
@@ -2793,10 +3031,20 @@ $('#friends').addEventListener('click', async e => {
   let el;
   if(el = e.target.closest('[data-viewuser]')){ openUserCard(el.dataset.viewuser); return; }
   if(el = e.target.closest('[data-add]')){
+    /* answer the tap instantly — the insert can take a moment on cell data and
+       a button that just sits there reads as broken */
+    const btn = el.matches('.qa-btn') ? el : null;
+    if(btn){ btn.disabled = true; btn.textContent = 'Sent'; }
     const { error } = await db.from('friendships').insert({ user_id: me.id, friend_id: el.dataset.add });
-    if(error){ toast(error.message.includes('duplicate') ? 'Request already out' : error.message); return; }
+    if(error){
+      if(btn){ btn.disabled = false; btn.textContent = 'Add'; }
+      toast(error.message.includes('duplicate') ? 'Request already out' : error.message); return;
+    }
+    haptic(9);
     toast('Request sent to ' + el.dataset.name);
-    await loadFriends(); $('#friend-search').dispatchEvent(new Event('input'));
+    await loadFriends();
+    loadQuickAdd();
+    $('#friend-search').dispatchEvent(new Event('input'));
     return;
   }
   if(el = e.target.closest('[data-fracc]')){
@@ -2877,6 +3125,13 @@ async function renderChat(){
   const box = $('#msgs');
   if(error){ box.innerHTML = '<p class="empty">' + esc(error.message) + '</p>'; return; }
   const msgs = data || [];
+  /* photo messages hold a vault path now, not a public URL — sign them all in
+     one round trip before painting */
+  const shot = msgs.map(m => m.image_url).filter(Boolean);
+  if(shot.length){
+    const map = await signMany(shot);
+    msgs.forEach(m => { if(m.image_url) m.image_url = map[m.image_url] || m.image_url; });
+  }
   if(!msgs.length){
     const f = profMap[chatId];
     box.innerHTML = `<div class="chat-empty"><b>Say something to ${esc(dispName(f))}</b>
@@ -3050,10 +3305,13 @@ $('#msg-file').addEventListener('change', async e => {
   box.scrollTop = box.scrollHeight;
   try {
     const blob = await shrinkImage(file);
-    const path = me.id + '/chat/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.jpg';
-    const { error } = await db.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+    /* chat/{sender}/{recipient}/... — the policy reads both ids out of the
+       path, so only those two can ever sign a link to it */
+    const path = 'chat/' + me.id + '/' + chatId + '/' + Date.now() + '-' +
+                 Math.random().toString(36).slice(2, 8) + '.jpg';
+    const { error } = await db.storage.from('vault').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
     if(error) throw error;
-    const url = db.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+    const url = path;                      // store the path; sign it on the way out
     const { error: e2 } = await db.from('messages').insert({
       sender_id: me.id, recipient_id: chatId, text: 'Photo', image_url: url });
     if(e2) throw e2;
@@ -3081,8 +3339,15 @@ $('#lightbox').addEventListener('click', async e => {
     if(!rid) return;
     if(!await askYes({ title: 'Remove this photo?',
       sub: 'It disappears from the album for everyone.', yes: 'Remove', danger: true })) return;
+    /* delete the FILE too, not just the row. This used to drop the database
+       record and leave the image sitting in storage forever, which is not what
+       "it disappears for everyone" means. */
+    let vpath = null;
+    try{ const { data: row } = await db.from('party_photos').select('url').eq('id', rid).maybeSingle();
+         if(row && isVaultPath(row.url)) vpath = row.url; }catch(_){ }
     const { error } = await db.from('party_photos').delete().eq('id', rid);
     if(error){ toast(error.message); return; }
+    if(vpath){ try{ await db.storage.from('vault').remove([vpath]); delete SIGNED[vpath]; }catch(_){ } }
     haptic(10);
     box.hidden = true; $('#lb-img').src = ''; box.dataset.rid = '';
     if(pid){ await loadRecap(pid); renderDetail(); }
@@ -3445,6 +3710,13 @@ async function renderProfile(){
         : ps === 'unsupported' ? '<p style="color:var(--muted);font-size:14px">This browser can’t do push — use the app on your phone.</p>'
         : '<button class="btn" id="notif-enable" style="margin-top:2px">Turn on notifications</button><p class="hint" style="margin-top:8px">New parties the moment they post, messages, and “you’re in” — straight to this phone.</p>'}
     </div>
+    <div class="panel">
+      <h4>Location</h4>
+      <div id="loc-state">
+        <button class="btn" id="loc-enable" style="margin-top:2px">Turn on location</button>
+        <p class="hint" style="margin-top:8px">Check-in compares where you are to the host&rsquo;s spot, right on your phone. Turnout never keeps a trail of where you&rsquo;ve been &mdash; without this you can&rsquo;t check in, so the album and the guest list stay locked.</p>
+      </div>
+    </div>
     <div class="panel"><h4>Host flame</h4>
       ${(hostScores[me.id] && hostScores[me.id].votes >= 2)
         ? `<p class="flame" style="font-size:19px">${flameSvg(19)} ${hostScores[me.id].avg} <span style="font-size:13px;color:var(--muted);font-weight:600">from ${hostScores[me.id].votes} ratings · ${hosted.length} parties hosted</span></p>`
@@ -3470,10 +3742,12 @@ async function renderProfile(){
     <div class="panel"><h4>Coming next</h4>
       <p style="font-size:13.5px;color:var(--muted)">VIP perks going live · covers charged in-app · recap albums that disappear Friday · the real map with real distances. One drop at a time.</p></div>
     <button class="btn btn-ghost" id="signout">Sign out</button>
+    <button class="btn btn-ghost" id="legal-btn" style="margin-top:14px">The rules &amp; your privacy</button>
     <button class="danger-link" id="delete-acct" style="margin-top:14px">Delete my account</button>`;
 }
 $('#profile-body').addEventListener('click', async e => {
   if(e.target.id === 'notif-enable'){ enablePush(); return; }
+  if(e.target.id === 'loc-enable'){ askLocation(); return; }
   if(e.target.closest('#av-open')){ openPfpSheet(); return; }
   if(e.target.closest('#bn-open')){ openBnSheet(); return; }
   if(e.target.id === 'home-addr-save'){
@@ -3495,6 +3769,7 @@ $('#profile-body').addEventListener('click', async e => {
     toast(next ? 'VIP is on — gold badge unlocked' : 'VIP turned off');
     renderProfile(); return;
   }
+  if(e.target.id === 'legal-btn'){ openLegal(); return; }
   if(e.target.id === 'invite-btn'){
     const text = me.display_name.split(' ')[0] + ' is on Turnout — where the party is. Claim a spot, get the address.';
     const url = 'https://jointurnout.app';
@@ -3821,10 +4096,48 @@ function startRealtime(){
 }
 
 /* ── boot ── */
+/* Shown once, the first time you land in the app. Keyed to the account, not
+   the browser, so signing in on a second device doesn't re-explain the app —
+   and clearing it never blocks anyone: worst case you see it twice. */
+function maybeOnboard(){
+  if(!me) return;
+  const k = 'turnout-welcomed-' + me.id;
+  let seen = false;
+  try{ seen = localStorage.getItem(k) === '1'; }catch(_){ }
+  if(seen) return;
+  /* already installed? then the Home Screen step is done — say so instead of
+     telling someone to do a thing they've already done */
+  const step = $('#wc-install');
+  if(step){
+    if(isStandalone) step.textContent = 'Already done \u2014 you\u2019re running the installed app.';
+    else if(!isIOS) step.textContent = 'Open your browser menu and choose Install app (or Add to Home Screen), then open it from the new icon.';
+  }
+  $('#welcome').hidden = false;
+}
+function closeWelcome(){
+  $('#welcome').hidden = true;
+  try{ if(me) localStorage.setItem('turnout-welcomed-' + me.id, '1'); }catch(_){ }
+  haptic(8);
+}
+function openLegal(){ $('#legal').hidden = false; }
+function closeLegal(){ $('#legal').hidden = true; }
+$('#lg-close').addEventListener('click', closeLegal);
+$('#lg-ok').addEventListener('click', closeLegal);
+$('#legal').addEventListener('click', e => { if(e.target.id === 'legal') closeLegal(); });
+$('#wc-legal').addEventListener('click', openLegal);
+$('#wc-close').addEventListener('click', closeWelcome);
+$('#wc-go').addEventListener('click', closeWelcome);
+$('#welcome').addEventListener('click', e => { if(e.target.id === 'welcome') closeWelcome(); });
+
+function dropSplash(){
+  const sp = $('#splash'); if(!sp || sp.hidden) return;
+  sp.classList.add('gone');
+  setTimeout(() => { sp.hidden = true; }, 320);
+}
 async function boot(){
-  if(!configured){ $('#config-warn').hidden = false; return; }
+  if(!configured){ $('#config-warn').hidden = false; dropSplash(); return; }
   me = await loadMe();
-  if(!me){ show('auth'); return; }
+  if(!me){ show('auth'); dropSplash(); return; }
   try{
     if(pendingHomeAddr){
       await db.from('home_addresses').upsert({ user_id: me.id, address: pendingHomeAddr });
@@ -3846,16 +4159,25 @@ async function boot(){
   /* if anything of yours is happening right now, that's the screen you want */
   try{
     await refreshData();
-    if(tonightLive()){ show('tonight'); return; }
-    if(allParties.some(isLive)){ show('map'); return; }
+    if(tonightLive()){ show('tonight'); dropSplash(); maybeOnboard(); return; }
+    if(allParties.some(isLive)){ show('map'); dropSplash(); maybeOnboard(); return; }
   }catch(e){}
   show('find');
+  dropSplash();
+  maybeOnboard();
 }
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState !== 'visible' || !me) return;
   if(chatId && $('#chat').classList.contains('on')) renderChat();
 });
-boot();
+/* A splash that never lifts is a dead app, so it comes down no matter what:
+   if boot throws, or a request hangs, the timer wins and you at least land
+   somewhere you can use. */
+setTimeout(() => { try{ dropSplash(); }catch(_){ } }, 6000);
+boot().catch(err => {
+  console.error('boot failed', err);
+  try{ dropSplash(); if(!me) show('auth'); }catch(_){ }
+});
 </script>
 </body>
 </html>
