@@ -550,7 +550,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.5</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.6</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1403,7 +1403,7 @@ function hostConsoleHtml(p){
   </div>`;
 }
 /* ── checking in: you have to actually be there ── */
-const CHECKIN_FT = 250;
+const CHECKIN_FT = 450;   // matches parties.checkin_ft default (migration 23)
 let checkIns = {}, myCheckIn = {}, hereCount = {}, ciDist = null, ciWatch = null;
 function feetBetween(a, b){
   const R = 20903520, p = Math.PI / 180;
@@ -1463,7 +1463,7 @@ function checkinHtml(p){
   return `<div class="ci far">
     <h4>Check in when you get there</h4>
     <p>${noPoint ? 'Waiting on the exact spot from the host…'
-        : 'Turnout checks your location — you have to be within ' + CHECKIN_FT + ' feet of the party.'}</p>
+        : 'Turnout checks your location against the host’s exact spot — you have to be within ' + CHECKIN_FT + ' feet.'}</p>
     <button class="btn" id="ci-btn" data-checkin="${p.id}" disabled>${noPoint ? 'Location not set' : 'Finding you…'}</button>
     <div style="text-align:center;margin-top:9px;font-size:12px" class="ci-dist" id="ci-dist">${noPoint ? '' : 'Checking your distance…'}</div>
     ${n ? `<div class="here-locked">${lockSvg(14)}<span><b>${n}</b> here now — check in to see who</span></div>` : ''}
@@ -1778,10 +1778,20 @@ $('#detail-body').addEventListener('click', async e => {
     if(!pt) return;
     if(ciDist === null || ciDist > CHECKIN_FT){ toast('You need to be within ' + CHECKIN_FT + ' feet'); return; }
     el.disabled = true; el.textContent = 'Checking in…';
-    const { error } = await db.from('check_ins').insert({ party_id: pid, user_id: me.id });
-    if(error){
+    /* the database measures the distance itself from the host's exact point —
+       the button is a convenience, not the lock (migration 23) */
+    const here = await new Promise(res => navigator.geolocation.getCurrentPosition(
+      pos => res({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+      () => res(null), { enableHighAccuracy: true, maximumAge: 5000, timeout: 12000 }));
+    if(!here){
       el.disabled = false; el.textContent = 'Check in';
-      toast(error.message.includes('check_ins') ? 'One sec — check-in needs migration 18' : error.message);
+      toast('Couldn’t read your location — try again'); return;
+    }
+    const { data: r, error } = await db.rpc('check_in_at', { pid, lat: here.lat, lon: here.lon });
+    if(error || !r || !r.ok){
+      el.disabled = false; el.textContent = 'Check in';
+      const why = (r && r.error) || (error && error.message) || 'check-in failed';
+      toast(why === 'too far' ? `You're ${r.feet} ft away — get within ${r.need}` : why);
       return;
     }
     myCheckIn[pid] = true;
