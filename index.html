@@ -164,6 +164,36 @@
   .fee-tier span{font-size:11px;color:var(--faint);font-weight:600}
   .fee-tier .now{border-color:rgba(163,230,53,.45);background:rgba(163,230,53,.10)}
   .fee-tier .now b{color:var(--lime)}
+  /* the profile dot, top-left on every screen — the way into You now */
+  .me-dot{width:34px;height:34px;border-radius:12px;flex:0 0 auto;overflow:hidden;padding:0;
+    border:1.5px solid var(--line);background:var(--raised);
+    transition:transform .28s var(--spring),border-color .28s var(--spring)}
+  .me-dot:active{transform:scale(.9)}
+  .me-dot .f-av,.me-dot .avimg{width:100%!important;height:100%!important;border-radius:0!important;font-size:14px!important}
+  .tab .dot.live{background:var(--lime);box-shadow:0 0 0 0 rgba(163,230,53,.6);animation:tabpulse 1.9s ease-out infinite}
+  @keyframes tabpulse{
+    0%{box-shadow:0 0 0 0 rgba(163,230,53,.55)}
+    70%{box-shadow:0 0 0 7px rgba(163,230,53,0)}
+    100%{box-shadow:0 0 0 0 rgba(163,230,53,0)}}
+  /* tonight */
+  .tn-hero{margin:0 0 16px}
+  .tn-eyebrow{display:flex;align-items:center;gap:7px;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+    font-weight:800;color:var(--lime);margin-bottom:7px}
+  .tn-eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--lime);
+    box-shadow:0 0 0 0 rgba(163,230,53,.6);animation:tabpulse 1.9s ease-out infinite}
+  .tn-eyebrow.host-e{color:var(--mag)}
+  .tn-eyebrow.host-e i{background:var(--mag);animation:none;box-shadow:none}
+  .tn-title{font-family:var(--disp);font-size:25px;line-height:1.15;color:#fff;margin:0 0 3px}
+  .tn-sub{font-size:13.5px;color:var(--muted);margin:0 0 14px}
+  .tn-cover{height:150px;border-radius:20px;background-size:cover;background-position:center;margin-bottom:14px;position:relative;overflow:hidden}
+  .tn-cover .card-scrim{position:absolute;inset:0}
+  .tn-empty{text-align:center;padding:52px 20px}
+  .tn-empty-ic{width:62px;height:62px;margin:0 auto 15px;border-radius:21px;display:flex;align-items:center;justify-content:center;
+    color:var(--faint);background:var(--surface);border:1px solid var(--line)}
+  .tn-empty-ic svg{width:27px;height:27px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .tn-empty h3{font-family:var(--disp);font-size:18px;color:#fff;margin:0 0 6px}
+  .tn-empty p{font-size:13.5px;color:var(--muted);line-height:1.5;max-width:270px;margin:0 auto 18px}
+  .tn-sec{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:800;margin:26px 0 10px}
   .tag.drop-tag{background:rgba(236,72,153,.20);color:#FF9CC4;border-color:rgba(236,72,153,.42);
     display:inline-flex;align-items:center;gap:4px}
   .tag.drop-tag svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
@@ -550,7 +580,7 @@
   <section class="screen on" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.6</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v7.7</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -578,11 +608,9 @@
 
   <!-- ══ FIND ══ -->
   <section class="screen" id="find">
-    <div class="top"><span class="wordmark">TURNOUT</span><span class="loc-pill">near <b id="loc-zip"></b></span></div>
+    <div class="top"><button class="me-dot" data-me aria-label="Your profile"></button><span class="wordmark">TURNOUT</span><span class="loc-pill">near <b id="loc-zip"></b></span></div>
     <div class="ptr" id="ptr">Release to refresh</div>
     <div class="scroll">
-      <h2 id="recap-head" hidden style="font-size:15px;margin:0 0 10px;color:var(--muted)">Last night</h2>
-      <div class="recap-strip" id="recap-strip" hidden></div>
       <h2 id="find-greet" style="font-size:19px;margin:0 0 12px">Parties near you</h2>
       <button class="host-cta" id="host-cta">
         <span class="host-cta-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span>
@@ -617,7 +645,7 @@
 
   <!-- ══ FRIENDS ══ -->
   <section class="screen" id="friends">
-    <div class="top"><span class="wordmark">TURNOUT</span></div>
+    <div class="top"><button class="me-dot" data-me aria-label="Your profile"></button><span class="wordmark">TURNOUT</span><span style="width:34px"></span></div>
     <div class="scroll">
       <p class="eyebrow">Your people</p>
       <h2 style="font-size:22px;margin:2px 0 14px">Friends</h2>
@@ -653,7 +681,7 @@
 
   <!-- ══ HOST ══ -->
   <section class="screen" id="host">
-    <div class="top"><span class="wordmark">TURNOUT</span></div>
+    <div class="top"><button class="me-dot" data-me aria-label="Your profile"></button><span class="wordmark">TURNOUT</span><span style="width:34px"></span></div>
     <div class="scroll">
       <p class="eyebrow">Host a party</p>
       <h2 style="font-size:22px;margin:2px 0 4px">Throw something.</h2>
@@ -712,9 +740,15 @@
     </div>
   </section>
 
+  <!-- ══ TONIGHT ══ -->
+  <section class="screen" id="tonight">
+    <div class="top"><button class="me-dot" data-me aria-label="Your profile"></button><span class="wordmark">TURNOUT</span><span style="width:34px"></span></div>
+    <div class="scroll" id="tonight-body"></div>
+  </section>
+
   <!-- ══ YOU ══ -->
   <section class="screen" id="profile">
-    <div class="top"><span class="wordmark">TURNOUT</span></div>
+    <div class="top"><button class="back-btn" id="profile-back" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><span class="wordmark">TURNOUT</span><span style="width:34px"></span></div>
     <div class="scroll" id="profile-body"></div>
   </section>
 
@@ -727,8 +761,8 @@
       <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1.2-3.4 4-5 6.5-5s5.3 1.6 6.5 5"/><circle cx="17" cy="9" r="3"/><path d="M16.5 15.5c2.3.3 4.2 1.8 5 4.5"/></svg>Friends<span class="dot" id="friends-dot" hidden></span></button>
     <button class="tab" data-tab="host">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Host</button>
-    <button class="tab" data-tab="profile">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg>You</button>
+    <button class="tab" data-tab="tonight">
+      <svg viewBox="0 0 24 24"><path d="M4 19V9.5l8-5.5 8 5.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M9.5 20v-5h5v5"/></svg>Tonight<span class="dot live" id="tonight-dot" hidden></span></button>
   </nav>
 </div>
 
@@ -955,7 +989,7 @@ function show(id){
   } else {
     $$('.screen').forEach(s => s.classList.toggle('on', s.id === id));
   }
-  $('#tabbar').hidden = ['auth','chat','detail'].includes(id);
+  $('#tabbar').hidden = ['auth','chat','detail','profile'].includes(id);
   const tabFor = id === 'chat' ? 'friends' : id === 'detail' ? detailFrom : id;
   $$('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tabFor));
   if(id === 'find') loadParties().then(() => {
@@ -963,6 +997,7 @@ function show(id){
       if(b) b.scrollTop = savedFindScroll; savedFindScroll = 0; }
   });
   if(id === 'map') loadParties().then(renderMap);
+  if(id === 'tonight') renderTonight();
   if(id === 'host'){
     if(myHomeAddr && !$('#h-addr').value.trim()){
       $('#h-addr').value = myHomeAddr;
@@ -1191,24 +1226,13 @@ function myLiveParty(){
   return allParties.find(p => p.host_id === me.id && checkinOpen(p));
 }
 function updateHostCta(){
-  const live = myLiveParty();
   const h = $('#host-cta-h'), sub = $('#host-cta-s');
   if(!h) return;
-  if(live){
-    const n = hereCount[live.id] || 0;
-    h.textContent = 'Your door is open';
-    sub.textContent = n ? `${n} ${n === 1 ? 'person is' : 'people are'} inside — tap to see who` : 'Nobody has checked in yet — tap to watch the door';
-    $('#host-cta').classList.add('livecta');
-    $('#host-cta').querySelector('.host-cta-ic').innerHTML = '<span class="livedot"></span>';
-  } else {
-    const hosted = allParties.filter(p => p.host_id === me.id).length;
-    h.textContent = hosted ? 'Throw another one' : 'Throwing something?';
-    sub.textContent = hosted ? 'Post it and run the door from your phone.'
-                             : 'Post it, cap the numbers, see who actually shows.';
-    $('#host-cta').classList.remove('livecta');
-    $('#host-cta').querySelector('.host-cta-ic').innerHTML =
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>';
-  }
+  /* Find stays discovery-only — a live party belongs in Tonight, not here */
+  const hosted = allParties.filter(p => p.host_id === me.id).length;
+  h.textContent = hosted ? 'Throw another one' : 'Throwing something?';
+  sub.textContent = hosted ? 'Post it and run the door from your phone.'
+                           : 'Post it, cap the numbers, see who actually shows.';
 }
 async function loadParties(){
   if(!$('#party-list').children.length)
@@ -1217,6 +1241,7 @@ async function loadParties(){
   $('#find-greet').textContent = timeGreeting() + ', ' + me.display_name.split(' ')[0];
   await refreshData();
   updateHostCta();
+  updateTonightDot();
   const friendIds = new Set(friends.map(f => f.id));
   const nameOf = {}; friends.forEach(f => nameOf[f.id] = dispName(f));
   const hostCount = {};
@@ -1226,18 +1251,7 @@ async function loadParties(){
     $('#party-list').innerHTML = '<p class="empty">Nothing posted near you yet. Throw the first one — you\u2019ll own the night.</p>';
     return;
   }
-  // parties you were at whose album is still alive
-  const recaps = allParties.filter(x => recapOpen(x) && (myClaims.has(x.id) || x.host_id === me.id));
-  const strip = $('#recap-strip');
-  if(strip){
-    strip.innerHTML = recaps.length ? recaps.map(x => `<button class="rs-card" data-open="${x.id}">
-        <div class="rs-img" style="background:${x.photo_url ? `url('${esc(x.photo_url)}')` : gradFor(x.id)};background-size:cover;background-position:center"></div>
-        <div class="rs-scrim"></div>
-        <div class="rs-txt"><b>${esc(x.name)}</b><span>${esc(diesIn(x))}</span></div>
-      </button>`).join('') : '';
-    strip.hidden = !recaps.length;
-    $('#recap-head').hidden = !recaps.length;
-  }
+  // recaps and anything live now live in the Tonight tab
   const _sb = document.querySelector('#find .scroll');
   const _st = _sb ? _sb.scrollTop : 0;
   const sorted = parties.slice().sort((a, b) => bucketOf(a) - bucketOf(b)
@@ -1534,6 +1548,114 @@ function recapHtml(p, mine){
     </div>
     ${photos.length ? '' : '<div class="album-empty">No photos yet — the camera goes straight here, nothing saves to your phone.</div>'}
   </div>`;
+}
+/* keep every profile dot showing the current picture */
+function paintMeDots(){
+  if(!me) return;
+  const html = avatar(me, 34, 12);
+  $$('.me-dot').forEach(b => { b.innerHTML = html; });
+}
+/* the profile dot works from any screen; remember where we came from */
+let profileFrom = 'find';
+function curScreen(){
+  const on = $$('.screen').filter(x => x.classList.contains('on')).map(x => x.id);
+  return on.find(id => TAB_ORDER.includes(id)) || 'find';
+}
+$('#profile-back').addEventListener('click', () => { show(profileFrom); haptic(9); });
+document.addEventListener('click', e => {
+  const dot = e.target.closest('[data-me]');
+  if(dot){ profileFrom = curScreen(); show('profile'); renderProfile(); haptic(9); return; }
+  const go = e.target.closest('[data-gotab]');
+  if(go){ show(go.dataset.gotab); haptic(9); }
+});
+/* ── TONIGHT ──────────────────────────────────────────────────────────
+   One tab, one answer to "what am I doing right now". It shows exactly
+   one thing, in this order:
+     1. the party you're throwing        (hosting always wins)
+     2. the party you're at              (claimed + happening)
+     3. the albums still alive           (nothing live)
+     4. nothing                          (go find something)
+   ------------------------------------------------------------------ */
+function tonightState(){
+  const hosting = allParties.find(p => p.host_id === me.id && checkinOpen(p));
+  if(hosting) return { kind: 'hosting', p: hosting };
+  const atOne = allParties.find(p => p.host_id !== me.id && myClaims.has(p.id) && checkinOpen(p));
+  if(atOne) return { kind: 'attending', p: atOne };
+  const recaps = allParties.filter(p => recapOpen(p) && (myClaims.has(p.id) || p.host_id === me.id));
+  if(recaps.length) return { kind: 'recaps', list: recaps };
+  return { kind: 'empty' };
+}
+function tonightLive(){
+  const k = tonightState().kind;
+  return k === 'hosting' || k === 'attending';
+}
+function coverFor(p){
+  return p.photo_url ? `url('${esc(p.photo_url)}')` : gradFor(p.id);
+}
+async function renderTonight(){
+  const body = $('#tonight-body');
+  if(!body) return;
+  await refreshData();
+  const st = tonightState();
+  updateTonightDot();
+
+  if(st.kind === 'empty'){
+    body.innerHTML = `<div class="tn-empty">
+      <div class="tn-empty-ic"><svg viewBox="0 0 24 24"><path d="M4 19V9.5l8-5.5 8 5.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M9.5 20v-5h5v5"/></svg></div>
+      <h3>Nothing going on yet</h3>
+      <p>When you're throwing a party or you're at one, it lives here. Albums from the last few nights land here too.</p>
+      <button class="btn" data-gotab="find">Find a party</button>
+      <button class="btn btn-ghost" data-gotab="host" style="margin-top:10px">Throw one</button>
+    </div>`;
+    return;
+  }
+
+  if(st.kind === 'recaps'){
+    body.innerHTML = `<p class="eyebrow">The last few nights</p>
+      <h2 style="font-size:22px;margin:2px 0 4px">Still up.</h2>
+      <p style="color:var(--muted);margin-bottom:18px;font-size:14.5px">These disappear on their own. Grab what you want before they do.</p>
+      ${st.list.map(x => `<button class="card" data-open="${x.id}" style="margin-bottom:12px">
+        <div class="card-img" style="background:${coverFor(x)};background-size:cover;background-position:center"></div>
+        <div class="card-scrim"></div>
+        <div class="card-top"><span class="tag">${esc(diesIn(x))}</span></div>
+        <div class="card-foot"><h3>${esc(x.name)}</h3>
+          <div class="friendsline">${myCheckIn[x.id] || x.host_id === me.id ? 'Album\u2019s open — tap to see it' : 'You didn\u2019t check in, so this one\u2019s sealed'}</div>
+        </div></button>`).join('')}`;
+    return;
+  }
+
+  // something is happening right now
+  const p = st.p;
+  const mine = st.kind === 'hosting';
+  if(!checkIns[p.id]) await loadCheckIns(p.id);
+  if(mine && !hcRoster[p.id]) await loadRoster(p.id);
+  /* when hosting, the hero and the door console must read from the same
+     place or they'll disagree in front of the host */
+  const n = mine ? (hcRoster[p.id] || []).length
+                 : (hereCount[p.id] || (checkIns[p.id] || []).length);
+  const known = (checkIns[p.id] || []).filter(id => profMap[id]);
+  const claimed = (p.claims || []).length;
+
+  body.innerHTML = `
+    <div class="tn-hero">
+      <div class="tn-eyebrow ${mine ? 'host-e' : ''}"><i></i>${mine ? 'You\u2019re hosting' : 'You\u2019re at'}</div>
+      <h2 class="tn-title">${esc(p.name)}</h2>
+      <p class="tn-sub">${esc(p.town || '')}${p.town ? ' \u00b7 ' : ''}${n} ${n === 1 ? 'person' : 'people'} inside${mine ? ` \u00b7 ${claimed} claimed` : ''}</p>
+      <div class="tn-cover" style="background-image:${coverFor(p)}"><div class="card-scrim"></div></div>
+    </div>
+    ${mine ? hostConsoleHtml(p) : ''}
+    ${!mine && !myCheckIn[p.id] ? checkinHtml(p) : ''}
+    ${!mine && myCheckIn[p.id] ? `<div class="panel">
+        <h4>Who\u2019s here</h4>
+        ${known.length ? `<div class="ci-here" style="margin:0">${n} here now ${faceStack(known, 5)}</div>` : `<p class="hint" style="margin:0">${n} checked in so far.</p>`}
+      </div>` : ''}
+    ${recapOpen(p) ? recapHtml(p, mine) : ''}
+    <button class="btn btn-ghost" data-open="${p.id}" style="margin-top:14px">Open the full party page</button>`;
+  afterDetailRender(p, !mine && checkinOpen(p));
+}
+function updateTonightDot(){
+  const d = $('#tonight-dot');
+  if(d) d.hidden = !tonightLive();
 }
 /* ── the address drop: a countdown that turns into a street address ── */
 function dropPending(p){
@@ -2842,6 +2964,7 @@ $('#h-post').addEventListener('click', async () => {
 
 /* ── profile ── */
 async function renderProfile(){
+  paintMeDots();
   await refreshData();
   const ps = await pushState();
   const hosted = allParties.filter(p => p.host_id === me.id);
@@ -2921,10 +3044,7 @@ $('#profile-body').addEventListener('click', async e => {
     renderProfile(); return;
   }
   if(e.target.closest && e.target.closest('#host-cta')){
-    const live = myLiveParty();
-    if(live){ openDetail(live.id, 'find'); } else { show('host'); }
-    haptic(10);
-    return;
+    show('host'); haptic(10); return;
   }
   if(e.target.id === 'invite-btn'){
     const text = me.display_name.split(' ')[0] + ' is on Turnout — where the party is. Claim a spot, get the address.';
@@ -3123,7 +3243,7 @@ function closeOverlay(el, target){
 addSwipeBack($('#chat'), () => show('friends'));
 
 /* swipe left/right anywhere to move between the five tabs */
-const TAB_ORDER = ['find','map','friends','host','profile'];
+const TAB_ORDER = ['find','map','friends','host','tonight'];
 (function tabSwipe(){
   const shell = document.querySelector('.shell');
   let sx = 0, sy = 0, dx = 0, cur = null, nb = null, dir = 0, dragging = false, decided = false;
@@ -3269,11 +3389,11 @@ async function boot(){
     unreadFrom = new Set((un || []).map(r => r.sender_id));
     updateDot();
   }catch(e){}
-  /* if you're hosting right now, that's the only screen you want */
+  paintMeDots();
+  /* if anything of yours is happening right now, that's the screen you want */
   try{
     await refreshData();
-    const live = myLiveParty();
-    if(live){ show('find'); openDetail(live.id, 'find'); return; }
+    if(tonightLive()){ show('tonight'); return; }
     if(allParties.some(isLive)){ show('map'); return; }
   }catch(e){}
   show('find');
