@@ -680,6 +680,29 @@
   .wc-3{background:linear-gradient(135deg,var(--vio),var(--cyan))}
   .wc-4{background:linear-gradient(135deg,var(--lime),#4ade80)}
   .wc-5{background:linear-gradient(135deg,var(--cyan),#38bdf8)}
+  /* the one-time "what is this tab" sheet — same family as the welcome card,
+     smaller, and it comes up from the bottom because it explains the thing you
+     just tapped down there */
+  #tabintro{position:fixed;inset:0;z-index:82;display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(6,5,12,.72);backdrop-filter:blur(5px)}
+  #tabintro[hidden]{display:none}
+  .ti-card{position:relative;width:min(440px,100%);background:var(--surface);
+    border:1px solid var(--line);border-radius:24px 24px 0 0;
+    padding:22px 20px calc(18px + env(safe-area-inset-bottom));
+    max-height:82dvh;overflow-y:auto;box-shadow:0 -20px 60px -26px #000;
+    animation:sheetup .3s var(--spring)}
+  .ti-head{display:flex;gap:13px;align-items:center;margin:0 34px 16px 0}
+  .ti-ic{flex:0 0 auto;width:44px;height:44px;border-radius:15px;display:flex;
+    align-items:center;justify-content:center;background:var(--grad)}
+  .ti-ic svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:1.9;
+    stroke-linecap:round;stroke-linejoin:round}
+  .ti-eyebrow{font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+  .ti-card h3{font-family:var(--disp);font-size:22px;margin:2px 0 0;letter-spacing:-.01em}
+  .ti-points{display:flex;flex-direction:column;gap:13px;margin-bottom:18px}
+  .ti-pt{display:flex;gap:11px;align-items:flex-start}
+  .ti-pt span{flex:0 0 auto;width:6px;height:6px;border-radius:99px;background:var(--mag);margin-top:8px}
+  .ti-pt p{margin:0;font-size:14px;line-height:1.5;color:var(--muted)}
+  .ti-pt b{color:#fff;font-weight:600}
   #splash{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;align-items:center;
     justify-content:center;gap:18px;background:var(--ink);transition:opacity .3s ease}
   #splash[hidden]{display:none}
@@ -819,7 +842,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v9.9</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.0</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1084,6 +1107,17 @@
     </div>
     <button class="btn" id="wc-go">Let&rsquo;s go</button>
     <button class="linkish-sm" id="wc-legal">The rules &amp; your privacy</button>
+  </div>
+</div>
+<div id="tabintro" hidden>
+  <div class="ti-card">
+    <button class="wc-x" id="ti-x" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="ti-head">
+      <span class="ti-ic" id="ti-ic"></span>
+      <div><div class="ti-eyebrow" id="ti-eyebrow"></div><h3 id="ti-title"></h3></div>
+    </div>
+    <div class="ti-points" id="ti-points"></div>
+    <button class="btn" id="ti-go">Got it</button>
   </div>
 </div>
 <div id="splash"><div class="sp-mark">TURNOUT</div><div class="sp-dots"><i></i><i></i><i></i></div></div>
@@ -1443,6 +1477,7 @@ function show(id){
   }
   if(id === 'friends') loadFriends();
   if(id === 'profile') renderProfile();
+  if(TAB_INTRO[id]) setTimeout(() => maybeTabIntro(id), 420);
 }
 $$('.tab').forEach(t => t.addEventListener('click', () => show(t.dataset.tab)));
 function updateDot(){
@@ -4709,10 +4744,75 @@ function maybeOnboard(){
   }
   $('#welcome').hidden = false;
 }
+/* Every tab gets one sheet, once, the first time you land on it. Everyone who
+   already has an account sees them on their next open (they've never been
+   shown); after that only new signups do. Per-account, like the welcome card. */
+const TAB_INTRO = {
+  find: { eyebrow: 'Discover', title: 'Find a party',
+    ic: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>',
+    points: [
+      'Everything happening near you, grouped by <b>when</b> \u2014 tonight, tomorrow, this week.',
+      '<b>Claim a ticket and the address unlocks.</b> No ticket, no address. That\u2019s the whole point.',
+      'Search by party name or town if you already know what you\u2019re looking for.' ] },
+  map: { eyebrow: 'The map', title: 'See where it all is',
+    ic: '<svg viewBox="0 0 24 24"><path d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>',
+    points: [
+      'Every party is a pin with the host\u2019s face on it. Live ones pulse.',
+      'You only get the <b>exact</b> spot once you\u2019re in \u2014 everything else sits on the town.',
+      'Tap a pin, then pull the card up for the full party page.' ] },
+  tonight: { eyebrow: 'Right now', title: 'Tonight',
+    ic: '<svg viewBox="0 0 24 24"><path d="M4 19V9.5l8-5.5 8 5.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M9.5 20v-5h5v5"/></svg>',
+    points: [
+      'Whatever\u2019s actually going on: the party <b>you\u2019re throwing</b>, or the one you\u2019re at.',
+      '<b>Check in when you get there.</b> That\u2019s what opens the album and the guest list \u2014 and it\u2019s what proves the place is alive.',
+      'Albums from the last few nights sit here too, until they disappear.' ] },
+  friends: { eyebrow: 'Your people', title: 'Friends',
+    ic: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.4"/><path d="M3.2 19c.5-3.2 3-5 5.8-5s5.3 1.8 5.8 5"/><path d="M17 8h5M19.5 5.5v5"/></svg>',
+    points: [
+      'Add people so you can see <b>who\u2019s going before you commit</b>.',
+      'Chat, send photos, and share a party straight into a conversation.',
+      'Quick add suggests people from nights you were both at, and from around your ZIP.' ] },
+  host: { eyebrow: 'Run your door', title: 'Throw one',
+    ic: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
+    points: [
+      'Post it and everyone nearby sees it live, instantly.',
+      'Cap the numbers. The counter is real, so you know what\u2019s coming.',
+      '<b>Pick when the address drops</b> \u2014 right away, or an hour before doors, so nobody has your house all week.',
+      'Once it starts, the door console shows you who\u2019s inside and who never showed.' ] },
+};
+function tabIntroKey(id){ return 'turnout-tab-' + ((me && me.id) || 'x') + '-' + id; }
+function maybeTabIntro(id){
+  const t = TAB_INTRO[id];
+  if(!t || !me) return;
+  /* never stack sheets — the welcome card comes first and this waits its turn */
+  if(!$('#welcome').hidden || !$('#tabintro').hidden) return;
+  try{ if(localStorage.getItem(tabIntroKey(id)) === '1') return; }catch(_){ return; }
+  tabIntroFor = id;
+  $('#ti-ic').innerHTML = t.ic;
+  $('#ti-eyebrow').textContent = t.eyebrow;
+  $('#ti-title').textContent = t.title;
+  $('#ti-points').innerHTML = t.points.map(x => `<div class="ti-pt"><span></span><p>${x}</p></div>`).join('');
+  $('#tabintro').hidden = false;
+  haptic(6);
+}
+let tabIntroFor = null;
+function closeTabIntro(){
+  $('#tabintro').hidden = true;
+  try{ if(tabIntroFor) localStorage.setItem(tabIntroKey(tabIntroFor), '1'); }catch(_){ }
+  tabIntroFor = null;
+  haptic(8);
+}
+$('#ti-x').addEventListener('click', closeTabIntro);
+$('#ti-go').addEventListener('click', closeTabIntro);
+$('#tabintro').addEventListener('click', e => { if(e.target.id === 'tabintro') closeTabIntro(); });
 function closeWelcome(){
   $('#welcome').hidden = true;
   try{ if(me) localStorage.setItem('turnout-welcomed-' + me.id, '1'); }catch(_){ }
   haptic(8);
+  /* the tab underneath never got its own intro, because the welcome card was
+     covering it when show() fired */
+  const open = document.querySelector('.screen.on');
+  if(open) setTimeout(() => maybeTabIntro(open.id), 400);
 }
 /* Shown when someone reaches for a paid feature, not on a timer. `why` names
    the thing they just tried to do, so the pitch answers a question they are
