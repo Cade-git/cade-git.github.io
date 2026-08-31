@@ -662,7 +662,41 @@
   #legal{position:fixed;inset:0;z-index:82;display:flex;align-items:flex-end;justify-content:center;
     background:rgba(0,0,0,.66);backdrop-filter:blur(3px)}
   #legal[hidden]{display:none}
-  .lg-sheet{position:relative;max-height:84dvh;animation:sheetup .28s var(--spring)}
+  /* .btn sets its own display, which beats the plain [hidden] rule -- without
+     this the Close button stayed on screen during the acceptance gate and you
+     could tap straight past it without agreeing. */
+  #legal [hidden]{display:none!important}
+  /* The documents are long. Left as one scrolling block, "I agree" sat 2,300px
+     down and nobody would ever reach it, so the sheet is a column: the document
+     scrolls inside it and the buttons stay pinned at the bottom. */
+  .lg-sheet{position:relative;max-height:84dvh;animation:sheetup .28s var(--spring);
+    display:flex;flex-direction:column;overflow:hidden}
+  .lg-sheet > *{flex:0 0 auto}
+  .lg-sheet > .lg-body{flex:1 1 auto;overflow-y:auto;min-height:0;
+    -webkit-overflow-scrolling:touch;padding-right:2px}
+  /* .sheet's own max-height is declared later in this stylesheet and was winning
+     at equal specificity, capping the reading area at ~290px. */
+  .sheet.lg-sheet{max-height:88dvh}
+  .lg-tabs{display:flex;gap:6px;background:var(--raised);border:1px solid var(--line);
+    border-radius:12px;padding:4px;margin:12px 0 4px}
+  .lg-tab{flex:1;padding:8px 6px;border-radius:9px;font-size:12.5px;font-weight:700;
+    color:var(--muted);background:none;letter-spacing:.01em}
+  .lg-tab.on{background:var(--surface);color:#fff;box-shadow:0 2px 10px -4px #000}
+  .lg-doc h6{font-size:12px;font-weight:800;color:var(--lime);margin:16px 0 6px;
+    letter-spacing:.06em;text-transform:uppercase}
+  .lg-doc p{font-size:13.5px;color:var(--muted);line-height:1.55;margin:0 0 8px}
+  .lg-doc ul{margin:0 0 10px;padding-left:17px}
+  .lg-doc li{font-size:13.5px;color:var(--muted);line-height:1.55;margin-bottom:5px}
+  .lg-doc b{color:var(--text)}
+  .lg-updated{font-size:12px;color:var(--muted);opacity:.75;margin-bottom:2px}
+  /* the auth form uppercases every label; this one is a sentence, not a field name */
+  .consent, .consent span{text-transform:none;letter-spacing:normal;font-weight:500}
+  .consent{display:flex;gap:10px;align-items:flex-start;margin:4px 0 14px;
+    background:var(--raised);border:1px solid var(--line);border-radius:13px;padding:12px}
+  .consent input{width:20px;height:20px;flex:0 0 20px;margin:1px 0 0;accent-color:var(--lime)}
+  .consent span{font-size:12.5px;color:var(--muted);line-height:1.5}
+  .lglink{color:var(--cyan);font-weight:700;background:none;padding:0;font-size:12.5px;
+    text-decoration:underline;text-underline-offset:2px}
   .lg-body h5{font-size:13px;font-weight:700;color:#fff;margin:14px 0 4px;letter-spacing:.02em}
   .lg-body p{font-size:13.5px;color:var(--muted);line-height:1.5;margin:0}
   .lg-body b{color:var(--text)}
@@ -911,7 +945,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.6</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.7</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -931,6 +965,13 @@
         <div class="field"><label for="a-addr">Home address <span class="opt">optional</span></label><input id="a-addr" placeholder="Street address" autocomplete="street-address">
           <p class="hint">Only so it can auto-fill if you ever host — skip it and nothing changes. Locked in the database; nobody else can ever read it.</p></div>
         <div class="field"><label for="a-pass">Password</label><input id="a-pass" type="password" placeholder="8+ characters" autocomplete="new-password"></div>
+        <label class="consent" for="a-agree">
+          <input type="checkbox" id="a-agree">
+          <span>I&rsquo;m 16 or older, and I agree to the
+            <button type="button" class="lglink" data-lg-open="terms">Terms</button> and the
+            <button type="button" class="lglink" data-lg-open="priv">Privacy Policy</button>.
+            If I&rsquo;m under 18, a parent or guardian says it&rsquo;s okay.</span>
+        </label>
         <button class="btn" id="do-signup">Create my account</button>
         <button class="btn-ghost btn" id="to-signin" style="margin-top:10px">I already have an account</button>
       </div>
@@ -1141,8 +1182,13 @@
   <div class="sheet lg-sheet">
     <button class="wc-x" id="lg-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <h3>The rules &amp; your privacy</h3>
-    <p class="sub">Short version, in plain English.</p>
-    <div class="lg-body">
+    <p class="sub">Short version first. The full documents are behind the tabs.</p>
+    <div class="lg-tabs" role="tablist">
+      <button class="lg-tab on" data-lg="sum" role="tab">Summary</button>
+      <button class="lg-tab" data-lg="priv" role="tab">Privacy</button>
+      <button class="lg-tab" data-lg="terms" role="tab">Terms</button>
+    </div>
+    <div class="lg-body" id="lg-sum">
       <h5>Who can use Turnout</h5>
       <p>You need to be <b>16 or older</b>. Turnout is for finding real parties with real people. Don&rsquo;t use it if you&rsquo;re younger.</p>
       <h5>What we store</h5>
@@ -1154,11 +1200,174 @@
       <h5>What&rsquo;s not allowed</h5>
       <p>Fake parties, harassment, posting someone&rsquo;s address without permission, photos of people who don&rsquo;t want to be posted, and anything illegal. Report anyone doing it &mdash; every profile and party has a report option, and blocking someone cuts contact both ways.</p>
       <h5>Parties are not ours</h5>
-      <p>Turnout helps you find a party. It doesn&rsquo;t run it, vouch for it, or take responsibility for what happens there. Use your judgement, tell someone where you&rsquo;re going, and look out for each other.</p>
+      <p>Turnout helps you find a party. It doesn&rsquo;t run it, vouch for it, or take responsibility for what happens there. Use your judgment, tell someone where you&rsquo;re going, and look out for each other.</p>
       <h5>Deleting your stuff</h5>
       <p>Profile &rarr; Delete my account removes your account, your parties, your photos and your messages for good.</p>
       <h5>Questions</h5>
-      <p>Message Cade on the app or at <b>jointurnout.app</b>.</p>
+      <p>Message Cade on the app, or email <b>delucacaden15@gmail.com</b>.</p>
+    </div>
+
+    <div class="lg-body lg-doc" id="lg-priv" hidden>
+      <p class="lg-updated">Privacy Policy &middot; last updated 31 August 2026</p>
+      <p>Turnout is a small app for finding house parties, run by Cade DeLuca in Missouri. This
+         explains exactly what it stores about you, who can see it, and how to get rid of it. It is
+         written to be read, not to be skipped.</p>
+
+      <h6>What you give us</h6>
+      <ul>
+        <li><b>To make an account:</b> your email address, a password, the name you want shown, and
+            your ZIP code.</li>
+        <li><b>Optional:</b> a profile photo, and a home address that auto-fills the host form.</li>
+        <li><b>When you host:</b> the party&rsquo;s name, times, cover, capacity and street address.</li>
+        <li><b>When you go out:</b> which parties you claimed a spot at, whether you checked in and
+            roughly when, photos you add to a party album, messages and reactions you send, who your
+            friends are, private nicknames you give them, ratings you leave a host, and reports you
+            file.</li>
+        <li><b>If you turn on notifications:</b> a push token for that device, so your phone can be
+            buzzed. Turn it off and it is deleted.</li>
+      </ul>
+
+      <h6>Location</h6>
+      <p>Location is off unless you switch it on. When you check in, your phone compares where you
+         are to the host&rsquo;s spot and sends <b>the answer</b> &mdash; near enough, or not &mdash;
+         not a trail of where you have been. Party pins on the map are deliberately imprecise until
+         you are holding a ticket.</p>
+
+      <h6>Who can see what</h6>
+      <ul>
+        <li><b>Anyone signed in:</b> your display name and profile photo.</li>
+        <li><b>Only people holding a ticket to that party:</b> its street address.</li>
+        <li><b>Only people who were actually there:</b> that party&rsquo;s album photos and who
+            checked in.</li>
+        <li><b>Only you and the other person:</b> your messages.</li>
+        <li><b>Only you, ever:</b> your saved home address, and the nicknames you give friends.</li>
+        <li><b>Nobody, individually:</b> tapping &ldquo;I&rsquo;m out tonight&rdquo; only ever shows
+            other people a <b>count</b>. Your name is never in that list.</li>
+      </ul>
+      <p>These are not just rules in the app &mdash; they are enforced by the database itself, on
+         every single request, so a modified app cannot read around them.</p>
+
+      <h6>Who else touches your data</h6>
+      <ul>
+        <li><b>Supabase</b> &mdash; hosts the database, accounts and photo storage (United States).</li>
+        <li><b>OpenStreetMap Nominatim</b> and <b>Zippopotam</b> &mdash; an address or ZIP is sent to
+            turn it into map coordinates or a town name.</li>
+        <li><b>Esri / ArcGIS</b> &mdash; draws the map tiles, and sees your IP address doing it.</li>
+        <li><b>Cloudflare, jsDelivr, Google Fonts</b> &mdash; serve code and fonts; they see your IP.</li>
+        <li><b>Apple, Google or Mozilla&rsquo;s push service</b> &mdash; only if you turned
+            notifications on, and only to deliver the buzz.</li>
+      </ul>
+
+      <h6>What we never do</h6>
+      <p>There are no ads, no advertising trackers, no analytics SDKs, and no data brokers. Nothing
+         about you is sold or rented, and nothing is shared with anyone except the services above
+         that are needed to make the app work &mdash; or if the law actually requires it.</p>
+
+      <h6>How long it is kept, and deleting it</h6>
+      <p>Your data stays until you remove it. <b>Profile &rarr; Delete my account</b> permanently
+         deletes your account, your profile, your parties and their addresses, your photos, your
+         messages, your friendships and your check-ins. It cannot be undone and there is no backup
+         copy kept for you. Deleting a single party takes its address, album and guest list with it.</p>
+
+      <h6>Security</h6>
+      <p>Every table has row-level security switched on, addresses and albums are gated by the
+         database rather than the interface, and the app is served over HTTPS only. No system is
+         perfect, so please tell us straight away if something looks wrong.</p>
+
+      <h6>Age</h6>
+      <p>Turnout is for people <b>16 and over</b>. If you are under 18, you need a parent or
+         guardian&rsquo;s permission to use it. We do not knowingly keep accounts for anyone under
+         16 &mdash; if we find one, we delete it. A parent or guardian can email us to have their
+         child&rsquo;s account and everything in it removed.</p>
+
+      <h6>Your rights</h6>
+      <p>You can see and edit your profile in the app at any time, and delete everything in two taps.
+         If you want a copy of what is stored about you, or want something corrected, email and ask
+         &mdash; we will do it.</p>
+
+      <h6>Changes</h6>
+      <p>If this policy changes in a way that matters, the app will show it to you again and ask you
+         to accept it before you carry on.</p>
+
+      <h6>Contact</h6>
+      <p>Cade DeLuca &mdash; <b>delucacaden15@gmail.com</b> &mdash; jointurnout.app</p>
+    </div>
+
+    <div class="lg-body lg-doc" id="lg-terms" hidden>
+      <p class="lg-updated">Terms of Service &middot; last updated 31 August 2026</p>
+      <p>These are the rules for using Turnout. Making an account means you agree to them.</p>
+
+      <h6>Who can use Turnout</h6>
+      <p>You need to be <b>16 or older</b>, and if you are under 18 you need a parent or
+         guardian&rsquo;s permission. One account per person, it is yours alone, and you are
+         responsible for what happens on it. Keep your password to yourself.</p>
+
+      <h6>Turnout does not run the parties</h6>
+      <p>This is the important one. Turnout is a place to <b>list and find</b> parties. It does not
+         host them, organize them, inspect them, vet the people at them, or take any responsibility
+         for what happens at one. Every party belongs entirely to the person who posted it.</p>
+      <p><b>If you host:</b> it is your house, your guests and your responsibility &mdash; including
+         following the law, and not serving alcohol to anyone underage. <b>If you go:</b> you are
+         going at your own risk. Use your judgment, tell someone where you are going, and look out
+         for each other.</p>
+
+      <h6>Money</h6>
+      <p>Turnout does not process payments and never touches your money. If a party has a cover, it
+         is collected in person by the host and settled between the two of you. The door tools in
+         the app are a private tally for the host, not a payment system. Turnout will not referee a
+         dispute about cover.</p>
+
+      <h6>Things you cannot do</h6>
+      <ul>
+        <li>Post a party that is not real, or one you are not actually throwing.</li>
+        <li>Post anyone&rsquo;s address without their permission.</li>
+        <li>Post photos of people who do not want to be posted.</li>
+        <li>Harass, threaten, bully or impersonate anyone.</li>
+        <li>Sell alcohol, drugs or anything illegal &mdash; or use Turnout to arrange it.</li>
+        <li>Break into, scrape, overload or reverse-engineer the app.</li>
+      </ul>
+
+      <h6>What you post stays yours</h6>
+      <p>Your photos and messages belong to you. By putting them in Turnout you give us permission to
+         store and display them to the people the app is meant to show them to &mdash; nothing wider,
+         and nothing outside the app. Delete them and that permission ends.</p>
+
+      <h6>Reporting and removal</h6>
+      <p>Every profile and party has a report option, and blocking someone cuts contact both ways.
+         We can remove any party, photo or message, and suspend or delete any account, if it breaks
+         these rules or puts people at risk &mdash; usually with a warning, immediately if someone
+         could get hurt.</p>
+
+      <h6>Ending it</h6>
+      <p>You can delete your account whenever you want, from your profile. We can close an account
+         that breaks these rules.</p>
+
+      <h6>No promises about the service</h6>
+      <p>Turnout is provided as-is. It is a young app run by one person, so it may go down, lose
+         something, or get something wrong. We do not guarantee it will be available, accurate, or
+         free of bugs.</p>
+
+      <h6>Limit of responsibility</h6>
+      <p>To the fullest extent the law allows, Turnout and Cade DeLuca are not liable for anything
+         that happens at a party you found here, for what other users do, or for any loss, injury or
+         damage arising out of using the app. Nothing here takes away rights you have that cannot be
+         signed away.</p>
+
+      <h6>Which law applies</h6>
+      <p>These terms are governed by the laws of the State of Missouri, United States.</p>
+
+      <h6>Changes</h6>
+      <p>If these terms change in a way that matters, the app will show them to you again and ask you
+         to accept before you carry on.</p>
+
+      <h6>Contact</h6>
+      <p>Cade DeLuca &mdash; <b>delucacaden15@gmail.com</b> &mdash; jointurnout.app</p>
+    </div>
+
+    <div id="lg-accept-wrap" hidden style="margin-top:14px">
+      <p style="font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:10px">
+        These are new. Have a read, then tap below to carry on.</p>
+      <button class="btn" id="lg-accept">I agree</button>
     </div>
     <button class="btn btn-ghost" id="lg-ok" style="margin-top:14px">Close</button>
   </div>
@@ -1804,7 +2013,9 @@ $('#do-signup').addEventListener('click', async () => {
   if(!name){ toast('Tell us your name'); return; }
   if(!/^\d{5}$/.test(zip)){ toast('Enter a 5-digit ZIP'); return; }
   if(!email || pass.length < 8){ toast('Email + a password of at least 8 characters'); return; }
-  const { error } = await db.auth.signUp({ email, password: pass, options: { data: { display_name: name, zip } } });
+  if(!$('#a-agree').checked){ toast('Tick the box to agree to the terms first'); return; }
+  const { error } = await db.auth.signUp({ email, password: pass, options: { data: {
+    display_name: name, zip, terms_version: LEGAL_VERSION, terms_accepted_at: new Date().toISOString() } } });
   if(error){ toast(error.message); return; }
   pendingHomeAddr = $('#a-addr').value.trim() || null;
   toast('Account created — welcome to Turnout');
@@ -1835,9 +2046,12 @@ if(configured) db.auth.onAuthStateChange(async (event) => {
 });
 
 /* ── shared loads ── */
+const LEGAL_VERSION = '2026-08-31';
+let myAuthMeta = {};
 async function loadMe(){
   const { data: { user } } = await db.auth.getUser();
   if(!user) return null;
+  myAuthMeta = user.user_metadata || {};
   const { data } = await db.from('profiles').select('*').eq('id', user.id).single();
   return data;
 }
@@ -5206,6 +5420,9 @@ function startRealtime(){
    and clearing it never blocks anyone: worst case you see it twice. */
 function maybeOnboard(){
   if(!me) return;
+  /* Terms come before the welcome tour: agreeing is the gate, the tour is a
+     nicety, and stacking two sheets would bury one behind the other. */
+  if(myAuthMeta.terms_version !== LEGAL_VERSION){ ensureTermsAccepted(); return; }
   const k = 'turnout-welcomed-' + me.id;
   let seen = false;
   try{ seen = localStorage.getItem(k) === '1'; }catch(_){ }
@@ -5259,8 +5476,9 @@ function tabIntroKey(id){ return 'turnout-tab-' + ((me && me.id) || 'x') + '-' +
 function maybeTabIntro(id){
   const t = TAB_INTRO[id];
   if(!t || !me) return;
-  /* never stack sheets — the welcome card comes first and this waits its turn */
-  if(!$('#welcome').hidden || !$('#tabintro').hidden) return;
+  /* never stack sheets — the terms gate outranks everything, then the welcome
+     card, and this waits its turn behind both */
+  if(!$('#legal').hidden || !$('#welcome').hidden || !$('#tabintro').hidden) return;
   try{ if(localStorage.getItem(tabIntroKey(id)) === '1') return; }catch(_){ return; }
   tabIntroFor = id;
   $('#ti-ic').innerHTML = t.ic;
@@ -5292,10 +5510,44 @@ function closeWelcome(){
 /* Shown when someone reaches for a paid feature, not on a timer. `why` names
    the thing they just tried to do, so the pitch answers a question they are
    already asking. */
-function openLegal(){ $('#legal').hidden = false; }
+function showLegalTab(which){
+  ['sum','priv','terms'].forEach(k => { const el = $('#lg-' + k); if(el) el.hidden = (k !== which); });
+  $$('.lg-tab').forEach(b => b.classList.toggle('on', b.dataset.lg === which));
+  const body = $('#lg-' + which); if(body) body.scrollTop = 0;
+}
+$$('.lg-tab').forEach(b => b.addEventListener('click', () => showLegalTab(b.dataset.lg)));
+document.addEventListener('click', e => {
+  const l = e.target.closest('[data-lg-open]');
+  if(!l) return;
+  e.preventDefault();
+  openLegal(); showLegalTab(l.dataset.lgOpen);
+});
+/* Anyone who signed up before these documents existed has never seen them, so
+   ask once on the next open. Recorded on the auth user, which needs no migration. */
+async function ensureTermsAccepted(){
+  if(!me || myAuthMeta.terms_version === LEGAL_VERSION) return;
+  openLegal(); showLegalTab('terms');
+  $('#lg-accept-wrap').hidden = false;
+  $('#lg-ok').hidden = true;
+  $('#lg-close').hidden = true;          // the X was a second way past the gate
+}
+async function acceptTerms(){
+  const stamp = { terms_version: LEGAL_VERSION, terms_accepted_at: new Date().toISOString() };
+  const { error } = await db.auth.updateUser({ data: stamp });
+  if(error){ toast(error.message); return; }
+  myAuthMeta = Object.assign({}, myAuthMeta, stamp);
+  $('#lg-accept-wrap').hidden = true;
+  $('#lg-ok').hidden = false;
+  $('#lg-close').hidden = false;
+  closeLegal();
+  toast('Thanks — you\u2019re all set');
+  maybeOnboard();                       // the tour this gate stood in front of
+}
+function openLegal(){ $('#legal').hidden = false; showLegalTab('sum'); }
 function closeLegal(){ $('#legal').hidden = true; }
 $('#lg-close').addEventListener('click', closeLegal);
 $('#lg-ok').addEventListener('click', closeLegal);
+$('#lg-accept').addEventListener('click', acceptTerms);
 $('#legal').addEventListener('click', e => { if(e.target.id === 'legal') closeLegal(); });
 $('#wc-legal').addEventListener('click', openLegal);
 $('#wc-close').addEventListener('click', closeWelcome);
