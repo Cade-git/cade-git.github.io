@@ -854,7 +854,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.3</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.4</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -3037,7 +3037,7 @@ $('#share-send').addEventListener('click', async () => {
 
 /* ── map ── */
 /* the real map: Leaflet + free dark tiles (CARTO) / satellite (Esri), geocoding via Nominatim */
-let lmap = null, tileStreet = null, tileSat = null, satOn = false, markerLayer = null, youMarker = null, mapRun = 0;
+let lmap = null, tileStreet = null, tileSat = null, satOn = (()=>{ try{ const v = localStorage.getItem('turnout-map-sat'); return v === null ? true : v === '1'; }catch(_){ return true; } })(), markerLayer = null, youMarker = null, mapRun = 0;  /* satellite by default; the choice is remembered per device */
 let liveLoc = null, geoWatchId = null, mapCentered = false, sheetId = null;
 let exactPt = {};   // party id -> {lat,lon} for parties you're actually in
 
@@ -3161,7 +3161,7 @@ async function renderMap(){
       L.tileLayer(ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, maxNativeZoom: 18, attribution: '&copy; Esri' }),
       L.tileLayer(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, maxNativeZoom: 17, opacity: .85 })
     ]);
-    tileStreet.addTo(lmap);
+    (satOn ? tileSat : tileStreet).addTo(lmap); $('#map-layer').classList.toggle('on', satOn);
     markerLayer = L.layerGroup().addTo(lmap);
     lmap.setView([37.9514, -91.7713], 12);
     lmap.on('click', closeMapSheet);
@@ -3267,7 +3267,7 @@ $('#map-layer').addEventListener('click', () => {
   satOn = !satOn;
   if(satOn){ lmap.removeLayer(tileStreet); tileSat.addTo(lmap); }
   else { lmap.removeLayer(tileSat); tileStreet.addTo(lmap); }
-  $('#map-layer').classList.toggle('on', satOn);
+  $('#map-layer').classList.toggle('on', satOn); try{ localStorage.setItem('turnout-map-sat', satOn ? '1' : '0'); }catch(_){}
 });
 
 /* ── the slide-up party sheet ── */
