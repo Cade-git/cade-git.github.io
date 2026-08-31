@@ -802,6 +802,26 @@
   #realmap .leaflet-control-attribution a{color:#7E7796}
   /* party pin = the host's face */
   .lpin-wrap{background:none;border:none}
+  /* The crowd glow. Deliberately a blurred blob and nothing else: out_count()
+     is keyed on the first three ZIP digits, which is a whole region, so any
+     shape with an edge would imply precision the number does not have -- and
+     a map of individual teenagers is the one thing this app will never draw. */
+  .crowd-glow{filter:blur(22px);pointer-events:none}
+  .crowd-lab{pointer-events:none}
+  .crowd-lab b{display:block;font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:700;
+    color:#fff;text-align:center;white-space:nowrap;text-shadow:0 2px 10px rgba(0,0,0,.85);
+    letter-spacing:.01em}
+  .crowd-lab i{display:block;font-style:normal;font-size:10.5px;font-weight:600;color:#C9B8E8;
+    text-align:center;white-space:nowrap;text-shadow:0 2px 8px rgba(0,0,0,.9);margin-top:1px}
+  /* Ghost pins: parties that already happened. A map with history reads as a
+     place people go; a blank one reads as broken. */
+  .ghost-o{display:flex;flex-direction:column;align-items:center;width:120px;
+    opacity:.42;pointer-events:none}
+  .ghost-dot{width:15px;height:15px;border-radius:50%;border:2px dashed rgba(255,255,255,.55);
+    background:rgba(255,255,255,.07)}
+  .ghost-name{margin-top:4px;font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;
+    color:rgba(255,255,255,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    max-width:120px;text-align:center;text-shadow:0 1px 6px rgba(0,0,0,.9)}
   .pin-o{display:flex;flex-direction:column;align-items:center;width:136px;cursor:pointer}
   .pin-av{width:46px;height:46px;border-radius:50%;border:3px solid var(--ring,#B4F04B);position:relative;
     background:var(--grad);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;
@@ -945,7 +965,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.8</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.9</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -3612,6 +3632,7 @@ $('#share-send').addEventListener('click', async () => {
 
 /* ── map ── */
 /* the real map: Leaflet + free dark tiles (CARTO) / satellite (Esri), geocoding via Nominatim */
+let ghostLayer = null, glowLayer = null;
 let lmap = null, tileStreet = null, tileSat = null, satOn = (()=>{ try{ const v = localStorage.getItem('turnout-map-sat'); return v === null ? true : v === '1'; }catch(_){ return true; } })(), markerLayer = null, youMarker = null, mapRun = 0;  /* satellite by default; the choice is remembered per device */
 let liveLoc = null, geoWatchId = null, mapCentered = false, sheetId = null;
 let exactPt = {};   // party id -> {lat,lon} for parties you're actually in
@@ -3737,6 +3758,8 @@ async function renderMap(){
       L.tileLayer(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, maxNativeZoom: 17, opacity: .85 })
     ]);
     (satOn ? tileSat : tileStreet).addTo(lmap); $('#map-layer').classList.toggle('on', satOn);
+    ghostLayer = L.layerGroup().addTo(lmap);      // under the live pins
+    glowLayer  = L.layerGroup().addTo(lmap);
     markerLayer = L.layerGroup().addTo(lmap);
     lmap.setView([37.9514, -91.7713], 12);
     lmap.on('click', closeMapSheet);
@@ -3783,6 +3806,8 @@ async function renderMap(){
     pts.push([ll.lat, ll.lon]);
     placed++;
   }
+  await drawCrowdGlow(run);
+  drawGhostPins(list);
   $('#map-home').textContent = placed ? placed + (placed === 1 ? ' party nearby' : ' parties nearby') : 'No parties yet';
   /* only count the ones still worth waiting on — a party we already failed to
      place would otherwise leave "placing 1 more…" on screen forever */
@@ -3798,6 +3823,63 @@ async function renderMap(){
   // renderMap() to settle the label, and retrying here would ping-pong forever.
   const todo = pending.filter(x => !unplaceable.has(x.id));
   if(todo.length) backfillPoints(todo, run);
+}
+/* ── the crowd glow ────────────────────────────────────────────────────────
+   An empty map reads as a broken app, and the honest fix is not to draw people
+   on it. out_count() returns how many said they're out tonight for a whole
+   zip3 region -- a number, never a list, never a position -- so this renders
+   as one soft blurred blob centred on the MIDDLE OF YOUR ZIP, not on you and
+   not on anybody else. Nothing here can be traced to a person, and that is the
+   point: the map should feel awake without ever telling you where somebody is. */
+async function drawCrowdGlow(run){
+  if(!glowLayer) return;
+  glowLayer.clearLayers();
+  if(!outCount || outCount < 1) return;
+  const z = await zipPoint(me.zip);
+  if(run !== mapRun || !z) return;
+  const c = [z.lat, z.lon];
+  /* Deliberately huge and deliberately vague: zip3 covers a region, so a small
+     tight circle would claim precision the number does not have. */
+  const r = 2600 + Math.min(outCount, 40) * 70;
+  [[r, .13], [r * .62, .15], [r * .34, .16]].forEach(([rad, op]) => {
+    glowLayer.addLayer(L.circle(c, { radius: rad, className: 'crowd-glow',
+      stroke: false, fillColor: '#FF3D8A', fillOpacity: op, interactive: false }));
+  });
+  /* The label is anchored well above the centre: "you" sit at the middle of
+     your own ZIP whenever GPS is off, and the two were landing on top of each
+     other and cutting the sentence in half. */
+  glowLayer.addLayer(L.marker(c, { interactive: false, keyboard: false,
+    icon: L.divIcon({ className: 'crowd-lab', iconSize: [180, 34], iconAnchor: [90, 104],
+      html: '<b>' + outCount + (outCount === 1 ? ' person is out' : ' people are out') + '</b>'
+          + '<i>around here ' + esc(outNightLabel()) + '</i>' }) }));
+}
+
+/* ── ghost pins ───────────────────────────────────────────────────────────
+   Parties that already happened, from the last two weeks, drawn faint and
+   inert. They are already-public party names at already-approximate points,
+   so nothing new is exposed -- but a map with a history reads as a place
+   people actually go, where a blank one reads as an app that doesn't work. */
+function drawGhostPins(live){
+  if(!ghostLayer) return;
+  ghostLayer.clearLayers();
+  const liveIds = new Set(live.map(p => p.id));
+  const floor = Date.now() - 14 * 864e5;
+  let n = 0;
+  for(const p of allParties){
+    if(liveIds.has(p.id)) continue;                      // still on the feed
+    const when = new Date(p.starts_at || p.created_at).getTime();
+    if(!(when > floor && when < Date.now())) continue;    // last two weeks, already over
+    const ll = exactPt[p.id] || (p.approx_lat != null && p.approx_lon != null
+      ? { lat: +p.approx_lat, lon: +p.approx_lon } : null);
+    if(!ll) continue;
+    const label = p.name.length > 15 ? p.name.slice(0, 14) + '…' : p.name;
+    ghostLayer.addLayer(L.marker([ll.lat, ll.lon], {
+      interactive: false, keyboard: false, zIndexOffset: -500,
+      icon: L.divIcon({ className: 'lpin-wrap', iconSize: [120, 40], iconAnchor: [60, 8],
+        html: '<div class="ghost-o"><span class="ghost-dot"></span>'
+            + '<span class="ghost-name">' + esc(label) + '</span></div>' }) }));
+    if(++n >= 12) break;                                 // a hint of history, not a heat map
+  }
 }
 const unplaceable = new Set();
 async function backfillPoints(list, run){
