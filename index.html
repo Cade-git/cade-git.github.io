@@ -854,7 +854,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.2</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.3</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -3151,15 +3151,15 @@ function startLiveLocation(){
 async function renderMap(){
   if(!window.L){ $('#map-note').textContent = 'map could not load — check your connection'; return; }
   if(!lmap){
-    lmap = L.map('realmap', { zoomControl: false, attributionControl: true, zoomSnap: .5 });
+    lmap = L.map('realmap', { zoomControl: false, attributionControl: true, zoomSnap: .5, maxZoom: 18 });
     const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
     tileStreet = L.layerGroup([
-      L.tileLayer(ESRI + 'Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: '&copy; Esri, OpenStreetMap' }),
-      L.tileLayer(ESRI + 'Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, opacity: .92 })
+      L.tileLayer(ESRI + 'Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, maxNativeZoom: 16, attribution: '&copy; Esri, OpenStreetMap' }),
+      L.tileLayer(ESRI + 'Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, maxNativeZoom: 16, opacity: .92 })
     ]);
     tileSat = L.layerGroup([
-      L.tileLayer(ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: '&copy; Esri' }),
-      L.tileLayer(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, opacity: .85 })
+      L.tileLayer(ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, maxNativeZoom: 18, attribution: '&copy; Esri' }),
+      L.tileLayer(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, maxNativeZoom: 17, opacity: .85 })
     ]);
     tileStreet.addTo(lmap);
     markerLayer = L.layerGroup().addTo(lmap);
@@ -4083,8 +4083,8 @@ function openLocPicker(){
   if(!locMap){
     locMap = L.map('loc-map', { zoomControl: false, attributionControl: false });
     const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
-    L.tileLayer(ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(locMap);
-    L.tileLayer(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, opacity: .85 }).addTo(locMap);
+    L.tileLayer(ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 18 }).addTo(locMap);
+    L.tileLayer(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 17, opacity: .85 }).addTo(locMap);
     locMap.setView(start ? [start.lat, start.lon] : [37.9514, -91.7713], start ? 18 : 13);
   }
   setTimeout(() => locMap.invalidateSize(), 120);
