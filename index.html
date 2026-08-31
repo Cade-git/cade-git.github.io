@@ -677,6 +677,19 @@
   /* .sheet's own max-height is declared later in this stylesheet and was winning
      at equal specificity, capping the reading area at ~290px. */
   .sheet.lg-sheet{max-height:88dvh}
+  .mod-row{border:1px solid var(--line);border-radius:13px;padding:12px 13px;margin-bottom:9px;
+    background:var(--raised)}
+  .mod-row.done{opacity:.45}
+  .mod-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .mod-why{font-size:13.5px;font-weight:700;color:#fff}
+  .mod-when{font-size:11px;color:var(--faint);white-space:nowrap}
+  .mod-what{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .mod-note{font-size:12.5px;color:var(--text);margin-top:6px;background:var(--surface);
+    border:1px solid var(--line);border-radius:9px;padding:8px 10px;white-space:pre-wrap}
+  .mod-acts{display:flex;gap:8px;margin-top:10px}
+  .mod-acts button{flex:1;padding:8px;border-radius:9px;font-size:12.5px;font-weight:700;
+    background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+  .mod-acts button.go{color:var(--lime);border-color:rgba(180,240,75,.4)}
   .lg-tabs{display:flex;gap:6px;background:var(--raised);border:1px solid var(--line);
     border-radius:12px;padding:4px;margin:12px 0 4px}
   .lg-tab{flex:1;padding:8px 6px;border-radius:9px;font-size:12.5px;font-weight:700;
@@ -965,7 +978,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.9</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.0</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1522,7 +1535,8 @@
   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5 10-11"/></svg>
   <b id="cp-title">You’re in</b><span id="cp-sub"></span>
 </div></div>
-<div id="lightbox" hidden><button class="danger-link" id="lb-remove" hidden
+<div id="lightbox" hidden><button class="danger-link" id="lb-report" hidden
+   style="position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));left:0;right:0;width:auto">Report this photo</button><button class="danger-link" id="lb-remove" hidden
    style="position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));left:0;right:0;width:auto">Remove this photo</button><button class="lb-close" id="lb-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><img id="lb-img" alt=""></div>
 <div class="toast" id="toast"></div>
 
@@ -2038,6 +2052,7 @@ $('#do-signup').addEventListener('click', async () => {
   const name = $('#a-name').value.trim(), zip = $('#a-zip').value.trim();
   const email = $('#a-email').value.trim(), pass = $('#a-pass').value;
   if(!name){ toast('Tell us your name'); return; }
+  if(!textOk(name, 'name')) return;
   if(!/^\d{5}$/.test(zip)){ toast('Enter a 5-digit ZIP'); return; }
   if(!email || pass.length < 8){ toast('Email + a password of at least 8 characters'); return; }
   if(!$('#a-agree').checked){ toast('Tick the box to agree to the terms first'); return; }
@@ -2482,7 +2497,61 @@ $('#party-list').addEventListener('click', e => {
 });
 
 /* ── report and block ── */
-let blocked = new Set(), rpTarget = null, rpParty = null, rpReason = null;
+let blocked = new Set(), rpTarget = null, rpParty = null, rpReason = null, rpPhoto = null;
+/* == content filtering ==
+   Both app stores require a way to FILTER objectionable content, not only to
+   report it after the fact. This is that filter.
+
+   Deliberately scoped to slurs and explicit sexual content -- the things that
+   actually get a teenage app pulled -- and NOT to general profanity. Blocking
+   "shit" in a party name would annoy every real user and protect nobody.
+
+   Stored base64 so the source file isn't a wall of slurs, and so a curious
+   fifteen-year-old reading view-source doesn't get handed the exact list to
+   work around. It is not a secret and it is not security: the real enforcement
+   is the matching trigger in migration33, because anything client-side can be
+   bypassed with a devtools console. This half is for instant feedback. */
+const BANNED = atob('bmlnZ2VyLG5pZ2dhLGZhZ2dvdCxmYWcsdHJhbm55LHJldGFyZCxyZXRhcmRlZCxraWtlLHNwaWMsY2hpbmssd2V0YmFjayxjb29uLGR5a2UscGFraSxnb29rLGJlYW5lcixjdW50LHJhcGUscmFwaW5nLHJhcGlzdCxtb2xlc3QscGVkbyxwZWRvcGhpbGUsY3AscG9ybixwb3Jubyxvbmx5ZmFucyxudWRlcyxudWRlLHh4eCxjdW0sYmxvd2pvYixoYW5kam9iLHdob3JlLHNsdXQsaG9lLGluY2VzdCxiZXN0aWFsaXR5LGt5cyxraWxseW91cnNlbGY=').split(',');
+/* Whole words only. Substring matching is how you end up rejecting someone from
+   Scunthorpe, or a party called "Cocktails" -- the classic way these filters
+   make an app look broken. Leetspeak is folded first so "n1gg3r" still trips. */
+function looksAbusive(text){
+  const t = String(text || '')
+    .toLowerCase()
+    .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[4@]/g, 'a').replace(/[3]/g, 'e').replace(/[1!|]/g, 'i')
+    .replace(/[0]/g, 'o').replace(/[$5]/g, 's').replace(/[7]/g, 't')
+    .replace(/[^a-z]+/g, ' ');
+  const toks = t.trim().split(/\s+/).filter(Boolean);
+  const words = new Set(toks);
+  const squashed = t.replace(/\s+/g, '');
+  /* The standard evasion is spacing the letters out -- "s l u t", "sl ut". But
+     simply testing the whole string with spaces removed turns "Grape soda" into
+     a rape match, which is the exact false positive that makes filters look
+     stupid. So only runs of SHORT fragments get joined: real words are never
+     glued to their neighbours. */
+  const joined = new Set();
+  for(let i = 0; i < toks.length; i++){
+    if(toks[i].length > 3) continue;
+    let acc = '';
+    for(let j = i; j < toks.length && toks[j].length <= 3; j++){
+      acc += toks[j];
+      if(acc.length >= 3) joined.add(acc);
+    }
+  }
+  return BANNED.some(w => words.has(w) || joined.has(w)
+                       || (w.length >= 6 && squashed.includes(w)));
+}
+/* One gate for every free-text field a stranger can read. Returns true when the
+   text is fine; toasts and returns false when it isn't. */
+function textOk(text, what){
+  if(!looksAbusive(text)) return true;
+  toast('That ' + (what || 'text') + ' breaks the rules — try different wording');
+  haptic([12, 60, 12]);
+  return false;
+}
+const RP_PHOTO = ['Nudity or sexual content', 'Someone who doesn\u2019t want to be posted',
+                  'Violence or something dangerous', 'Hate speech or a slur', 'Something else'];
 const RP_USER = ['Harassment or bullying', 'Fake profile', 'Inappropriate photos', 'Someone under 18', 'Something else'];
 const RP_PARTY = ['Not a real party', 'Unsafe or dangerous', 'Inappropriate content', 'Something else'];
 async function loadBlocks(){
@@ -2493,14 +2562,22 @@ async function loadBlocks(){
 }
 function openReport(opts){
   rpTarget = opts.user || null; rpParty = opts.party || null; rpReason = null;
-  const list = rpTarget ? RP_USER : RP_PARTY;
-  $('#rp-title').textContent = opts.name ? 'Report ' + opts.name : 'Report this party';
+  rpPhoto = opts.photo || null;
+  const list = rpPhoto ? RP_PHOTO : (rpTarget ? RP_USER : RP_PARTY);
+  $('#rp-title').textContent = rpPhoto ? 'Report this photo'
+    : (opts.name ? 'Report ' + opts.name : 'Report this party');
   $('#rp-opts').innerHTML = list.map(r => `<button class="rp-opt" data-rp="${esc(r)}">${esc(r)}</button>`).join('');
   $('#rp-note').value = '';
-  $('#rp-block').hidden = !rpTarget;
+  $('#rp-block').hidden = !rpTarget;   // nothing to block on a photo report
   $('#rp-block').textContent = 'Block ' + (opts.name || 'this person');
   $('#report-sheet').hidden = false;
 }
+$('#lb-report').addEventListener('click', () => {
+  const box = $('#lightbox');
+  const pid = box.dataset.pid, rid = box.dataset.rphoto;
+  box.hidden = true; $('#lb-img').src = '';
+  openReport({ photo: rid || null, party: pid || null });
+});
 $('#rp-cancel').addEventListener('click', () => { $('#report-sheet').hidden = true; });
 $('#report-sheet').addEventListener('click', e => { if(e.target.id === 'report-sheet') e.target.hidden = true; });
 $('#rp-opts').addEventListener('click', e => {
@@ -2510,9 +2587,19 @@ $('#rp-opts').addEventListener('click', e => {
 });
 $('#rp-send').addEventListener('click', async () => {
   if(!rpReason){ toast('Pick a reason first'); return; }
-  const { error } = await db.from('reports').insert({
-    reporter_id: me.id, target_user: rpTarget, party_id: rpParty,
-    reason: rpReason, note: $('#rp-note').value.trim() || null });
+  const row = { reporter_id: me.id, target_user: rpTarget, party_id: rpParty,
+                reason: rpReason, note: $('#rp-note').value.trim() || null };
+  /* photo_id arrives with migration33. Deploying this file before running that
+     migration would otherwise break EVERY report, not just photo ones, so the
+     column is added only when it is used and dropped if the database hasn't
+     caught up yet. */
+  if(rpPhoto) row.photo_id = rpPhoto;
+  let { error } = await db.from('reports').insert(row);
+  if(error && rpPhoto && /photo_id/.test(error.message || '')){
+    delete row.photo_id;
+    row.note = '[photo ' + rpPhoto + '] ' + (row.note || '');
+    ({ error } = await db.from('reports').insert(row));
+  }
   if(error){ toast(error.message.includes('reports') ? 'One sec — this needs migration 20' : error.message); return; }
   $('#report-sheet').hidden = true;
   haptic(14);
@@ -3468,6 +3555,11 @@ async function partyActions(e){
     $('#lightbox').dataset.rid = el.dataset.rown ? el.dataset.rid : '';
     $('#lightbox').dataset.pid = detailId;
     $('#lb-remove').hidden = !el.dataset.rown;
+    /* Album photos were the one kind of content with no way to flag it, which
+       is the specific thing both stores ask for. Your own photo gets Remove;
+       anybody else's gets Report. */
+    $('#lb-report').hidden = !!el.dataset.rown;
+    $('#lightbox').dataset.rphoto = el.dataset.rid || '';
     return;
   }
   if(g('[data-close]')){ closeOverlay($('#detail'), detailFrom || 'find'); return; }
@@ -4570,6 +4662,7 @@ function pingTyping(){
 async function sendMsg(){
   const inp = $('#msg-in');
   const text = inp.value.trim(); if(!text || !chatId) return;
+  if(!textOk(text, 'message')) return;
   inp.value = ''; inp.style.height = 'auto'; $('#msg-send').disabled = true;
   const { error } = await db.from('messages').insert({ sender_id: me.id, recipient_id: chatId, text });
   if(error){ toast(error.message); inp.value = text; return; }
@@ -4709,6 +4802,7 @@ $('#nick-sheet').addEventListener('click', e => { if(e.target.id === 'nick-sheet
 $('#nick-save').addEventListener('click', async () => {
   if(!nickTarget) return;
   const v = $('#nick-input').value.trim();
+  if(v && !textOk(v, 'nickname')) return;
   if(v){
     const { error } = await db.from('nicknames').upsert({ owner_id: me.id, friend_id: nickTarget, nickname: v });
     if(error){ toast(error.message.includes('nicknames') ? 'One sec — the nicknames table isn’t set up yet' : error.message); return; }
@@ -5008,6 +5102,7 @@ function cutoffFrom(startsAt){
 }
 $('#h-post').addEventListener('click', async () => {
   const name = $('#h-name').value.trim(), addr = $('#h-addr').value.trim();
+  if(!textOk(name, 'party name')) return;
   if(!name){ toast('Give your party a name'); return; }
   if(!addr){ toast('Add an address — it stays locked until claims'); return; }
   const startsAt = whenStart(), endsAt = whenEnd();
@@ -5129,11 +5224,16 @@ async function renderProfile(){
       </div></div>
     <div class="panel"><h4>Coming next</h4>
       <p style="font-size:13.5px;color:var(--muted)">A buzz the morning your album opens · one-tap sign-in · locking your ticket from your phone. One drop at a time.</p></div>
+    <div class="panel" id="mod-panel" hidden><h4>Reports</h4>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Everything people have flagged. Both app stores expect these to be looked at within a day.</p>
+      <div id="mod-list"></div>
+    </div>
     <button class="btn btn-ghost" id="signout">Sign out</button>
     <button class="btn btn-ghost" id="legal-btn" style="margin-top:14px">The rules &amp; your privacy</button>
     <button class="danger-link" id="delete-acct" style="margin-top:14px">Delete my account</button>`;
   /* the markup was just replaced, so the switches need repainting with it */
   paintProfileToggles();
+  renderReports();          // no-op for everyone who isn't the moderator
 }
 $('#profile-body').addEventListener('click', async e => {
   if(e.target.closest('#notif-tog')){ toggleNotifs(); return; }
@@ -5152,6 +5252,14 @@ $('#profile-body').addEventListener('click', async e => {
     return;
   }
   if(e.target.id === 'legal-btn'){ openLegal(); return; }
+  let mb;
+  if(mb = e.target.closest('[data-moddone]')){
+    const { error } = await db.from('reports').update({ handled: true }).eq('id', mb.dataset.moddone);
+    if(error){ toast(error.message); return; }
+    toast('Marked handled'); renderReports(); return;
+  }
+  if(mb = e.target.closest('[data-modview]')){ openUserCard(mb.dataset.modview); return; }
+  if(mb = e.target.closest('[data-modparty]')){ openDetail(mb.dataset.modparty, 'profile'); return; }
   if(e.target.id === 'invite-btn'){ await inviteFriends(); return; }
   if(e.target.id === 'delete-acct'){
     if(!await askYes({ title: 'Delete your account?',
@@ -5697,6 +5805,45 @@ async function acceptTerms(){
   closeLegal();
   toast('Thanks — you\u2019re all set');
   maybeOnboard();                       // the tour this gate stood in front of
+}
+/* == the moderation inbox ==
+   Reports were going into a table nobody could read. Flagging content is only
+   half of what the stores ask for -- the other half is acting on it, which
+   needs somewhere to actually see the queue. Only a profile with is_admin can
+   read these rows (migration33), so for everyone else this panel stays hidden
+   and the query returns nothing anyway. */
+async function renderReports(){
+  const panel = $('#mod-panel');
+  if(!panel || !me || !me.is_admin){ if(panel) panel.hidden = true; return; }
+  panel.hidden = false;
+  const box = $('#mod-list');
+  const { data, error } = await db.from('reports')
+    .select('id, reason, note, handled, created_at, target_user, party_id, photo_id')
+    .order('created_at', { ascending: false }).limit(50);
+  if(error){ box.innerHTML = '<p class="empty" style="padding:6px">Needs migration 33.</p>'; return; }
+  const rows = data || [];
+  if(!rows.length){ box.innerHTML = '<p class="empty" style="padding:6px">Nothing reported. Good.</p>'; return; }
+  const ago = ts => {
+    const s2 = (Date.now() - new Date(ts).getTime()) / 1000;
+    if(s2 < 3600) return Math.max(1, Math.floor(s2 / 60)) + 'm ago';
+    if(s2 < 86400) return Math.floor(s2 / 3600) + 'h ago';
+    return Math.floor(s2 / 86400) + 'd ago';
+  };
+  box.innerHTML = rows.map(r => {
+    const what = r.photo_id ? 'a photo' : r.target_user ? 'a person' : r.party_id ? 'a party' : 'something';
+    const who = r.target_user ? (profMap[r.target_user] && profMap[r.target_user].display_name) || 'someone' : '';
+    return `<div class="mod-row ${r.handled ? 'done' : ''}">
+      <div class="mod-top"><span class="mod-why">${esc(r.reason)}</span>
+        <span class="mod-when">${esc(ago(r.created_at))}</span></div>
+      <div class="mod-what">on ${esc(what)}${who ? ' \u00b7 ' + esc(who) : ''}</div>
+      ${r.note ? `<div class="mod-note">${esc(r.note)}</div>` : ''}
+      <div class="mod-acts">
+        ${r.target_user ? `<button data-modview="${r.target_user}">Open profile</button>` : ''}
+        ${r.party_id ? `<button data-modparty="${r.party_id}">Open party</button>` : ''}
+        ${r.handled ? '<button disabled>Handled</button>'
+                    : `<button class="go" data-moddone="${r.id}">Mark handled</button>`}
+      </div></div>`;
+  }).join('');
 }
 function openLegal(){ $('#legal').hidden = false; showLegalTab('sum'); }
 function closeLegal(){ $('#legal').hidden = true; }
