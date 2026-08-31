@@ -911,7 +911,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.5</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.6</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1508,6 +1508,12 @@ let myRequests = new Set();
 let hostRequests = {};
 let friends = [];          // accepted friend profiles
 let pendingIn = [];        // profiles who asked me
+/* The X on a friend request puts the card away without declining. Keying that
+   to the person meant a re-sent request stayed hidden forever, because the
+   un-hide only fired once the request stopped being pending. Keyed to the
+   request's own timestamp, cancelling and re-sending brings the card back. */
+let reqAt = {};
+function reqKey(p){ return p.id + '|' + (reqAt[p.id] || ''); }
 let pendingOut = new Set();// ids I asked
 let profMap = {};          // id -> profile (friends + requesters)
 let nickMap = {};          // id -> the nickname YOU gave them (private)
@@ -1785,7 +1791,7 @@ function show(id){
 }
 $$('.tab').forEach(t => t.addEventListener('click', () => show(t.dataset.tab)));
 function updateDot(){
-  const liveReqs = pendingIn.some(p => !freqHidden.has(p.id));
+  const liveReqs = pendingIn.some(p => !freqHidden.has(reqKey(p)));
   $('#friends-dot').hidden = !(unreadFrom.size || liveReqs);
 }
 
@@ -1839,15 +1845,16 @@ async function loadFriendRows(){
   const { data: nicks } = await db.from('nicknames').select('friend_id, nickname');
   nickMap = {};
   (nicks || []).forEach(n => nickMap[n.friend_id] = n.nickname);
-  const { data } = await db.from('friendships').select('user_id, friend_id, status')
+  const { data } = await db.from('friendships').select('user_id, friend_id, status, created_at')
     .or(`user_id.eq.${me.id},friend_id.eq.${me.id}`);
   const rows = data || [];
   const acceptedIds = [], inIds = [];
   pendingOut = new Set();
+  reqAt = {};
   rows.forEach(r => {
     const other = r.user_id === me.id ? r.friend_id : r.user_id;
     if(r.status === 'accepted') acceptedIds.push(other);
-    else if(r.friend_id === me.id) inIds.push(other);
+    else if(r.friend_id === me.id){ inIds.push(other); reqAt[other] = r.created_at || ''; }
     else pendingOut.add(other);
   });
   const all = [...new Set([...acceptedIds, ...inIds])];
@@ -1860,9 +1867,9 @@ async function loadFriendRows(){
   /* Someone who withdrew, or whom you accepted, shouldn't stay in the
      put-away set forever — otherwise a request from them a month later
      would arrive already hidden. */
-  const stillPending = new Set(inIds);
+  const live = new Set(inIds.map(id => id + '|' + (reqAt[id] || '')));
   let pruned = false;
-  [...freqHidden].forEach(id => { if(!stillPending.has(id)){ freqHidden.delete(id); pruned = true; } });
+  [...freqHidden].forEach(k => { if(!live.has(k)){ freqHidden.delete(k); pruned = true; } });
   if(pruned) saveFreqHidden();
   updateDot();
 }
@@ -3876,7 +3883,7 @@ async function loadFriends(){
   /* One button, not two. Declining a friend is a decision nobody wants to
      make at a glance, so the X just puts the card away — the request itself
      stays pending and the person still turns up in search with "Accept". */
-  const shownReqs = pendingIn.filter(p => !freqHidden.has(p.id));
+  const shownReqs = pendingIn.filter(p => !freqHidden.has(reqKey(p)));
   $('#freq-wrap').innerHTML = shownReqs.length ? `
     <div class="panel freq" style="border-color:rgba(255,180,84,.4)">
       <button class="freq-x" id="freq-x" aria-label="Hide requests">
@@ -3995,7 +4002,7 @@ $('#friends').addEventListener('click', async e => {
     return;
   }
   if(e.target.closest('#freq-x')){
-    pendingIn.forEach(p => freqHidden.add(p.id));
+    pendingIn.forEach(p => freqHidden.add(reqKey(p)));
     saveFreqHidden(); haptic(6);
     $('#freq-wrap').innerHTML = ''; updateDot();
     toast('Put away \u2014 they\u2019re still waiting on you');
@@ -5099,19 +5106,42 @@ function checkInsSoon(pid){
   }).catch(() => {}); }, 600);
 }
 let reloadAt = 0, reloadT = null, reloadBusy = false;
+/* Repaint whichever screen is actually in front of the person. This used to
+   bail out unless Find, Map or Detail was showing, which is why Tonight,
+   Friends and Host only ever changed if you closed the app and came back. */
 async function runReload(){
   if(reloadBusy){ scheduleReload(); return; }      // don't stack fetches
+  if(!me) return;
   reloadBusy = true; reloadAt = Date.now();
   try{
-    const onFind = $('#find').classList.contains('on');
-    const onMap = $('#map').classList.contains('on');
-    const onDetail = $('#detail').classList.contains('on');
-    if(!onFind && !onMap && !onDetail) return;      // nothing on screen needs it
-    await loadParties();
-    if(onMap) renderMap();
-    if(onDetail) await renderDetail();
+    const on = id => { const el = $('#' + id); return !!el && el.classList.contains('on'); };
+    const onDetail = on('detail'), onChat = on('chat');
+    if(on('find') || on('map') || onDetail){
+      await loadParties();                          // loadParties() does refreshData()
+      if(on('map')) renderMap();
+      if(onDetail) await renderDetail();
+    } else if(on('tonight')){
+      await renderTonight();                        // refreshes on its own
+    } else if(on('friends')){
+      await refreshData();
+      await loadFriends(); loadQuickAdd();
+    } else {
+      await refreshData();                          // host, profile, auth
+      updateHostCta();
+    }
+    if(onChat) await renderChat();
+    renderOutRow(); renderMissed(); updateTonightDot(); updateDot();
   }catch(_){ }
   finally{ reloadBusy = false; }
+}
+/* Everything that isn't carried by realtime: the "I'm out" count is read
+   through an RPC (its rows are private, so realtime can't broadcast them) and
+   the album shelf is its own query. */
+async function fullRefresh(){
+  if(!me) return;
+  try{ await loadOut(); }catch(_){ }
+  nightsList = null;
+  await runReload();
 }
 function scheduleReload(){
   if(reloadT) return;
@@ -5121,8 +5151,15 @@ function maybeReload(){
   if(Date.now() - reloadAt >= RELOAD_GAP && !reloadBusy) runReload();
   else scheduleReload();
 }
+let liveCh = null, liveRetryT = null;
+function restartRealtime(){
+  try{ if(liveCh) db.removeChannel(liveCh); }catch(_){ }
+  liveCh = null;
+  startRealtime();
+}
 function startRealtime(){
-  db.channel('live')
+  if(liveCh) return;
+  liveCh = db.channel('live')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'claims' }, maybeReload)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, maybeReload)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'parties' }, maybeReload)
@@ -5148,10 +5185,19 @@ function startRealtime(){
       if(payload.new.sender_id === me.id && chatId && $('#chat').classList.contains('on')) renderChat();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => {
-      if($('#friends').classList.contains('on')) loadFriends();
-      else loadFriendRows();
+      if($('#friends').classList.contains('on')){ loadFriends(); loadQuickAdd(); }
+      else loadFriendRows().then(updateDot);
     })
-    .subscribe();
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'party_ratings' }, maybeReload)
+    /* A websocket does not survive a phone going in a pocket. When the channel
+       drops, put it back — silently, and without stacking retries. */
+    .subscribe(status => {
+      if(status === 'SUBSCRIBED'){ clearTimeout(liveRetryT); liveRetryT = null; return; }
+      if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+        if(liveRetryT) return;
+        liveRetryT = setTimeout(() => { liveRetryT = null; if(me) restartRealtime(); }, 4000);
+      }
+    });
 }
 
 /* ── boot ── */
@@ -5297,10 +5343,29 @@ async function boot(){
   dropSplash();
   maybeOnboard();
 }
+/* Coming back to the app is the moment it is most likely to be stale — the
+   socket rarely survives a backgrounded phone — so the connection is rebuilt
+   and everything on screen is refreshed. */
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState !== 'visible' || !me) return;
-  if(chatId && $('#chat').classList.contains('on')) renderChat();
+  restartRealtime();
+  fullRefresh();
 });
+window.addEventListener('online', () => { if(me){ restartRealtime(); fullRefresh(); } });
+window.addEventListener('focus', () => {
+  if(!me || document.visibilityState !== 'visible') return;
+  if(Date.now() - reloadAt > 15000) fullRefresh();
+});
+/* Safety net. Realtime drops quietly on cell networks more often than anyone
+   admits, and some things (the "I'm out" count) can't come through it at all,
+   so the app also refreshes itself on a slow beat while you're looking at it.
+   Skipped whenever realtime has already refreshed recently, so this costs
+   nothing when the socket is healthy. */
+setInterval(() => {
+  if(document.visibilityState !== 'visible' || !me) return;
+  if(Date.now() - reloadAt < 20000) return;
+  fullRefresh();
+}, 25000);
 /* A splash that never lifts is a dead app, so it comes down no matter what:
    if boot throws, or a request hangs, the timer wins and you at least land
    somewhere you can use. */
