@@ -945,7 +945,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.7</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.8</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1036,6 +1036,13 @@
     <div class="scroll">
       <p class="eyebrow">Your people</p>
       <h2 style="font-size:22px;margin:2px 0 14px">Friends</h2>
+      <button class="host-cta" id="friends-invite" style="margin-bottom:18px">
+        <span class="host-cta-ic"><svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="9" cy="8" r="3.6"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/>
+          <path d="M18.5 8.5v5M16 11h5"/></svg></span>
+        <span class="host-cta-t"><b id="fi-head">Share Turnout with friends</b><i id="fi-sub">One tap sends them the app.</i></span>
+        <svg class="host-cta-go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
       <div id="freq-wrap"></div>
       <div id="friend-list" style="margin-bottom:20px"></div>
       <div class="panel" id="quick-wrap" hidden><h4>Quick add</h4>
@@ -2196,7 +2203,21 @@ function saveFreqHidden(){
 }
 let hostScores = {};   // host id -> { avg, votes }
 let liveHere = {};     // party id -> how many are inside right now
+/* This used to pull EVERY rating in the system to EVERY phone on every
+   refresh and average them in JavaScript — a table that grows forever, sent
+   over a cell connection, to compute one number per host. host_scores() does
+   the same arithmetic in Postgres and returns one row per host. The old path
+   is kept as a fallback so this file is safe to ship before migration32 is
+   run; delete it once the function is live. */
 async function loadHostScores(){
+  try {
+    const { data, error } = await db.rpc('host_scores');
+    if(!error && data){
+      hostScores = {};
+      data.forEach(r => hostScores[r.host_id] = { avg: Number(r.avg), votes: Number(r.votes) });
+      return;
+    }
+  } catch(_){ }
   try {
     const { data } = await db.from('party_ratings').select('flames, parties!inner(host_id)');
     const acc = {};
@@ -2232,6 +2253,7 @@ async function refreshData(){
     db.from('requests').select('party_id, user_id, profiles(display_name, avatar_url)')
   ]);
   allParties = (pRes.data || []).filter(x => !blocked.has(x.host_id));
+  feedIds = new Set(allParties.map(x => x.id));
   // hide parties that ended more than 6 hours ago
   const cutoff = Date.now() - 6 * 3600 * 1000;
   parties = allParties.filter(p => !p.starts_at || new Date(p.starts_at).getTime() > cutoff);
@@ -3547,6 +3569,21 @@ $('#ask-sheet').addEventListener('click', e => {
 });
 
 /* ── share sheet ── */
+/* The share sheet below sends a PARTY to people already on Turnout. This one
+   sends TURNOUT to people who aren't on it yet, which is the thing the app
+   actually needs — it lives on both the profile and, more importantly, at the
+   top of the Friends tab, where someone stares at an empty list. */
+async function inviteFriends(){
+  const first = (me && me.display_name ? me.display_name.split(' ')[0] : 'Someone');
+  const text = first + ' is on Turnout — where the party is. Claim a ticket, get the address.';
+  const url = 'https://jointurnout.app';
+  try {
+    if(navigator.share){ await navigator.share({ title: 'Turnout', text, url }); haptic(10); return; }
+    await navigator.clipboard.writeText(text + ' ' + url);
+    toast('Link copied — paste it anywhere');
+    haptic(10);
+  } catch(_){ toast('Share it: jointurnout.app'); }
+}
 function openShare(pid){
   shareId = pid;
   const p = allParties.find(x => x.id === pid);
@@ -3556,6 +3593,9 @@ function openShare(pid){
     : '<p class="empty" style="padding:6px">No friends yet — add some on the Friends tab first.</p>';
   $('#share-sheet').hidden = false;
 }
+$('#friends').addEventListener('click', e => {
+  if(e.target.closest('#friends-invite')) inviteFriends();
+});
 $('#share-list').addEventListener('click', e => {
   const c = e.target.closest('[data-fid]'); if(c) c.classList.toggle('on');
 });
@@ -4094,6 +4134,18 @@ async function loadQuickAdd(){
 }
 async function loadFriends(){
   await loadFriendRows();
+  /* Staring at an empty friend list is the moment a new account either invites
+     someone or quietly dies, so the invite says something different there. */
+  const fh = $('#fi-head'), fs = $('#fi-sub');
+  if(fh && fs){
+    if(!friends.length){
+      fh.textContent = 'Nobody here yet';
+      fs.textContent = 'Turnout works when your people are on it. Send it to a few and the map fills up.';
+    } else {
+      fh.textContent = 'Share Turnout with friends';
+      fs.textContent = 'One tap sends them the app.';
+    }
+  }
   /* One button, not two. Declining a friend is a decision nobody wants to
      make at a glance, so the X just puts the card away — the request itself
      stays pending and the person still turns up in search with "Accept". */
@@ -4152,9 +4204,11 @@ async function loadFriends(){
         ${un ? `<span class="unread-pill">${un}</span>` : ''}
       </div>
     </button>`;
-  }).join('') : `<div class="fl-empty">
-      <div class="big">No friends yet</div>
-      Search a name below — parties are better as a crew.</div>`;
+  }).join('')
+    /* The invite card at the top of this tab already says "Nobody here yet" and
+       gives the one action worth taking, so a second empty-state right under it
+       was just the same sentence twice. Quick add and search sit below. */
+    : '';
 }
 let searchTimer;
 $('#friend-search').addEventListener('input', () => {
@@ -5016,17 +5070,7 @@ $('#profile-body').addEventListener('click', async e => {
     return;
   }
   if(e.target.id === 'legal-btn'){ openLegal(); return; }
-  if(e.target.id === 'invite-btn'){
-    const text = me.display_name.split(' ')[0] + ' is on Turnout — where the party is. Claim a ticket, get the address.';
-    const url = 'https://jointurnout.app';
-    try {
-      if(navigator.share){ await navigator.share({ title: 'Turnout', text, url }); haptic(10); return; }
-      await navigator.clipboard.writeText(text + ' ' + url);
-      toast('Link copied — paste it anywhere');
-      haptic(10);
-    } catch(_){ toast('Share it: jointurnout.app'); }
-    return;
-  }
+  if(e.target.id === 'invite-btn'){ await inviteFriends(); return; }
   if(e.target.id === 'delete-acct'){
     if(!await askYes({ title: 'Delete your account?',
       sub: 'Your parties, photos, messages and friends are all permanently erased. This cannot be undone.',
@@ -5357,9 +5401,34 @@ async function fullRefresh(){
   nightsList = null;
   await runReload();
 }
-function scheduleReload(){
+function scheduleReload(gap){
   if(reloadT) return;
-  reloadT = setTimeout(() => { reloadT = null; runReload(); }, RELOAD_GAP);
+  reloadT = setTimeout(() => { reloadT = null; runReload(); }, gap || RELOAD_GAP);
+}
+/* Every client subscribes to claims, requests and check_ins for the WHOLE
+   table, because "parties I can see" is not something a realtime filter can
+   express. So one person walking through one door used to make every phone on
+   the app re-run the feed query, throttled only to once a second. On a busy
+   Friday that is N users each triggering N reloads of the heaviest query in
+   the app, and it is the thing that would take the site down long before the
+   database ran out of room.
+
+   The fix is to ask whether the row has anything to do with you. A party you
+   are looking at stays instant. A party in your feed coalesces into a four
+   second window, which nobody can perceive. A party belonging to a town you
+   cannot see does nothing at all — the 25 second heartbeat is more than soon
+   enough for something that is not on your screen.
+
+   Party inserts and updates are deliberately NOT filtered: a new party
+   appearing the moment it is posted is the whole point, and they are rare. */
+const CROWD_GAP = 4000;
+let feedIds = new Set();
+function crowdReload(payload){
+  const row = payload && (payload.new || payload.old);
+  const pid = row && row.party_id;
+  if(!pid){ maybeReload(); return; }          // unknown shape: never go stale
+  if(pid === detailId){ maybeReload(); return; }
+  if(feedIds.has(pid)) scheduleReload(CROWD_GAP);
 }
 function maybeReload(){
   if(Date.now() - reloadAt >= RELOAD_GAP && !reloadBusy) runReload();
@@ -5374,8 +5443,8 @@ function restartRealtime(){
 function startRealtime(){
   if(liveCh) return;
   liveCh = db.channel('live')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'claims' }, maybeReload)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, maybeReload)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'claims' }, crowdReload)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, crowdReload)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'parties' }, maybeReload)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
       const m = payload.new;
@@ -5386,9 +5455,9 @@ function startRealtime(){
       toast('New message' + (who ? ' from ' + who.display_name : '') + ' — check Friends');
       if($('#friends').classList.contains('on')) loadFriends();
     })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'check_ins' }, () => {
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'check_ins' }, payload => {
       /* every person walking through a door hits this for everyone watching */
-      maybeReload();
+      crowdReload(payload);
       if(detailId && $('#detail').classList.contains('on')) checkInsSoon(detailId);
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, () => {
@@ -5502,10 +5571,14 @@ function closeWelcome(){
   $('#welcome').hidden = true;
   try{ if(me) localStorage.setItem('turnout-welcomed-' + me.id, '1'); }catch(_){ }
   haptic(8);
-  /* the tab underneath never got its own intro, because the welcome card was
-     covering it when show() fired */
+  /* The tab underneath never got its own intro, because the welcome card was
+     covering it when show() fired -- but showing it NOW means a second full
+     screen modal the instant you dismiss the first one, which is where a new
+     account starts tapping X instead of reading. The welcome tour already
+     covers this screen, so mark it seen and let the other tabs introduce
+     themselves when they are actually opened. */
   const open = document.querySelector('.screen.on');
-  if(open) setTimeout(() => maybeTabIntro(open.id), 400);
+  if(open){ try{ localStorage.setItem(tabIntroKey(open.id), '1'); }catch(_){ } }
 }
 /* Shown when someone reaches for a paid feature, not on a timer. `why` names
    the thing they just tried to do, so the pitch answers a question they are
