@@ -840,6 +840,63 @@
   #config-warn{background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.4);color:#FFB4B4;
     border-radius:12px;padding:14px;font-size:14px;margin-bottom:16px}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  /* ── "what you missed" line ───────────────────────────────── */
+  #missed{margin:0 0 14px}
+  .missed{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;
+    background:var(--surface);border:1px solid var(--line);border-left:2px solid var(--cyan);
+    border-radius:12px;padding:11px 13px;color:var(--text)}
+  .missed b{display:block;font-size:13.5px;font-weight:700}
+  .missed i{display:block;font-style:normal;font-size:12.5px;color:var(--muted);margin-top:2px}
+  .missed .mx{margin-left:auto;flex:0 0 auto;color:var(--faint);font-size:18px;line-height:1;padding:0 2px}
+
+  /* ── the one-tap "I'm out" ────────────────────────────────── */
+  #out-row{margin:0 0 14px}
+  .out-btn{display:flex;gap:12px;align-items:center;width:100%;text-align:left;
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;
+    color:var(--text);transition:border-color .18s ease,background .18s ease}
+  .out-btn.on{border-color:rgba(180,240,75,.4);background:rgba(180,240,75,.06)}
+  .out-ic{flex:0 0 auto;width:34px;height:34px;border-radius:11px;display:flex;align-items:center;
+    justify-content:center;background:var(--raised);color:var(--muted)}
+  .out-btn.on .out-ic{background:var(--lime);color:#0B0A14}
+  .out-ic svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .out-t{min-width:0}
+  .out-t b{display:block;font-size:14.5px;font-weight:700}
+  .out-t i{display:block;font-style:normal;font-size:12.5px;color:var(--muted);margin-top:2px}
+  .out-btn.on .out-t i{color:var(--lime)}
+  .host-demand{margin:0 0 16px;padding:11px 13px;border-radius:12px;background:rgba(180,240,75,.07);
+    border:1px solid rgba(180,240,75,.28);color:var(--lime);font-size:13.5px;font-weight:600}
+
+  /* ── your nights: the album shelf that never empties ──────── */
+  .nights-h{display:flex;align-items:baseline;gap:8px;margin:26px 0 3px}
+  .nights-h b{font-family:var(--disp);font-size:16px;color:var(--text)}
+  .nights-h span{font-size:12px;color:var(--faint);margin-left:auto}
+  .nights-sub{color:var(--muted);font-size:13.5px;margin:0 0 14px}
+  .nights{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .ncard{display:block;text-align:left;padding:0;background:none;border:0;min-width:0}
+  .nimg{position:relative;display:block;aspect-ratio:1;border-radius:14px;overflow:hidden;
+    background:var(--raised);border:1px solid var(--line)}
+  .nimg .nfill{position:absolute;inset:0;background-size:cover;background-position:center}
+  .nimg.sealed .nfill{filter:blur(9px) saturate(.7) brightness(.55);transform:scale(1.3)}
+  .ncount{position:absolute;left:8px;bottom:8px;z-index:2;display:flex;align-items:center;gap:4px;
+    font-size:11px;font-weight:700;color:#fff;background:rgba(11,10,20,.78);border-radius:99px;padding:3px 8px}
+  .ncount svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.2}
+  .nname{display:block;font-size:13px;font-weight:700;color:var(--text);margin-top:7px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ndate{display:block;font-size:11.5px;color:var(--faint);margin-top:1px}
+
+  /* ── the signup photo step ────────────────────────────────── */
+  .su-photo{display:flex;gap:13px;align-items:center;margin-bottom:14px}
+  .su-pic{flex:0 0 auto;width:62px;height:62px;border-radius:50%;overflow:hidden;position:relative;
+    border:1.5px dashed rgba(255,255,255,.24);background:var(--raised);color:var(--muted);
+    display:flex;align-items:center;justify-content:center;padding:0}
+  .su-pic.set{border-style:solid;border-color:rgba(255,255,255,.3)}
+  .su-pic img{width:100%;height:100%;object-fit:cover}
+  .su-pic svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .su-photo .su-t b{display:block;font-size:14.5px;font-weight:700;color:var(--text)}
+  .su-photo .su-t i{display:block;font-style:normal;font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.4}
+
+  /* ── empty screens that offer something you can finish ────── */
+  .empty-do{display:flex;flex-direction:column;gap:10px;margin-top:16px}
 </style>
 </head>
 <body>
@@ -854,11 +911,18 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.4</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v10.5</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
       <div id="auth-signup">
+        <div class="su-photo">
+          <button type="button" class="su-pic" id="su-pic" aria-label="Add a profile photo">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg>
+          </button>
+          <div class="su-t"><b>Add a photo</b><i>Hosts want to see who&rsquo;s coming. You can skip it and add one later.</i></div>
+          <input id="su-file" type="file" accept="image/*" hidden>
+        </div>
         <div class="field"><label for="a-name">Your name</label><input id="a-name" placeholder="e.g. Cade" autocomplete="name"></div>
         <div class="row2">
           <div class="field"><label for="a-zip">ZIP code</label><input id="a-zip" inputmode="numeric" maxlength="5" placeholder="65401"></div>
@@ -885,6 +949,7 @@
     <div class="top"><button class="me-dot" data-me aria-label="Your profile"></button><span class="wordmark">TURNOUT</span><span class="loc-pill">near <b id="loc-zip"></b></span></div>
     <div class="ptr" id="ptr">Release to refresh</div>
     <div class="scroll">
+      <div id="missed" hidden></div>
       <div id="recap-strip" hidden></div>
       <h2 id="find-greet" style="font-size:19px;margin:0 0 12px">Parties near you</h2>
       <div class="psearch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/></svg>
@@ -895,6 +960,7 @@
         <span class="host-cta-t"><b id="host-cta-h">Throwing something?</b><i id="host-cta-s">Post it and run the door from your phone.</i></span>
         <svg class="host-cta-go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
       </button>
+      <div id="out-row" hidden></div>
       <div id="party-list"><p class="empty">Loading parties…</p></div>
     </div>
   </section>
@@ -1447,6 +1513,226 @@ let profMap = {};          // id -> profile (friends + requesters)
 let nickMap = {};          // id -> the nickname YOU gave them (private)
 let myHomeAddr = '';       // your home address (private table, only you can read it)
 let pendingHomeAddr = null;
+
+/* ════════════════════════════════════════════════════════════════════
+   THE FIRST SIXTY SECONDS
+   Three things a brand-new user can do on an app with nothing in it yet:
+   put a face on their profile, say they're going out, and see that
+   something changed since last time. Plus the shelf of nights that makes
+   the app worth keeping once they've been to one.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── the photo, asked for during signup ───────────────────────────────
+   It was never asked for anywhere except the profile screen, which is why
+   nobody had one. A picture is for other people to see, so the reason goes
+   in the label: hosts want to know who's coming. */
+let pendingAvatar = null;
+$('#su-pic').addEventListener('click', () => $('#su-file').click());
+$('#su-file').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  if(f.size > 5 * 1024 * 1024){ toast('That photo is over 5MB — pick a smaller one'); return; }
+  pendingAvatar = f;
+  const b = $('#su-pic');
+  b.classList.add('set');
+  b.innerHTML = '<img alt="">';
+  b.querySelector('img').src = URL.createObjectURL(f);
+});
+async function applyPendingAvatar(){
+  if(!pendingAvatar || !me) return;
+  const f = pendingAvatar; pendingAvatar = null;
+  try{
+    const path = me.id + '/avatar';
+    const { error } = await db.storage.from('avatars').upload(path, f, { upsert: true, contentType: f.type });
+    if(error) return;
+    const url = db.storage.from('avatars').getPublicUrl(path).data.publicUrl + '?v=' + Date.now();
+    await db.from('profiles').update({ avatar_url: url }).eq('id', me.id);
+    me.avatar_url = url;
+  }catch(_){ }
+}
+
+/* ── "I'm out" ────────────────────────────────────────────────────────
+   The lowest-stakes thing in the app: one tap, no commitment, nothing to
+   write. It works with zero friends and zero parties, which is the only
+   kind of action an empty app can honestly offer. It is also the demand
+   signal a host needs before they'll bother posting. */
+let outMine = false, outCount = 0;
+function outNight(){
+  const d = new Date(), dow = d.getDay();          // 0 Sun … 6 Sat
+  if(dow === 5 || dow === 6) return d;             // Fri/Sat: it means tonight
+  const f = new Date(d); f.setDate(f.getDate() + ((5 - dow + 7) % 7));
+  return f;                                        // otherwise the coming Friday
+}
+function outNightKey(){
+  const d = outNight();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+       + '-' + String(d.getDate()).padStart(2, '0');
+}
+function outNightLabel(){
+  const d = outNight();
+  return d.toDateString() === new Date().toDateString()
+    ? 'tonight' : d.toLocaleDateString('en-US', { weekday: 'long' });
+}
+async function loadOut(){
+  if(!me) return;
+  const night = outNightKey();
+  try{
+    const [mineRes, cnt] = await Promise.all([
+      db.from('out_signals').select('night').eq('user_id', me.id).eq('night', night).maybeSingle(),
+      db.rpc('out_count', { n: night }),
+    ]);
+    outMine = !!(mineRes && mineRes.data);
+    outCount = typeof cnt.data === 'number' ? cnt.data : 0;
+  }catch(_){ }
+}
+async function toggleOut(){
+  if(!me) return;
+  const night = outNightKey();
+  const was = outMine;
+  outMine = !was; renderOutRow();                  // optimistic: the tap must feel instant
+  try{
+    if(was){
+      await db.from('out_signals').delete().eq('user_id', me.id).eq('night', night);
+    } else {
+      const { error } = await db.from('out_signals')
+        .insert({ user_id: me.id, night, zip3: (me.zip || '').slice(0, 3) });
+      if(error) throw error;
+    }
+  }catch(err){
+    outMine = was;
+    toast((err && err.message || '').includes('out_signals')
+      ? 'One sec — this needs migration 30' : 'Could not save that — try again');
+  }
+  await loadOut();
+  renderOutRow();
+  updateHostCta();
+}
+const OUT_BOLT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3 5 13.5h5.4L11 21l8-10.5h-5.4z"/></svg>';
+const OUT_TICK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg>';
+function renderOutRow(){
+  const el = $('#out-row'); if(!el || !me) return;
+  const lbl = outNightLabel();
+  const others = Math.max(0, outCount - (outMine ? 1 : 0));
+  const sub = outMine
+    ? (others ? 'You and ' + others + ' other' + (others === 1 ? '' : 's') + ' nearby'
+              : 'First one — hosts can see the number')
+    : (outCount ? outCount + ' ' + (outCount === 1 ? 'person' : 'people') + ' nearby already said yes'
+                : 'One tap. Hosts see how many are looking.');
+  el.innerHTML = '<button class="out-btn ' + (outMine ? 'on' : '') + '" id="out-tap">'
+    + '<span class="out-ic">' + (outMine ? OUT_TICK : OUT_BOLT) + '</span>'
+    + '<span class="out-t"><b>' + (outMine ? 'You’re out ' + esc(lbl) : 'Going out ' + esc(lbl) + '?')
+    + '</b><i>' + esc(sub) + '</i></span></button>';
+  el.hidden = false;
+}
+document.addEventListener('click', e => {
+  if(e.target.closest('#out-tap')){ haptic(12); toggleOut(); }
+});
+
+/* ── what you missed ──────────────────────────────────────────────────
+   The app used to show a list and never say what changed, so opening it
+   told you nothing. Computed once per app open, against the last time
+   this device looked. */
+let missedNote = null;
+const seenKey = () => 'turnout-seen-' + (me ? me.id : '0');
+function lastSeenAt(){ try{ return +localStorage.getItem(seenKey()) || 0; }catch(_){ return 0; } }
+function markSeen(){ try{ localStorage.setItem(seenKey(), String(Date.now())); }catch(_){ } }
+function computeMissed(){
+  const since = lastSeenAt();
+  markSeen();
+  missedNote = null;
+  if(!since || Date.now() - since < 6 * 36e5) return;   // same session, nothing to catch up on
+  const bits = [];
+  const fresh = allParties.filter(p => p.host_id !== me.id
+    && new Date(p.created_at).getTime() > since && !partyOver(p)).length;
+  if(fresh) bits.push(fresh + ' new part' + (fresh === 1 ? 'y' : 'ies'));
+  const opened = allParties.filter(p => albumMine(p)
+    && albumOpensAt(p).getTime() > since && albumOpensAt(p).getTime() <= Date.now());
+  if(opened.length) bits.push(opened.length === 1
+    ? '“' + opened[0].name + '” unlocked' : opened.length + ' albums unlocked');
+  if(!bits.length) return;
+  missedNote = bits.join(' · ');
+}
+function renderMissed(){
+  const el = $('#missed'); if(!el) return;
+  if(!missedNote){ el.hidden = true; el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="missed"><span><b>Since you last looked</b><i>' + esc(missedNote)
+    + '</i></span><button class="mx" id="missed-x" aria-label="Dismiss">&times;</button></div>';
+  el.hidden = false;
+}
+document.addEventListener('click', e => {
+  if(e.target.closest('#missed-x')){ missedNote = null; renderMissed(); }
+});
+
+/* ── your nights: the shelf ───────────────────────────────────────────
+   Albums used to be readable for about a week and then vanish (the old RLS
+   policy hid them; the rows were never deleted, so we were paying to store
+   something nobody could ever look at again). Migration 30 gives the people
+   who were there permanent read access, and this is where those nights
+   live. The feed only carries 30 days, so this asks its own question. */
+let nightsList = null, nightsBusy = false;
+async function loadNights(force){
+  if(nightsList && !force) return nightsList;
+  if(nightsBusy) return nightsList || [];
+  nightsBusy = true;
+  try{
+    const { data: cl } = await db.from('claims').select('party_id').eq('user_id', me.id).limit(200);
+    const ids = [...new Set((cl || []).map(r => r.party_id))].slice(0, 100);
+    const sel = '*, profiles!parties_host_id_fkey(id, display_name, zip, avatar_url)';
+    const qs = [db.from('parties').select(sel).eq('host_id', me.id)
+                  .order('created_at', { ascending: false }).limit(60)];
+    if(ids.length) qs.push(db.from('parties').select(sel).in('id', ids)
+                  .order('created_at', { ascending: false }).limit(60));
+    const res = await Promise.all(qs);
+    const seen = new Set(), out = [];
+    res.forEach(r => (r.data || []).forEach(x => {
+      if(seen.has(x.id) || blocked.has(x.host_id)) return;
+      seen.add(x.id); out.push(x);
+    }));
+    nightsList = out
+      .filter(x => new Date(x.starts_at || x.created_at).getTime() < Date.now())
+      .sort((a, b) => new Date(b.starts_at || b.created_at) - new Date(a.starts_at || a.created_at));
+  }catch(_){ nightsList = nightsList || []; }
+  nightsBusy = false;
+  return nightsList;
+}
+const NIGHT_CAM = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg>';
+async function nightsSectionHtml(exclude){
+  if(!me) return '';
+  const all = await loadNights();
+  const list = all.filter(x => !exclude || !exclude.has(x.id)).slice(0, 24);
+  if(!list.length) return '';
+  /* only the top row needs real photos up front; the rest fall back to the
+     party's own cover until you open them */
+  await Promise.all(list.slice(0, 6).map(x => recapPhotos[x.id] ? null : loadRecap(x.id)));
+  const cards = list.map(x => {
+    const shots = recapPhotos[x.id] || [];
+    const open = albumOpen(x);
+    const first = shots[0];
+    const bg = first ? "url('" + esc(first.src || first.url) + "')" : coverFor(x);
+    const d = new Date(x.starts_at || x.created_at);
+    const badge = !open
+      ? '<span class="ncount">' + lockSvg(11) + 'Opens ' + esc(albumOpensLabel(x)) + '</span>'
+      : (shots.length ? '<span class="ncount">' + NIGHT_CAM + shots.length + '</span>' : '');
+    return '<button class="ncard" data-open="' + x.id + '">'
+      + '<span class="nimg ' + (open ? '' : 'sealed') + '">'
+      + '<span class="nfill" style="background-image:' + bg + '"></span>' + badge + '</span>'
+      + '<span class="nname">' + esc(x.name) + '</span>'
+      + '<span class="ndate">' + esc(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })) + '</span>'
+      + '</button>';
+  }).join('');
+  return '<div class="nights-h"><b>Your nights</b><span>' + all.length
+    + ' night' + (all.length === 1 ? '' : 's') + '</span></div>'
+    + '<p class="nights-sub">Every night you actually turned up to. Your camera roll has your photos — this has everyone’s.</p>'
+    + '<div class="nights">' + cards + '</div>';
+}
+
+/* one pass after the first data load: the tap state, and the catch-up line */
+async function initSession(){
+  try{ await loadOut(); }catch(_){ }
+  try{ computeMissed(); }catch(_){ }
+  nightsList = null;
+}
+
 const dispName = p => p ? (nickMap[p.id] || p.display_name || '?') : 'Chat';
 let unlockedAddr = {};
 let unreadFrom = new Set();
@@ -1770,8 +2056,11 @@ function updateHostCta(){
   /* Find stays discovery-only — a live party belongs in Tonight, not here */
   const hosted = allParties.filter(p => p.host_id === me.id).length;
   h.textContent = hosted ? 'Throw another one' : 'Throwing something?';
-  sub.textContent = hosted ? 'Post it and run the door from your phone.'
-                           : 'Post it, cap the numbers, see who actually shows.';
+  /* the strongest thing we can tell a host is that people are already looking */
+  sub.textContent = outCount > 0
+    ? outCount + ' near you ' + (outCount === 1 ? 'is' : 'are') + ' out ' + outNightLabel() + ' \u2014 give them somewhere to go.'
+    : (hosted ? 'Post it and run the door from your phone.'
+              : 'Post it, cap the numbers, see who actually shows.');
 }
 async function loadParties(){
   if(!$('#party-list').children.length)
@@ -1781,13 +2070,19 @@ async function loadParties(){
   await refreshData();
   updateHostCta();
   updateTonightDot();
+  renderMissed();
+  renderOutRow();
   const friendIds = new Set(friends.map(f => f.id));
   const nameOf = {}; friends.forEach(f => nameOf[f.id] = dispName(f));
   const hostCount = {};
   allParties.forEach(p => hostCount[p.host_id] = (hostCount[p.host_id] || 0) + 1);
 
   if(!parties.length){
-    $('#party-list').innerHTML = '<p class="empty">Nothing posted near you yet. Throw the first one — you\u2019ll own the night.</p>';
+    $('#party-list').innerHTML = `<p class="empty">Nothing posted near you yet \u2014 it\u2019s early days here.</p>
+      <div class="empty-do">
+        <button class="btn btn-ghost" data-gotab="friends">Add people you know</button>
+        <button class="btn" data-gotab="host">Throw the first one</button>
+      </div>`;
     return;
   }
   // recaps and anything live now live in the Tonight tab
@@ -1869,10 +2164,7 @@ async function loadParties(){
    stack with a lock is the reason to come back tomorrow. */
 function renderRecapStrip(){
   const wrap = $('#recap-strip'); if(!wrap) return;
-  const mine = allParties.filter(p => {
-    if(!recapOpen(p)) return false;
-    return p.host_id === me.id || myCheckIn[p.id];
-  }).sort((a, b) => new Date(b.starts_at || b.created_at) - new Date(a.starts_at || a.created_at)).slice(0, 8);
+  const mine = allParties.filter(p => albumMine(p) && (p.host_id === me.id || myCheckIn[p.id])).sort((a, b) => new Date(b.starts_at || b.created_at) - new Date(a.starts_at || a.created_at)).slice(0, 8);
   if(!mine.length || (findQuery || '').trim()){ wrap.hidden = true; return; }
   wrap.innerHTML = `<div class="rs-head"><b>The last few nights</b></div>
     <div class="rs-row">${mine.map(p => {
@@ -2263,13 +2555,23 @@ function recapOpen(p){
   const start = new Date(p.starts_at || p.created_at);
   return Date.now() > start.getTime() && Date.now() < recapUntil(start).getTime();
 }
-function diesIn(p){
+/* Since migration 30 these are two different questions. recapOpen() is only
+   "does the album still TAKE new photos" — that Friday deadline is why anyone
+   posts at all, so it stays. albumMine() is "was I there", and the answer never
+   expires: a night you showed up to is yours to keep. */
+function albumMine(p){
+  if(!me) return false;
+  const start = new Date(p.starts_at || p.created_at).getTime();
+  return Date.now() > start && (p.host_id === me.id || myClaims.has(p.id));
+}
+function closesIn(p){
   const end = recapUntil(new Date(p.starts_at || p.created_at));
   const hrs = (end - Date.now()) / 36e5;
   const day = end.toLocaleDateString('en-US', { weekday: 'long' });
-  if(hrs < 1) return 'Gone within the hour';
-  if(hrs < 24) return 'Gone in ' + Math.round(hrs) + ' hours';
-  return 'Disappears ' + day;
+  if(hrs < 0)  return 'Yours to keep';
+  if(hrs < 1)  return 'Closes within the hour';
+  if(hrs < 24) return 'Closes in ' + Math.round(hrs) + ' hours';
+  return 'Closes ' + day;
 }
 async function loadRecap(pid){
   try {
@@ -2292,7 +2594,7 @@ function recapHtml(p, mine){
   const flame = n => `<button data-rate="${p.id}" data-n="${n}" class="${n <= rated ? 'lit' : ''}" aria-label="${n} flames">${flameSvg(19)}</button>`;
   if(!wasThere){
     return `<div class="recap">
-      <div class="recap-h"><b>The Recap</b><span>${esc(diesIn(p))}</span></div>
+      <div class="recap-h"><b>The Recap</b><span>${esc(closesIn(p))}</span></div>
       <div class="locked">
         <div class="locked-ic">${lockSvg(26)}</div>
         <h4>You had to be there</h4>
@@ -2318,16 +2620,18 @@ function recapHtml(p, mine){
       ${rated ? `<div class="rate-done" style="margin-top:12px">Rated ${rated}/5</div>` : ''}
     </div>`;
   }
+  const canAdd = recapOpen(p);
   return `<div class="recap">
-    <div class="recap-h"><b>The Recap</b><span>${esc(diesIn(p))}</span></div>
-    <div class="recap-sub">Only the people who checked in can see this.</div>
+    <div class="recap-h"><b>The Recap</b><span>${esc(closesIn(p))}</span></div>
+    <div class="recap-sub">${canAdd ? 'Only the people who checked in can see this.'
+      : 'Closed for new photos, but this night stays on your shelf.'}</div>
     <div style="font-size:13px;color:var(--muted);font-weight:600;margin-bottom:6px">How was it?</div>
     <div class="rate-row">${[1,2,3,4,5].map(flame).join('')}</div>
     ${rated ? `<div class="rate-done">Rated ${rated}/5 — counts toward ${esc(mine ? 'your' : 'the host’s')} flame</div>` : ''}
     <div class="album">
-      <button class="album-add" data-addphoto="${p.id}">
+      ${canAdd ? `<button class="album-add" data-addphoto="${p.id}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3.2l1.9-2.8h5.8l1.9 2.8H20V19H4z"/><circle cx="12" cy="13.4" r="3.4"/></svg>
-        Add to album</button>
+        Add to album</button>` : ''}
       ${photos.map(ph => `<div class="album-cell ${ph.user_id === me.id ? 'mine' : ''}"
           data-rphoto="${esc(ph.src || ph.url)}" data-rid="${ph.id}" data-rown="${ph.user_id === me.id || mine ? '1' : ''}">
         <img src="${esc(ph.src || ph.url)}" alt="" draggable="false" loading="lazy"></div>`).join('')}
@@ -2464,6 +2768,16 @@ function coverFor(p){
   return p.photo_url ? `url('${esc(p.photo_url)}')` : gradFor(p.id);
 }
 async function renderTonight(){
+  await renderTonightBody();
+  /* Your nights hang under whatever is (or isn't) happening tonight. When a
+     party is live the page IS the party, so the shelf stays out of the way. */
+  const st = tonightState();
+  if(st.kind === 'empty' || st.kind === 'recaps'){
+    const html = await nightsSectionHtml(st.kind === 'recaps' ? new Set(st.list.map(x => x.id)) : null);
+    if(html) $('#tonight-body').insertAdjacentHTML('beforeend', html);
+  }
+}
+async function renderTonightBody(){
   const body = $('#tonight-body');
   if(!body) return;
   await refreshData();
@@ -2474,7 +2788,7 @@ async function renderTonight(){
     body.innerHTML = `<div class="tn-empty">
       <div class="tn-empty-ic"><svg viewBox="0 0 24 24"><path d="M4 19V9.5l8-5.5 8 5.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M9.5 20v-5h5v5"/></svg></div>
       <h3>Nothing going on yet</h3>
-      <p>When you're throwing a party or you're at one, it lives here. Albums from the last few nights land here too.</p>
+      <p>When you're throwing a party or you're at one, it lives here. Every night you turn up to keeps its album, right below.</p>
       <button class="btn" data-gotab="find">Find a party</button>
       <button class="btn btn-ghost" data-gotab="host" style="margin-top:10px">Throw one</button>
     </div>`;
@@ -2484,11 +2798,11 @@ async function renderTonight(){
   if(st.kind === 'recaps'){
     body.innerHTML = `<p class="eyebrow">The last few nights</p>
       <h2 style="font-size:22px;margin:2px 0 4px">Still up.</h2>
-      <p style="color:var(--muted);margin-bottom:18px;font-size:14.5px">These disappear on their own. Grab what you want before they do.</p>
+      <p style="color:var(--muted);margin-bottom:18px;font-size:14.5px">Still taking photos. Once they close they stay on your shelf for good.</p>
       ${st.list.map(x => `<button class="card" data-open="${x.id}" style="margin-bottom:12px">
         <div class="card-img" style="background:${coverFor(x)};background-size:cover;background-position:center"></div>
         <div class="card-scrim"></div>
-        <div class="card-top"><span class="tag">${esc(diesIn(x))}</span></div>
+        <div class="card-top"><span class="tag">${esc(closesIn(x))}</span></div>
         <div class="card-foot"><h3>${esc(x.name)}</h3>
           <div class="friendsline">${myCheckIn[x.id] || x.host_id === me.id ? 'Album\u2019s open — tap to see it' : 'You didn\u2019t check in, so this one\u2019s sealed'}</div>
         </div></button>`).join('')}`;
@@ -2612,7 +2926,7 @@ function openDetail(pid, from){
    "You're at / You're hosting" line that makes Tonight feel like where you are. */
 async function partyPageHtml(p, opts = {}){
   const invited = myClaims.has(p.id) || p.host_id === me.id;
-  const showRecap = recapOpen(p) && invited;
+  const showRecap = (recapOpen(p) && invited) || albumMine(p);
   const showCheckin = invited && checkinOpen(p);
   const mine = p.host_id === me.id;
   if(showRecap && !recapPhotos[p.id]) await loadRecap(p.id);
@@ -4962,6 +5276,7 @@ async function boot(){
       myHomeAddr = ha?.address || '';
     }
   }catch(e){}
+  await applyPendingAvatar();
   startRealtime();
   // unread dots survive reloads now that read state lives in the database
   try{
@@ -4974,6 +5289,7 @@ async function boot(){
   /* if anything of yours is happening right now, that's the screen you want */
   try{
     await refreshData();
+    await initSession();
     if(tonightLive()){ show('tonight'); dropSplash(); maybeOnboard(); return; }
     if(allParties.some(isLive)){ show('map'); dropSplash(); maybeOnboard(); return; }
   }catch(e){}
