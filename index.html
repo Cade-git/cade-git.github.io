@@ -677,6 +677,11 @@
   /* .sheet's own max-height is declared later in this stylesheet and was winning
      at equal specificity, capping the reading area at ~290px. */
   .sheet.lg-sheet{max-height:88dvh}
+  .hc-kick{width:26px;height:26px;border-radius:9px;background:var(--raised);
+    border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+    color:var(--muted);flex:0 0 auto;margin-left:6px}
+  .hc-kick svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+  .hc-kick:active{color:var(--red);border-color:rgba(255,92,92,.4)}
   .mod-row{border:1px solid var(--line);border-radius:13px;padding:12px 13px;margin-bottom:9px;
     background:var(--raised)}
   .mod-row.done{opacity:.45}
@@ -978,7 +983,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.0</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.1</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -2657,10 +2662,15 @@ function hostConsoleHtml(p){
   };
   const row = (id, right, dim, at) => {
     const u = profMap[id] || { id, display_name: 'Someone' };
+    /* Claimed-but-not-here is where a squatter lives, so that row — and only
+       that row — carries a remove control. Someone already inside is a person
+       at your party, not a list entry; you deal with them in person. */
+    const kick = dim ? `<button class="hc-kick" data-unclaim="${id}" data-party="${p.id}"
+        aria-label="Remove their spot"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>` : '';
     return `<div class="f-row${dim ? ' dim' : ''}">${avatar(u, 32)}
       <span style="flex:1;font-weight:600;font-size:14px">${nameOf(id)}</span>
       ${at === undefined ? '' : owes(at)}
-      <span class="hc-when">${right}</span></div>`;
+      <span class="hc-when">${right}</span>${kick}</div>`;
   };
   const takeSoFar = tiered(p) || +p.fee > 0
     ? roster.reduce((sum, r) => sum + feeAt(p, r.at), 0) : 0;
@@ -3563,6 +3573,19 @@ async function partyActions(e){
     return;
   }
   if(g('[data-close]')){ closeOverlay($('#detail'), detailFrom || 'find'); return; }
+  if(el = g('[data-unclaim]')){
+    const uid = el.dataset.unclaim, pid = el.dataset.party;
+    const who = nickMap[uid] || (profMap[uid] || {}).display_name || 'this person';
+    if(!await askYes({ title: 'Remove ' + who + '\u2019s spot?',
+      sub: 'Their claim is deleted and the spot opens back up. They aren\u2019t blocked and can claim again \u2014 block them from their profile if you don\u2019t want that.',
+      yes: 'Remove spot', danger: true })) return;
+    const { error } = await db.from('claims').delete()
+      .eq('party_id', pid).eq('user_id', uid);
+    if(error){ toast(error.message.includes('claims') ? 'One sec \u2014 this needs migration 34' : error.message); return; }
+    haptic(10); toast(who + '\u2019s spot is open again');
+    await refreshAfterAction(); await renderDetail();
+    return;
+  }
   if(el = g('[data-viewuser]')){ openUserCard(el.dataset.viewuser); return; }
   if(el = g('[data-claim]')){
     const party = parties.find(x => x.id === el.dataset.claim);
