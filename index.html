@@ -831,15 +831,39 @@
     letter-spacing:.01em}
   .crowd-lab i{display:block;font-style:normal;font-size:10.5px;font-weight:600;color:#C9B8E8;
     text-align:center;white-space:nowrap;text-shadow:0 2px 8px rgba(0,0,0,.9);margin-top:1px}
-  /* Ghost pins: parties that already happened. A map with history reads as a
-     place people go; a blank one reads as broken. */
-  .ghost-o{display:flex;flex-direction:column;align-items:center;width:120px;
-    opacity:.42;pointer-events:none}
-  .ghost-dot{width:15px;height:15px;border-radius:50%;border:2px dashed rgba(255,255,255,.55);
-    background:rgba(255,255,255,.07)}
-  .ghost-name{margin-top:4px;font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;
-    color:rgba(255,255,255,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    max-width:120px;text-align:center;text-shadow:0 1px 6px rgba(0,0,0,.9)}
+  /* The town badge. Soft-edged on purpose: it is a place, not a point, and it
+     should never read as something you can navigate to. */
+  .town-ring{pointer-events:none}
+  .town-o{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    width:214px;padding:9px 12px;cursor:pointer;border-radius:16px;
+    background:rgba(24,20,40,.82);border:1px solid rgba(255,61,138,.34);
+    box-shadow:0 8px 26px rgba(0,0,0,.55),0 0 30px -10px rgba(255,61,138,.7);
+    backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+  .town-o.live{border-color:rgba(180,240,75,.5);box-shadow:0 8px 26px rgba(0,0,0,.55),0 0 34px -8px rgba(180,240,75,.6)}
+  .town-o b{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#fff;
+    text-align:center;line-height:1.25;display:flex;align-items:center;gap:5px}
+  .town-o i{display:block;font-style:normal;font-size:11px;font-weight:600;color:#C9B8E8;
+    text-align:center;margin-top:2px;line-height:1.3}
+  .town-o em{display:block;font-style:normal;font-size:10px;font-weight:600;
+    color:rgba(255,255,255,.42);text-align:center;margin-top:3px}
+  .town-o:active{transform:scale(.97)}
+  /* rows inside the town sheet */
+  .tw-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 2px;
+    background:none;border:none;border-bottom:1px solid var(--line);text-align:left;cursor:pointer}
+  .tw-row:last-of-type{border-bottom:none}
+  .tw-img{width:48px;height:48px;border-radius:13px;flex:0 0 auto}
+  .tw-mid{flex:1;min-width:0}
+  .tw-mid b{display:flex;align-items:center;gap:5px;font-size:14.5px;font-weight:700;color:var(--text);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tw-mid i{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:2px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* the feed's "farther out" divider */
+  .far-h{display:flex;align-items:center;gap:10px}
+  .far-toggle{flex:1;display:flex;align-items:center;justify-content:space-between;
+    background:none;border:none;padding:0;cursor:pointer;color:var(--muted);
+    font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase}
+  .far-toggle span{color:var(--muted);font-size:16px;line-height:1}
   .pin-o{display:flex;flex-direction:column;align-items:center;width:136px;cursor:pointer}
   .pin-av{width:46px;height:46px;border-radius:50%;border:3px solid var(--ring,#B4F04B);position:relative;
     background:var(--grad);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;
@@ -983,7 +1007,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.1</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.2</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -2355,10 +2379,16 @@ async function loadParties(){
   updateTonightDot();
   renderMissed();
   renderOutRow();
+  renderPartyList();
+  /* Distances resolve in the background and re-lay-out the feed once, only if
+     the answer moved something across the line. */
+  resolveGeo(parties, renderPartyList);
+}
+let farOpen = false;
+function renderPartyList(){
+  if(!me || !$('#party-list')) return;
   const friendIds = new Set(friends.map(f => f.id));
   const nameOf = {}; friends.forEach(f => nameOf[f.id] = dispName(f));
-  const hostCount = {};
-  allParties.forEach(p => hostCount[p.host_id] = (hostCount[p.host_id] || 0) + 1);
 
   if(!parties.length){
     $('#party-list').innerHTML = `<p class="empty">Nothing posted near you yet \u2014 it\u2019s early days here.</p>
@@ -2383,10 +2413,17 @@ async function loadParties(){
     renderRecapStrip();
     return;
   }
-  const sorted = shown.slice().sort((a, b) => bucketOf(a) - bucketOf(b)
-      || (a.starts_at ? new Date(a.starts_at) : Infinity) - (b.starts_at ? new Date(b.starts_at) : Infinity));
-  let lastBucket = -1;
-  $('#party-list').innerHTML = sorted.map(p => {
+  /* Near and far are rendered as two lists, not one sorted one. A party 90
+     miles away is not "a worse version of tonight" -- it is a different
+     question, and burying it below a labelled divider answers both without
+     ever showing an empty feed. Unknown distance counts as near. */
+  const near = shown.filter(p => !isFar(p));
+  const far  = shown.filter(p => isFar(p));
+  const cards = list => {
+    let lastBucket = -1;
+    return list.slice().sort((a, b) => bucketOf(a) - bucketOf(b)
+      || (a.starts_at ? new Date(a.starts_at) : Infinity) - (b.starts_at ? new Date(b.starts_at) : Infinity))
+    .map(p => {
     const bk = bucketOf(p);
     const header = bk !== lastBucket
       ? `<div class="sec-h ${bk === 0 ? 'now' : ''}">${bk === 0 ? '<i></i>' : ''}${esc(BUCKETS[bk])}</div>` : '';
@@ -2428,7 +2465,7 @@ async function loadParties(){
       </div>
       <div class="card-foot">
         <h3>${esc(p.name)}</h3>
-        <div class="card-when">${esc(whenLabel(p.starts_at))}${p.town ? ' · ' + esc(p.town) : ''}</div>
+        <div class="card-when">${esc(whenLabel(p.starts_at))}${p.town ? ' · ' + esc(p.town) : ''}${isFar(p) ? ' · ' + Math.round(milesOf(p)) + ' mi' : ''}</div>
         <div class="card-row">
           ${fIds.length ? faceStack(fIds, 3) : '<span style="font-size:12.5px;color:rgba(255,255,255,.6);font-weight:600">hosted by ' + esc(mine ? 'you' : (nickMap[p.host_id] || p.profiles?.display_name || 'someone')) + '</span>'}
           ${live && here
@@ -2438,7 +2475,17 @@ async function loadParties(){
       </div>
       <div class="card-bar"><i class="fill-${cls}" style="width:${pct}%"></i></div>
     </button>`;
-  }).join('');
+    }).join('');
+  };
+  /* with nothing near you, the far list opens itself — a collapsed section is
+     a worse empty state than the empty state */
+  const openFar = farOpen || !near.length;
+  $('#party-list').innerHTML = cards(near)
+    + (far.length ? `<div class="sec-h far-h"><button class="far-toggle" data-fartoggle>
+          ${near.length ? far.length + (far.length === 1 ? ' more farther out' : ' more farther out')
+                        : 'Nothing within ' + RADIUS_MI + ' miles — here’s what’s out there'}
+          <span>${openFar ? '−' : '+'}</span></button></div>`
+        + (openFar ? cards(far) : '') : '');
   if(_sb) _sb.scrollTop = _st;
   renderRecapStrip();
 }
@@ -3016,7 +3063,9 @@ document.addEventListener('click', e => {
   const dot = e.target.closest('[data-me]');
   if(dot){ profileFrom = curScreen(); show('profile'); renderProfile(); haptic(9); return; }
   const go = e.target.closest('[data-gotab]');
-  if(go){ show(go.dataset.gotab); haptic(9); }
+  if(go){ show(go.dataset.gotab); haptic(9); return; }
+  const fx = e.target.closest('[data-fartoggle]');
+  if(fx){ farOpen = !farOpen; haptic(9); renderPartyList(); }
 });
 /* check-in and adding to the album both happen in two places now
    (the party page and the map sheet), so they live in one place each. */
@@ -3789,11 +3838,81 @@ async function zipPoint(zip){
     return GEOCACHE[k];
   } catch(_){ return null; }
 }
-/* the fuzz that protects the address: same party always lands in the same wrong-ish spot, ~0.4mi off */
-function fuzzPoint(lat, lon, id){
-  return { lat: lat + (hashN(id + 'a', 1000) / 1000 - 0.5) * 0.011,
-           lon: lon + (hashN(id + 'b', 1000) / 1000 - 0.5) * 0.014 };
+/* ── how far away, in real miles ───────────────────────────────────────────
+   The feed used to sort by SUBTRACTING ZIP CODES, which is arithmetic on a
+   number that is not a distance: 65401 and 63101 are ~2,300 apart as integers
+   and 100 miles apart on the ground, while two neighbouring towns can be
+   thousands of counts away from each other. This resolves a party's TOWN to a
+   point once, caches it, and measures actual miles between there and you.
+   A town name is public information -- nothing here touches an address. */
+const RADIUS_MI = 30;
+const townPts = {}, townJobs = {};   // town key -> {lat,lon} | null (null = tried and failed)
+let myPt = null, geoRun = 0;
+function townKey(p){
+  const t = (p.town || '').trim().toLowerCase().replace(/\s*,\s*(mo|missouri)\.?\s*$/, '');
+  if(t) return t;
+  const z = (p.profiles && p.profiles.zip) || '';
+  return z ? 'zip:' + z : '';
 }
+function townName(p){
+  const t = (p.town || '').trim().replace(/\s*,\s*(MO|Missouri)\.?\s*$/i, '');
+  if(t) return t;
+  const g = GEOCACHE['zip:' + ((p.profiles && p.profiles.zip) || '')];
+  return g && g.town ? g.town.split(',')[0].trim() : '';
+}
+function milesBetween(a, b){
+  const R = 3958.8, rad = d => d * Math.PI / 180;
+  const dLat = rad(b.lat - a.lat), dLon = rad(b.lon - a.lon);
+  const s = Math.sin(dLat / 2) ** 2
+          + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+}
+function homePt(){ return liveLoc ? { lat: liveLoc[0], lon: liveLoc[1] } : myPt; }
+/* null means "we don't know yet", and an unknown distance always counts as
+   NEAR -- a slow geocoder must never be able to hide a party round the corner. */
+function milesOf(p){
+  const h = homePt(), t = townPts[townKey(p)];
+  return (h && t) ? milesBetween(h, t) : null;
+}
+function isFar(p){ const m = milesOf(p); return m != null && m > RADIUS_MI; }
+function townPoint(key, zipHint){
+  if(key in townPts) return Promise.resolve(townPts[key]);
+  if(!(key in townJobs)) townJobs[key] = (async () => {
+    let pt = null;
+    if(key.startsWith('zip:')) pt = await zipPoint(key.slice(4));
+    else {
+      /* The host's own ZIP is a free lookup and, nearly always, IS the town
+         they're throwing in. Check that first and only pay the geocoder --
+         which is rate-limited to about one call a second -- when it isn't. */
+      const z = zipHint ? await zipPoint(zipHint) : null;
+      if(z && z.town && z.town.split(',')[0].trim().toLowerCase() === key) pt = z;
+      if(!pt){
+        const g = await geocode(key.replace(/\b\w/g, c => c.toUpperCase()) + ', Missouri, USA');
+        if(g) pt = { lat: g.lat, lon: g.lon };
+      }
+    }
+    townPts[key] = pt ? { lat: pt.lat, lon: pt.lon } : null;
+    return townPts[key];
+  })();
+  return townJobs[key];
+}
+/* Resolve my own point and every town on the feed, then call back ONLY if the
+   answer actually changed something. Runs in the background: the feed paints
+   immediately with what it has and re-lays-out once, instead of holding a
+   blank screen while a geocoder thinks. */
+async function resolveGeo(list, done){
+  const run = ++geoRun;
+  const before = list.map(p => isFar(p)).join(',');
+  if(!myPt){ const z = await zipPoint(me.zip); if(z) myPt = { lat: z.lat, lon: z.lon }; }
+  const hint = {};
+  list.forEach(p => { const k = townKey(p); if(k && !(k in hint)) hint[k] = (p.profiles && p.profiles.zip) || ''; });
+  await Promise.all(Object.keys(hint).map(k => townPoint(k, hint[k])));
+  if(done && run === geoRun && list.map(p => isFar(p)).join(',') !== before) done();
+}
+/* fuzzPoint() used to live here: it moved a real house ~0.4mi in a fixed
+   random direction so the map could show "roughly where". It is gone. A pin
+   on the wrong block is not privacy, it is a wrong answer delivered with
+   coordinates, and the town badge says the true thing instead. */
 /* resolve a party's location for hosting: GPS if they tapped it, else the typed address, else their ZIP */
 /* `exact` means a person put this pin here. Anything else was guessed from
    text, and a geocoder answers with the ROAD, not the building — which is
@@ -3905,30 +4024,56 @@ async function renderMap(){
   }));
   if(run !== mapRun) return;
 
+  await resolveGeo(list);
+  if(run !== mapRun) return;
+
   markerLayer.clearLayers();
+  const towns = {}, hist = townHistory(list);
   let placed = 0, pending = [];
   for(const p of list){
-    let ll = null, exact = false;
-    if(exactPt[p.id]){ ll = exactPt[p.id]; exact = true; }
-    else if(p.approx_lat != null && p.approx_lon != null) ll = { lat: +p.approx_lat, lon: +p.approx_lon };
-    if(!ll){ pending.push(p); continue; }               // legacy party with no coordinates yet
-    const claimed = (p.claims || []).length;
-    const host = p.profiles || profMap[p.host_id] || { id: p.host_id, display_name: '?' };
-    host.id = host.id || p.host_id;
-    const m = L.marker([ll.lat, ll.lon], { icon: pinIcon(p, host, claimed), riseOnHover: true, zIndexOffset: exact ? 400 : 0 });
-    m.on('click', () => openMapSheet(p.id));
+    /* A party you are IN sits on the real house, because you were given the
+       real address. Everything else is drawn as its town, below. */
+    if(exactPt[p.id]){
+      const ll = exactPt[p.id];
+      const claimed = (p.claims || []).length;
+      const host = p.profiles || profMap[p.host_id] || { id: p.host_id, display_name: '?' };
+      host.id = host.id || p.host_id;
+      const m = L.marker([ll.lat, ll.lon], { icon: pinIcon(p, host, claimed), riseOnHover: true, zIndexOffset: 400 });
+      m.on('click', () => openMapSheet(p.id));
+      markerLayer.addLayer(m);
+      pts.push([ll.lat, ll.lon]);
+      placed++;
+      continue;
+    }
+    const key = townKey(p);
+    if(!key || !townPts[key]){ pending.push(p); continue; }   // no town we can place yet
+    if(!towns[key]) towns[key] = { key, name: townName(p) || 'town', list: [], pt: townPts[key], past: hist[key] || 0 };
+    towns[key].list.push(p);
+  }
+  if(ghostLayer) ghostLayer.clearLayers();
+  for(const key in towns){
+    const t = towns[key];
+    /* The ring says the true thing the old pin lied about: somewhere in here.
+       Zoom all the way in and it stays a region, because that is all anybody
+       without a ticket is ever told. */
+    if(ghostLayer) ghostLayer.addLayer(L.circle([t.pt.lat, t.pt.lon], {
+      radius: 2400, className: 'town-ring', color: '#B85CF6', weight: 1.5,
+      opacity: .45, dashArray: '5 8', fillColor: '#B85CF6', fillOpacity: .05, interactive: false }));
+    const m = L.marker([t.pt.lat, t.pt.lon], { icon: townIcon(t), riseOnHover: true, zIndexOffset: 200 });
+    m.on('click', () => openTownSheet(key));
     markerLayer.addLayer(m);
-    pts.push([ll.lat, ll.lon]);
-    placed++;
+    pts.push([t.pt.lat, t.pt.lon]);
+    placed += t.list.length;
   }
   await drawCrowdGlow(run);
-  drawGhostPins(list);
   $('#map-home').textContent = placed ? placed + (placed === 1 ? ' party nearby' : ' parties nearby') : 'No parties yet';
   /* only count the ones still worth waiting on — a party we already failed to
      place would otherwise leave "placing 1 more…" on screen forever */
   const waiting = pending.filter(x => !unplaceable.has(x.id)).length;
   $('#map-note').textContent = waiting ? 'placing ' + waiting + ' more…'
-    : (placed ? 'pins are approximate until you’re in' : 'host one and it lands here');
+    : !placed ? 'host one and it lands here'
+    : Object.keys(towns).length ? 'towns show where — the address comes with your ticket'
+    : 'you’re in — these are the real spots';
   if(!mapCentered && pts.length > 1){
     mapCentered = true;
     lmap.fitBounds(L.latLngBounds(pts).pad(0.35), { maxZoom: 14 });
@@ -3969,58 +4114,81 @@ async function drawCrowdGlow(run){
           + '<i>around here ' + esc(outNightLabel()) + '</i>' }) }));
 }
 
-/* ── ghost pins ───────────────────────────────────────────────────────────
-   Parties that already happened, from the last two weeks, drawn faint and
-   inert. They are already-public party names at already-approximate points,
-   so nothing new is exposed -- but a map with a history reads as a place
-   people actually go, where a blank one reads as an app that doesn't work. */
-function drawGhostPins(live){
-  if(!ghostLayer) return;
-  ghostLayer.clearLayers();
+/* ── town badges ──────────────────────────────────────────────────────────
+   A party you are not in is drawn as its TOWN, never as a point.
+
+   The old behaviour put a deliberately-wrong pin on a real street. That reads
+   as information: people zoom in, see a block, and go stand outside the wrong
+   house. Honest vagueness beats dishonest precision -- "a party in Rolla
+   tonight" is true, and a pin four blocks off is a lie with coordinates.
+
+   Nothing in this badge is derived from an address. A town name is public,
+   and it is the only location the map publishes to somebody without a ticket. */
+function townIcon(t){
+  const n = t.list.length;
+  const soon = t.list.slice().sort((a, b) =>
+    (a.starts_at ? new Date(a.starts_at).getTime() : Infinity)
+    - (b.starts_at ? new Date(b.starts_at).getTime() : Infinity))[0];
+  const live = t.list.some(p => isLiveNow(p));
+  const head = (n === 1 ? 'Party in ' : n + ' parties in ') + t.name;
+  const bits = [];
+  if(live) bits.push('going now');
+  else if(soon && soon.starts_at) bits.push(whenLabel(soon.starts_at).replace(' · ', ' at '));
+  if(n === 1 && dropPending(soon)) bits.push('address drops ' + dropWhen(soon));
+  else if(n > 1) bits.push('tap to see them');
+  /* Anchored BELOW the point on purpose: with GPS off, "you" sit at the centre
+     of your own ZIP, the crowd label floats above it, and the badge for your
+     own town lands on exactly the same coordinate. All three were landing on
+     top of each other and cutting every one of them in half. */
+  return L.divIcon({ className: 'lpin-wrap', iconSize: [214, 74], iconAnchor: [107, -34],
+    html: `<div class="town-o${live ? ' live' : ''}">
+      <b>${live ? '<i class="live-dot"></i>' : ''}${esc(head)}</b>
+      ${bits.length ? '<i>' + esc(bits.join(' · ')) + '</i>' : ''}
+      ${t.past ? '<em>' + t.past + (t.past === 1 ? ' night' : ' nights') + ' here recently</em>' : ''}
+    </div>` });
+}
+/* ── a town's recent nights ───────────────────────────────────────────────
+   Ghost pins used to draw finished parties at approximate points, which is
+   exactly the same fake precision as a fuzzed live pin: a dot on a block
+   where nothing happened. The history is still worth showing -- a map with a
+   past reads as a place people actually go -- so it moves into the badge as
+   a count, which is the version of it that happens to be true. */
+function townHistory(live){
   const liveIds = new Set(live.map(p => p.id));
-  const floor = Date.now() - 14 * 864e5;
-  let n = 0;
+  const floor = Date.now() - 14 * 864e5, out = {};
   for(const p of allParties){
     if(liveIds.has(p.id)) continue;                      // still on the feed
     const when = new Date(p.starts_at || p.created_at).getTime();
     if(!(when > floor && when < Date.now())) continue;    // last two weeks, already over
-    const ll = exactPt[p.id] || (p.approx_lat != null && p.approx_lon != null
-      ? { lat: +p.approx_lat, lon: +p.approx_lon } : null);
-    if(!ll) continue;
-    const label = p.name.length > 15 ? p.name.slice(0, 14) + '…' : p.name;
-    ghostLayer.addLayer(L.marker([ll.lat, ll.lon], {
-      interactive: false, keyboard: false, zIndexOffset: -500,
-      icon: L.divIcon({ className: 'lpin-wrap', iconSize: [120, 40], iconAnchor: [60, 8],
-        html: '<div class="ghost-o"><span class="ghost-dot"></span>'
-            + '<span class="ghost-name">' + esc(label) + '</span></div>' }) }));
-    if(++n >= 12) break;                                 // a hint of history, not a heat map
+    const k = townKey(p);
+    if(k) out[k] = (out[k] || 0) + 1;
   }
+  return out;
 }
 const unplaceable = new Set();
+/* Only ever runs for YOUR OWN parties now. Somebody else's party is drawn as
+   its town, which needs no coordinates at all -- so the only thing left worth
+   backfilling is the exact point of a party you host, which the door radius
+   and your own pin both need. Nothing here writes an approximate location any
+   more: the map stopped reading them, and a coordinate that exists is a
+   coordinate that can leak. */
 async function backfillPoints(list, run){
   for(const p of list){
-    const z = await zipPoint(p.profiles && p.profiles.zip);
-    if(run !== mapRun) return;
+    if(p.host_id !== me.id){ unplaceable.add(p.id); continue; }
     let pt = null;
-    if(p.host_id === me.id){
-      let addr = unlockedAddr[p.id];
-      if(!addr){ try { const { data } = await db.rpc('get_party_address', { pid: p.id }); addr = data; } catch(_){} }
-      if(addr){
-        const g = await geocode(addr + (p.town ? ', ' + p.town : '') + ', USA');
-        if(run !== mapRun) return;
-        if(g){
-          pt = g;
-          const f = fuzzPoint(g.lat, g.lon, p.id);
-          try {
-            await db.from('party_addresses').update({ lat: g.lat, lon: g.lon }).eq('party_id', p.id);
-            await db.from('parties').update({ approx_lat: f.lat, approx_lon: f.lon }).eq('id', p.id);
-            p.approx_lat = f.lat; p.approx_lon = f.lon;
-            exactPt[p.id] = g;
-          } catch(_){}
-        }
+    let addr = unlockedAddr[p.id];
+    if(!addr){ try { const { data } = await db.rpc('get_party_address', { pid: p.id }); addr = data; } catch(_){} }
+    if(addr){
+      const g = await geocode(addr + (p.town ? ', ' + p.town : '') + ', USA');
+      if(run !== mapRun) return;
+      if(g){
+        pt = g;
+        try {
+          await db.from('party_addresses').update({ lat: g.lat, lon: g.lon }).eq('party_id', p.id);
+          exactPt[p.id] = g;
+        } catch(_){}
       }
     }
-    if(!pt && z){ const f = fuzzPoint(z.lat, z.lon, p.id); p.approx_lat = f.lat; p.approx_lon = f.lon; pt = f; }
     if(!pt) unplaceable.add(p.id);          // nothing left to try for this one
     if(pt && run === mapRun) renderMap();
   }
@@ -4166,6 +4334,42 @@ function msAction(p, mine, going){
       <button class="btn btn-ghost" data-mapopen="${p.id}" style="margin-top:10px">Open the party</button>`;
   }
   return `<button class="btn" data-mapopen="${p.id}" style="margin-top:20px">Open the party</button>`;
+}
+/* Two or more parties share a town badge, so tapping it has to open a LIST,
+   not a party. One party in a town skips straight to its own card — a list of
+   one is a menu with a single item on it. */
+function openTownSheet(key){
+  const list = parties.filter(p => !exactPt[p.id] && townKey(p) === key)
+    .sort((a, b) => (a.starts_at ? new Date(a.starts_at).getTime() : Infinity)
+                  - (b.starts_at ? new Date(b.starts_at).getTime() : Infinity));
+  if(!list.length) return;
+  if(list.length === 1) return openMapSheet(list[0].id);
+  sheetId = null;
+  const name = townName(list[0]) || 'town';
+  $('#map-sheet-peek').innerHTML = `
+    <div class="ms-head"><div style="flex:1;min-width:0">
+      <h3>${esc(list.length + ' parties in ' + name)}</h3>
+      <div class="ms-sub">${esc(whenLabel(list[0].starts_at))} · tap one to claim a spot</div>
+    </div></div>`;
+  $('#map-sheet-more').innerHTML = list.map(p => {
+    const claimed = (p.claims || []).length;
+    const cls = capClass(claimed, p.max_people);
+    const full = claimed >= p.max_people;
+    const sub = [whenLabel(p.starts_at)];
+    if(dropPending(p)) sub.push('address drops ' + dropWhen(p));
+    return `<button class="tw-row" data-mapopen="${p.id}">
+      <span class="tw-img" style="background:${p.photo_url ? `url('${esc(p.photo_url)}')` : gradFor(p.id)};background-size:cover;background-position:center"></span>
+      <span class="tw-mid"><b>${isLiveNow(p) ? '<i class="live-dot"></i>' : ''}${esc(p.name)}</b>
+        <i>${esc(sub.join(' · '))}</i></span>
+      <span class="spots-n spots-${cls}">${full ? 'Full' : (p.max_people - claimed)}${full ? '' : '<small>left</small>'}</span>
+    </button>`;
+  }).join('')
+   + `<p class="hint" style="margin:14px 0 0">The map only ever shows the town. Claim a spot and the
+      address comes to you${dropPending(list[0]) ? ' when it drops' : ''}.</p>`;
+  const el = sheetEl();
+  el.classList.remove('glide');
+  el.style.transform = 'translateY(100%)';
+  requestAnimationFrame(() => { measureSheet(); snapSheet('peek'); });
 }
 function openMapSheet(pid, keepPos){
   const p = parties.find(x => x.id === pid); if(!p) return;
@@ -4947,15 +5151,12 @@ $('#loc-confirm').addEventListener('click', async () => {
   haptic(12);
   if(repinId){
     const pid = repinId; repinId = null;
-    const f = fuzzPoint(pt.lat, pt.lon, pid);
-    const [a, b] = await Promise.all([
-      db.from('party_addresses').update({ lat: pt.lat, lon: pt.lon }).eq('party_id', pid),
-      db.from('parties').update({ approx_lat: f.lat, approx_lon: f.lon }).eq('id', pid)
-    ]);
-    if(a.error || b.error){ toast((a.error || b.error).message); return; }
+    /* the exact point, and only the exact point — an approximate copy of a
+       house is a second thing that can be read by somebody without a ticket */
+    const { error: pinErr } = await db.from('party_addresses')
+      .update({ lat: pt.lat, lon: pt.lon }).eq('party_id', pid);
+    if(pinErr){ toast(pinErr.message); return; }
     exactPt[pid] = pt;
-    const party = allParties.find(x => x.id === pid);
-    if(party){ party.approx_lat = f.lat; party.approx_lon = f.lon; }
     const wasConfirm = !!pinConfirmAt;
     hostGPS = null;
     mapCentered = false;
@@ -5138,7 +5339,6 @@ $('#h-post').addEventListener('click', async () => {
   const town = $('#h-town').value.trim();
   $('#h-post').textContent = 'Posting…';
   const pt = await resolvePartyPoint(addr, town, me.zip);   // GPS if pinned, else the address, else your ZIP
-  const fz = pt ? fuzzPoint(pt.lat, pt.lon, name + addr) : null;
   const { data: p, error } = await db.from('parties').insert({
     host_id: me.id, name, town,
     starts_at: startsAt ? startsAt.toISOString() : null,
@@ -5151,9 +5351,7 @@ $('#h-post').addEventListener('click', async () => {
     drinks: hDrinks,
     privacy: hPriv,
     description: $('#h-desc').value.trim(),
-    photo_url: hostPhoto,
-    approx_lat: fz ? fz.lat : null,
-    approx_lon: fz ? fz.lon : null
+    photo_url: hostPhoto
   }).select().single();
   $('#h-post').textContent = 'Post my party';
   if(error){ toast(error.message); return; }
@@ -5731,9 +5929,9 @@ const TAB_INTRO = {
   map: { eyebrow: 'The map', title: 'See where it all is',
     ic: '<svg viewBox="0 0 24 24"><path d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>',
     points: [
-      'Every party is a pin with the host\u2019s face on it. Live ones pulse.',
-      'You only get the <b>exact</b> spot once you\u2019re in \u2014 everything else sits on the town.',
-      'Tap a pin, then pull the card up for the full party page.' ] },
+      'A party you\u2019re not in shows as its <b>town</b> \u2014 never a pin on a street. A pin on the wrong block just sends people to the wrong house.',
+      '<b>Claim a spot and it becomes a real pin</b> on the real place, with the host\u2019s face on it. Live ones pulse.',
+      'Tap a town to see what\u2019s on there, then pull the card up for the full party page.' ] },
   tonight: { eyebrow: 'Right now', title: 'Tonight',
     ic: '<svg viewBox="0 0 24 24"><path d="M4 19V9.5l8-5.5 8 5.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M9.5 20v-5h5v5"/></svg>',
     points: [
