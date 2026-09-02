@@ -1010,7 +1010,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.3</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.4</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -3459,8 +3459,16 @@ async function partyPageHtml(p, opts = {}){
       ${showHostConsole ? hostConsoleHtml(p) : ''}
       ${showCheckin ? checkinHtml(p, inRoom) : ''}
       ${showRecap ? recapHtml(p, mine) : ''}
-      ${over && mine ? `<button class="btn btn-danger" data-delparty="${p.id}">Delete this party</button>` : ''}
-      ${(showRecap || over) ? '' : mine ? `<button class="btn btn-danger" data-cancel="${p.id}">Cancel this party</button>`
+      ${mine
+        /* The host can ALWAYS end their own party. This used to hide once the
+           party started (albumMine → showRecap suppressed the cancel button),
+           and "Delete" only appeared 6h later when it was fully over — so for
+           the entire live window there was no way to end it. Now: upcoming →
+           Cancel, live → End, finished → Delete, and it never disappears. */
+        ? (over
+            ? `<button class="btn btn-danger" data-delparty="${p.id}">Delete this party</button>`
+            : `<button class="btn btn-danger" data-cancel="${p.id}">${nowLive ? 'End this party' : 'Cancel this party'}</button>`)
+        : (showRecap || over) ? ''
         : going ? `<button class="btn btn-danger" data-unclaim="${p.id}">Give up my ticket</button>`
         : requested ? `<div class="waiting">Request sent — waiting on ${esc((nickMap[p.host_id] || p.profiles?.display_name || 'the host').split(' ')[0])}</div>
             <button class="btn btn-danger" data-cancelreq="${p.id}">Cancel request</button>`
@@ -3690,12 +3698,14 @@ async function partyActions(e){
     toast('Ticket released'); refreshAfterAction(); return;
   }
   if(el = g('[data-cancel]')){
-    if(!await askYes({ title: 'Cancel this party?',
-      sub: 'Everyone\u2019s claims disappear and this can\u2019t be undone.',
-      yes: 'Cancel it', no: 'Keep it', danger: true })) return;
+    const cp = allParties.find(x => x.id === el.dataset.cancel) || {};
+    const live = isLive(cp);
+    if(!await askYes({ title: live ? 'End this party?' : 'Cancel this party?',
+      sub: (live ? 'It ends for everyone and disappears from the map.' : 'Everyone\u2019s claims disappear.') + ' This can\u2019t be undone.',
+      yes: live ? 'End it' : 'Cancel it', no: 'Keep it', danger: true })) return;
     const err = await deleteParty(el.dataset.cancel);
     if(err){ toast(err.message); return; }
-    toast('Party canceled');
+    toast(live ? 'Party ended' : 'Party canceled');
     detailId = null; show(detailFrom || 'find'); refreshAfterAction(); return;
   }
   if(el = g('[data-delparty]')){
