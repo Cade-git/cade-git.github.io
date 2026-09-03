@@ -1020,7 +1020,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.8</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.9</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1253,10 +1253,10 @@
 <div id="share-sheet" hidden>
   <div class="sheet">
     <h3 id="share-title">Share this party</h3>
-    <button class="btn" id="share-card">Share party image</button>
-    <p class="sub" id="share-card-sub" style="margin:9px 0 2px">A ready-made flyer for your story. Post it, then add the <b style="color:var(--text)">link sticker</b> with your copied link so people can tap through.</p>
+    <button class="btn" id="share-go">Share party</button>
+    <p class="sub" id="share-go-sub" style="margin:9px 0 2px">One tap opens your share menu. In a text, DM or Snap it’s a <b style="color:var(--text)">tappable link</b> — no copy-paste. (Instagram <b style="color:var(--text)">stories</b> only: use Copy link for the sticker.)</p>
     <button class="btn btn-ghost" id="share-copy" style="margin-top:10px">Copy link</button>
-    <button class="btn btn-ghost" id="share-anywhere" style="margin-top:10px">Share link to apps…</button>
+    <button class="btn btn-ghost" id="share-card" style="margin-top:10px">Make a flyer image</button>
     <div id="share-friends-block">
       <p class="sub" style="margin:18px 0 8px">Or send it to friends already on Turnout:</p>
       <div class="chips" id="share-list" style="margin-bottom:14px"></div>
@@ -3939,15 +3939,23 @@ $('#share-card').addEventListener('click', async () => {
   setTimeout(() => URL.revokeObjectURL(url), 15000);
   toast('Image saved — post it to your story');
 });
-$('#share-anywhere').addEventListener('click', async () => {
+/* the one-tap path: hand the OS share menu a URL. Messages, WhatsApp, Snapchat
+   and DMs all render a shared URL as a tappable link (with the preview card) —
+   no selecting, no pasting. Instagram stories are the lone exception (sticker
+   only), which is what Copy link is for. */
+$('#share-go').addEventListener('click', async () => {
   const p = allParties.find(x => x.id === shareId);
   const url = partyLink(shareId);
-  const text = (p ? p.name + (p.town ? ' · ' + p.town : '') : 'This party')
-    + ' — on Turnout. Tap to claim a ticket and get the address.';
   try{
-    if(navigator.share){ await navigator.share({ title: p ? p.name : 'Turnout', text, url }); haptic(10); $('#share-sheet').hidden = true; return; }
-    if(await copyText(url)){ toast('Link copied — paste it anywhere'); haptic(10); $('#share-sheet').hidden = true; }
-  }catch(_){ /* they backed out of the OS share sheet — keep ours open */ }
+    if(navigator.share){
+      await navigator.share({ title: (p && p.name) || 'Turnout',
+        text: ((p && p.name) ? p.name + (p.town ? ' · ' + p.town : '') + ' — on Turnout' : 'A party on Turnout'),
+        url });
+      haptic(10); $('#share-sheet').hidden = true; return;
+    }
+  }catch(_){ return; /* they cancelled the OS sheet — leave ours open */ }
+  // desktop / no native share: copy the link
+  if(await copyText(url)){ toast('Link copied — paste it anywhere'); haptic(10); $('#share-sheet').hidden = true; }
 });
 $('#friends').addEventListener('click', e => {
   if(e.target.closest('#friends-invite')) inviteFriends();
