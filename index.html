@@ -1020,7 +1020,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.10</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.11</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -3655,7 +3655,11 @@ async function partyActions(e){
     return;
   }
   if(g('[data-close]')){ closeOverlay($('#detail'), detailFrom || 'find'); return; }
-  if(el = g('[data-unclaim]')){
+  /* the host's door-console kick \u2014 carries BOTH data-unclaim (the guest's id)
+     and data-party. Must be scoped that tightly: the guest's own "Give up my
+     ticket" button ALSO uses data-unclaim (holding the party id, no data-party),
+     and this handler was swallowing it and doing nothing. */
+  if(el = g('[data-unclaim][data-party]')){
     const uid = el.dataset.unclaim, pid = el.dataset.party;
     const who = nickMap[uid] || (profMap[uid] || {}).display_name || 'this person';
     if(!await askYes({ title: 'Remove ' + who + '\u2019s spot?',
