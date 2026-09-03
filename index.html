@@ -13,6 +13,16 @@
 <link rel="apple-touch-icon" sizes="167x167" href="/icon-167.png">
 <link rel="apple-touch-icon" sizes="152x152" href="/icon-152.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon-180.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Turnout">
+<meta property="og:title" content="Turnout — where the party is">
+<meta property="og:description" content="Find the party. Claim a ticket, get the address. Throw your own and run the door from your phone.">
+<meta property="og:url" content="https://jointurnout.app/">
+<meta property="og:image" content="https://jointurnout.app/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Turnout — where the party is">
+<meta name="twitter:description" content="Find the party. Claim a ticket, get the address.">
+<meta name="twitter:image" content="https://jointurnout.app/icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Outfit:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -1010,7 +1020,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.4</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.5</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1243,9 +1253,13 @@
 <div id="share-sheet" hidden>
   <div class="sheet">
     <h3 id="share-title">Share this party</h3>
-    <p class="sub">Pick friends — the party card lands in your chat with them.</p>
-    <div class="chips" id="share-list" style="margin-bottom:18px"></div>
-    <button class="btn" id="share-send">Send it</button>
+    <button class="btn" id="share-anywhere">Share link anywhere</button>
+    <p class="sub" id="share-anywhere-sub" style="margin:9px 0 2px">Posts a link — anyone who taps it signs in and lands right on your party.</p>
+    <div id="share-friends-block">
+      <p class="sub" style="margin:18px 0 8px">Or send it to friends already on Turnout:</p>
+      <div class="chips" id="share-list" style="margin-bottom:14px"></div>
+      <button class="btn btn-ghost" id="share-send">Send to selected</button>
+    </div>
     <button class="btn btn-ghost" id="share-cancel" style="margin-top:10px">Cancel</button>
   </div>
 </div>
@@ -3781,15 +3795,36 @@ async function inviteFriends(){
     haptic(10);
   } catch(_){ toast('Share it: jointurnout.app'); }
 }
+/* a link that opens straight to this party. Anyone signed out lands on the
+   sign-up screen first (the party is remembered and opens the moment they're
+   in), so every shared party is also a way into the app. */
+function partyLink(pid){ return 'https://jointurnout.app/?p=' + pid; }
 function openShare(pid){
   shareId = pid;
   const p = allParties.find(x => x.id === pid);
   $('#share-title').textContent = p ? 'Share “' + p.name + '”' : 'Share this party';
-  $('#share-list').innerHTML = friends.length
-    ? friends.map(f => `<button class="chip" data-fid="${f.id}">${esc(dispName(f))}</button>`).join('')
-    : '<p class="empty" style="padding:6px">No friends yet — add some on the Friends tab first.</p>';
+  const fb = $('#share-friends-block');
+  if(friends.length){
+    fb.hidden = false;
+    $('#share-list').innerHTML = friends.map(f => `<button class="chip" data-fid="${f.id}">${esc(dispName(f))}</button>`).join('');
+  } else {
+    // nobody to send to in-app yet — the link is the whole story
+    fb.hidden = true;
+  }
   $('#share-sheet').hidden = false;
 }
+$('#share-anywhere').addEventListener('click', async () => {
+  const p = allParties.find(x => x.id === shareId);
+  const url = partyLink(shareId);
+  const text = (p ? p.name + (p.town ? ' · ' + p.town : '') : 'This party')
+    + ' — on Turnout. Tap to claim a ticket and get the address.';
+  try{
+    if(navigator.share){ await navigator.share({ title: p ? p.name : 'Turnout', text, url }); haptic(10); $('#share-sheet').hidden = true; return; }
+    await navigator.clipboard.writeText(url);
+    toast('Link copied — paste it anywhere'); haptic(10);
+    $('#share-sheet').hidden = true;
+  }catch(_){ /* they backed out of the OS share sheet — keep ours open */ }
+});
 $('#friends').addEventListener('click', e => {
   if(e.target.closest('#friends-invite')) inviteFriends();
 });
@@ -6095,6 +6130,25 @@ function dropSplash(){
   sp.classList.add('gone');
   setTimeout(() => { sp.hidden = true; }, 320);
 }
+/* a ?p=<id> deep link (from a shared party) is stashed the instant the page
+   loads and cleaned out of the address bar, so it survives the whole sign-in /
+   create-account flow and opens the exact party once the visitor is in. */
+(function(){
+  try{
+    const pid = new URLSearchParams(location.search).get('p');
+    if(pid){ sessionStorage.setItem('turnout-deep-party', pid); history.replaceState(null, '', location.pathname); }
+  }catch(_){}
+})();
+async function ensureParty(pid){
+  if(allParties.some(x => x.id === pid)) return true;
+  try{
+    const { data } = await db.from('parties')
+      .select('*, claims(user_id), profiles!parties_host_id_fkey(id, display_name, zip, avatar_url)')
+      .eq('id', pid).maybeSingle();
+    if(data){ allParties.push(data); if(!parties.some(x => x.id === pid)) parties.push(data); return true; }
+  }catch(_){}
+  return false;
+}
 async function boot(){
   if(!configured){ $('#config-warn').hidden = false; dropSplash(); return; }
   me = await loadMe();
@@ -6124,6 +6178,12 @@ async function boot(){
   try{
     await refreshData();
     await initSession();
+    /* a shared party link wins over the normal landing screen */
+    let deepParty = null; try{ deepParty = sessionStorage.getItem('turnout-deep-party'); }catch(_){}
+    if(deepParty){
+      try{ sessionStorage.removeItem('turnout-deep-party'); }catch(_){}
+      if(await ensureParty(deepParty)){ show('find'); dropSplash(); openDetail(deepParty, 'find'); maybeOnboard(); return; }
+    }
     if(tonightLive()){ show('tonight'); dropSplash(); maybeOnboard(); return; }
     if(allParties.some(isLive)){ show('map'); dropSplash(); maybeOnboard(); return; }
   }catch(e){}
