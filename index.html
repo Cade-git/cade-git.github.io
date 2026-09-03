@@ -1020,7 +1020,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.7</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.8</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1253,9 +1253,10 @@
 <div id="share-sheet" hidden>
   <div class="sheet">
     <h3 id="share-title">Share this party</h3>
-    <button class="btn" id="share-copy">Copy link</button>
-    <p class="sub" id="share-copy-sub" style="margin:9px 0 2px">Paste it into your Instagram or Snapchat story’s <b style="color:var(--text)">link sticker</b> — tap it and it opens right on your party.</p>
-    <button class="btn btn-ghost" id="share-anywhere" style="margin-top:10px">Share to apps…</button>
+    <button class="btn" id="share-card">Share party image</button>
+    <p class="sub" id="share-card-sub" style="margin:9px 0 2px">A ready-made flyer for your story. Post it, then add the <b style="color:var(--text)">link sticker</b> with your copied link so people can tap through.</p>
+    <button class="btn btn-ghost" id="share-copy" style="margin-top:10px">Copy link</button>
+    <button class="btn btn-ghost" id="share-anywhere" style="margin-top:10px">Share link to apps…</button>
     <div id="share-friends-block">
       <p class="sub" style="margin:18px 0 8px">Or send it to friends already on Turnout:</p>
       <div class="chips" id="share-list" style="margin-bottom:14px"></div>
@@ -3836,6 +3837,107 @@ $('#share-copy').addEventListener('click', async () => {
   const ok = await copyText(url);
   haptic(10);
   toast(ok ? 'Link copied — paste it into your story’s link sticker' : url);
+});
+
+/* ── the party flyer ───────────────────────────────────────────────────────
+   Something to actually SHOW, not just a link: a 1080×1920 story image drawn
+   from the party — cover photo, name, when, town, host, and a claim CTA. Shared
+   as a real image file through the OS sheet (Instagram/Snap "add to story"),
+   or downloaded as a fallback. */
+function _loadImg(src){ return new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = () => rej(new Error('img')); i.src = src; }); }
+function _rrect(x, X, Y, w, h, r){ x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); }
+function _wrap(x, text, maxW, maxLines){
+  const words = (text || '').split(/\s+/).filter(Boolean); const lines = []; let line = '';
+  for(const w of words){ const t = line ? line + ' ' + w : w;
+    if(x.measureText(t).width > maxW && line){ lines.push(line); line = w; } else line = t; }
+  if(line) lines.push(line);
+  if(lines.length > maxLines){ lines.length = maxLines; let last = lines[maxLines - 1];
+    while(last.length && x.measureText(last + '…').width > maxW) last = last.slice(0, -1);
+    lines[maxLines - 1] = last + '…'; }
+  return lines;
+}
+function _cardGrad(id){ const g = (typeof gradFor === 'function' ? gradFor(id) : '') || '';
+  const m = g.match(/#([0-9a-fA-F]{6})/g) || ['#FF3D8A', '#8B5CF6']; return [m[0], m[1] || m[0]]; }
+async function buildPartyCard(p, withPhoto){
+  const W = 1080, H = 1920, M = 84;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  try{ await Promise.all([ document.fonts.load('800 120px Unbounded'),
+    document.fonts.load('700 48px Outfit'), document.fonts.load('500 40px Outfit') ]); }catch(_){}
+  // background + brand glows
+  let g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#171226'); g.addColorStop(1, '#0B0A14');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  const glow = (cx, cy, r, col) => { const rg = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+    rg.addColorStop(0, col); rg.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = rg; x.fillRect(0, 0, W, H); };
+  glow(170, 250, 620, 'rgba(255,61,138,0.32)'); glow(W - 120, H - 380, 680, 'rgba(139,92,246,0.30)');
+  // wordmark
+  x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+  const wm = x.createLinearGradient(W / 2 - 280, 0, W / 2 + 280, 0); wm.addColorStop(0, '#FF3D8A'); wm.addColorStop(1, '#8B5CF6');
+  x.fillStyle = wm; x.font = '800 76px Unbounded, sans-serif'; x.fillText('TURNOUT', W / 2, 176);
+  x.fillStyle = 'rgba(201,184,232,0.9)'; x.font = '500 32px Outfit, sans-serif'; x.fillText('where the party is', W / 2, 228);
+  // photo / gradient panel
+  const pX = M, pY = 306, pW = W - 2 * M, pH = 760, pR = 52;
+  x.save(); _rrect(x, pX, pY, pW, pH, pR); x.clip();
+  let drew = false;
+  if(withPhoto && p.photo_url){ try{ const img = await _loadImg(p.photo_url);
+      const ar = img.width / img.height, tar = pW / pH; let dw, dh;
+      if(ar > tar){ dh = pH; dw = pH * ar; } else { dw = pW; dh = pW / ar; }
+      x.drawImage(img, pX + (pW - dw) / 2, pY + (pH - dh) / 2, dw, dh); drew = true; }catch(_){ drew = false; } }
+  if(!drew){ const gr = _cardGrad(p.id); const pg = x.createLinearGradient(pX, pY, pX + pW, pY + pH);
+    pg.addColorStop(0, gr[0]); pg.addColorStop(1, gr[1]); x.fillStyle = pg; x.fillRect(pX, pY, pW, pH);
+    x.fillStyle = 'rgba(255,255,255,0.94)'; x.font = '800 300px Unbounded, sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText((p.name || '?').trim().charAt(0).toUpperCase(), pX + pW / 2, pY + pH / 2 + 10);
+    x.textBaseline = 'alphabetic'; }
+  const sc = x.createLinearGradient(0, pY + pH - 300, 0, pY + pH);
+  sc.addColorStop(0, 'rgba(11,10,20,0)'); sc.addColorStop(1, 'rgba(11,10,20,0.9)');
+  x.fillStyle = sc; x.fillRect(pX, pY + pH - 300, pW, 300);
+  x.restore();
+  // party name
+  x.textAlign = 'left'; x.fillStyle = '#fff'; x.font = '800 78px Unbounded, sans-serif';
+  const nameLines = _wrap(x, p.name || 'A party', W - 2 * M, 3); let ny = pY + pH + 128;
+  for(const ln of nameLines){ x.fillText(ln, M, ny); ny += 94; }
+  // when + town
+  ny += 14; x.fillStyle = '#B4F04B'; x.font = '700 48px Outfit, sans-serif';
+  x.fillText(whenLabel(p.starts_at) + (p.town ? '   ·   ' + p.town : ''), M, ny); ny += 66;
+  // host
+  x.fillStyle = 'rgba(206,206,220,0.92)'; x.font = '500 42px Outfit, sans-serif';
+  x.fillText('Hosted by ' + ((p.profiles && p.profiles.display_name) || 'someone'), M, ny); ny += 58;
+  // fee · drinks
+  x.fillStyle = 'rgba(206,206,220,0.72)'; x.font = '500 40px Outfit, sans-serif';
+  x.fillText((feeAt(p) > 0 ? '$' + feeAt(p) + ' cover' : 'Free entry') + '     ·     ' + (p.drinks === 'provided' ? 'Drinks provided' : 'BYOB'), M, ny);
+  // CTA bar
+  const bY = 1662, bH = 136;
+  const bg = x.createLinearGradient(M, bY, W - M, bY); bg.addColorStop(0, '#FF3D8A'); bg.addColorStop(1, '#8B5CF6');
+  _rrect(x, M, bY, W - 2 * M, bH, bH / 2); x.fillStyle = bg; x.fill();
+  x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '800 52px Unbounded, sans-serif';
+  x.fillText('Claim your ticket', W / 2, bY + bH / 2 + 3); x.textBaseline = 'alphabetic';
+  x.fillStyle = 'rgba(255,255,255,0.95)'; x.font = '700 42px Outfit, sans-serif';
+  x.fillText('jointurnout.app', W / 2, bY + bH + 74);
+  return await new Promise(res => { try{ c.toBlob(b => res(b), 'image/png'); }catch(e){ res(null); } });
+}
+$('#share-card').addEventListener('click', async () => {
+  const btn = $('#share-card'); const label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Making your flyer…';
+  const p = allParties.find(x => x.id === shareId);
+  let blob = await buildPartyCard(p, true);
+  if(!blob) blob = await buildPartyCard(p, false);        // cross-origin cover tainted the canvas — redraw clean
+  btn.disabled = false; btn.textContent = label;
+  if(!blob){ toast('Couldn’t make the image — try again'); return; }
+  const fname = 'turnout-' + ((p && p.name || 'party').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'party') + '.png';
+  const file = new File([blob], fname, { type: 'image/png' });
+  try{
+    if(navigator.canShare && navigator.canShare({ files: [file] })){
+      await navigator.share({ files: [file], title: (p && p.name) || 'Turnout',
+        text: ((p && p.name) || 'This party') + ' — on Turnout. ' + partyLink(shareId) });
+      haptic(10); return;
+    }
+  }catch(_){ return; /* they cancelled the OS sheet */ }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = fname;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 15000);
+  toast('Image saved — post it to your story');
 });
 $('#share-anywhere').addEventListener('click', async () => {
   const p = allParties.find(x => x.id === shareId);
