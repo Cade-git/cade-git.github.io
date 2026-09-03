@@ -1020,7 +1020,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.5</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.6</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -2382,7 +2382,7 @@ function updateHostCta(){
   h.textContent = hosted ? 'Throw another one' : 'Throwing something?';
   /* the strongest thing we can tell a host is that people are already looking */
   sub.textContent = outCount > 0
-    ? outCount + ' near you ' + (outCount === 1 ? 'is' : 'are') + ' out ' + outNightLabel() + ' \u2014 give them somewhere to go.'
+    ? outCount + (outCount === 1 ? ' person near you is' : ' people near you are') + ' out ' + outNightLabel() + ' \u2014 give them somewhere to go.'
     : (hosted ? 'Post it and run the door from your phone.'
               : 'Post it, cap the numbers, see who actually shows.');
 }
@@ -3323,9 +3323,12 @@ function startDropTimer(p){
   stopDropTimer();
   if(!dropPending(p)) return;
   dropTimer = setInterval(async () => {
-    const el = document.getElementById('drop-cd');
     const left = dropLeft(p);
-    if(left && el){ el.textContent = left; return; }
+    /* Only "the drop happened" when the clock has actually run out. The old
+       test was `left && el`, which treated a MISSING countdown element (e.g.
+       the host's page, which shows the address instead of a timer) as "time's
+       up" — firing a false "address just dropped" a second after opening. */
+    if(left){ const el = document.getElementById('drop-cd'); if(el) el.textContent = left; return; }
     stopDropTimer();
     const { data } = await db.rpc('get_party_address', { pid: p.id });
     if(data){
@@ -3500,7 +3503,9 @@ async function renderDetail(){
 }
 function afterDetailRender(p, showCheckin){
   if(showCheckin && !myCheckIn[p.id] && exactPt[p.id]) watchDistance(p.id); else stopDistance();
-  if(dropPending(p) && (myClaims.has(p.id) || p.host_id === me.id)) startDropTimer(p); else stopDropTimer();
+  /* only a claimer waits on the drop — the host already has the address, so
+     running the timer for them served no purpose and only risked a false toast */
+  if(dropPending(p) && myClaims.has(p.id) && p.host_id !== me.id) startDropTimer(p); else stopDropTimer();
 }
 /* Deleting the parties row cascades the claims and the album ROWS, but storage
    knows nothing about foreign keys — the photos themselves would sit in the
