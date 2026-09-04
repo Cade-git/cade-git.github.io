@@ -1020,7 +1020,7 @@
   <section class="screen" id="auth">
     <div class="auth-wrap">
       <div style="margin-bottom:20px">
-        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.11</span>
+        <span class="wordmark">TURNOUT</span><span class="wt-badge">live v11.12</span>
         <p style="color:var(--muted);margin-top:6px">Run your door. Know exactly who’s coming, and who actually showed.</p>
       </div>
       <div id="config-warn" hidden>Supabase keys are missing from this build — ask Claude for a fresh file.</div>
@@ -1037,8 +1037,6 @@
           <div class="field"><label for="a-zip">ZIP code</label><input id="a-zip" inputmode="numeric" maxlength="5" placeholder="65401"></div>
           <div class="field"><label for="a-email">Email</label><input id="a-email" type="email" placeholder="you@email.com" autocomplete="email"></div>
         </div>
-        <div class="field"><label for="a-addr">Home address <span class="opt">optional</span></label><input id="a-addr" placeholder="Street address" autocomplete="street-address">
-          <p class="hint">Only so it can auto-fill if you ever host — skip it and nothing changes. Locked in the database; nobody else can ever read it.</p></div>
         <div class="field"><label for="a-pass">Password</label><input id="a-pass" type="password" placeholder="8+ characters" autocomplete="new-password"></div>
         <label class="consent" for="a-agree">
           <input type="checkbox" id="a-agree">
@@ -2108,7 +2106,8 @@ $('#do-signup').addEventListener('click', async () => {
   const { error } = await db.auth.signUp({ email, password: pass, options: { data: {
     display_name: name, zip, terms_version: LEGAL_VERSION, terms_accepted_at: new Date().toISOString() } } });
   if(error){ toast(error.message); return; }
-  pendingHomeAddr = $('#a-addr').value.trim() || null;
+  /* home address is no longer asked at signup — it fills in the first time you
+     host. Keeps the front door to email + ZIP + password. */
   toast('Account created — welcome to Turnout');
   boot();
 });
