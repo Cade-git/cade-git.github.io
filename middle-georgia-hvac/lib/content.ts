@@ -80,10 +80,11 @@ export const company = {
     },
   },
   /**
-   * PLACEHOLDER — the brief did not include an email address.
-   * The Request Service form's mailto: fallback sends here. Replace before launch.
+   * DEMO — the brief did not include a business email, so the Request Service
+   * form's mailto: fallback goes to the demo builder for now. Swap for Jessie's
+   * address (or wire Formspree, see RequestServiceForm.tsx) before launch.
    */
-  email: "REPLACE_WITH_JESSIES_EMAIL@example.com",
+  email: "delucacaden15@gmail.com",
   /** PLACEHOLDER — set to the live domain when deployed. Read from env at build. */
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "https://middle-georgia-hvac-demo.vercel.app",
 } as const;

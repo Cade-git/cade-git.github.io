@@ -23,7 +23,7 @@ Search the repo for `PLACEHOLDER` and `SWAP` to find everything that needs a rea
 
 | Item | Where |
 |---|---|
-| Owner email (mailto fallback) | `company.email` in `lib/content.ts` |
+| Owner email (mailto fallback; currently the demo builder's address) | `company.email` in `lib/content.ts` |
 | Owner photo | `public/placeholders/owner.svg` → real jpg/webp, then remove `unoptimized` in `components/Hero.tsx` |
 | Security cage photo | `public/placeholders/security-cage.svg` → real jpg/webp, then remove `unoptimized` in `components/SecurityCages.tsx` |
 | Reviews | `reviews.items` in `lib/content.ts` — currently labeled samples |
