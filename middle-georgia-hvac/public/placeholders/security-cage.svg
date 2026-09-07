@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-label="Placeholder: photo of an iron security cage over an outdoor AC unit">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d6dfeb"/>
+      <stop offset="1" stop-color="#eef2f7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#sky)"/>
+  <rect y="640" width="1200" height="260" fill="#aebfd6"/>
+  <!-- slab -->
+  <rect x="300" y="610" width="600" height="60" rx="6" fill="#7f97b8"/>
+  <!-- condenser -->
+  <rect x="380" y="330" width="440" height="300" rx="14" fill="#c7d2e1" stroke="#7f97b8" stroke-width="6"/>
+  <circle cx="600" cy="480" r="110" fill="none" stroke="#7f97b8" stroke-width="10"/>
+  <g stroke="#7f97b8" stroke-width="8" stroke-linecap="round">
+    <line x1="600" y1="480" x2="600" y2="385"/>
+    <line x1="600" y1="480" x2="683" y2="528"/>
+    <line x1="600" y1="480" x2="517" y2="528"/>
+  </g>
+  <!-- iron cage -->
+  <g stroke="#0f1f3a" stroke-width="14" stroke-linecap="round" fill="none">
+    <rect x="330" y="280" width="540" height="360" rx="10"/>
+    <line x1="420" y1="280" x2="420" y2="640"/>
+    <line x1="510" y1="280" x2="510" y2="640"/>
+    <line x1="600" y1="280" x2="600" y2="640"/>
+    <line x1="690" y1="280" x2="690" y2="640"/>
+    <line x1="780" y1="280" x2="780" y2="640"/>
+    <line x1="330" y1="370" x2="870" y2="370"/>
+    <line x1="330" y1="460" x2="870" y2="460"/>
+    <line x1="330" y1="550" x2="870" y2="550"/>
+  </g>
+  <!-- padlock -->
+  <rect x="820" y="590" width="60" height="50" rx="8" fill="#e2532b"/>
+  <path d="M832 590 v-20 a18 18 0 0 1 36 0 v20" fill="none" stroke="#e2532b" stroke-width="10"/>
+</svg>

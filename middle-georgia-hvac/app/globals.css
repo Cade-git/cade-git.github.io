@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+/*
+  Brand tokens — deep navy + warm red-orange (ember) + white.
+  Change these to re-skin the site for another client.
+*/
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --color-navy-50: #eef2f7;
+  --color-navy-100: #d6dfeb;
+  --color-navy-200: #aebfd6;
+  --color-navy-300: #7f97b8;
+  --color-navy-500: #2c4a75;
+  --color-navy-700: #14294a;
+  --color-navy-800: #0f1f3a;
+  --color-navy-900: #0a1730;
+  --color-navy-950: #060e1f;
+
+  --color-ember-50: #fff3ee;
+  --color-ember-100: #ffe1d5;
+  /* ember-500 is the primary button color: white text on it meets WCAG AA (4.9:1). */
+  --color-ember-300: #f2703f;
+  --color-ember-400: #e2532b;
+  --color-ember-500: #c8431f;
+  --color-ember-600: #a3361a;
+  --color-ember-700: #7f2a14;
+
+  --color-brass-400: #d9b25a;
+
+  --shadow-soft: 0 8px 30px -12px rgb(10 23 48 / 0.25);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  @apply bg-white text-navy-900 antialiased;
+  font-feature-settings: "cv11", "ss01";
+}
+
+/* Anchor targets sit below the sticky header (+ demo banner). */
+section[id] {
+  scroll-margin-top: 7rem;
+}
+
+/* Consistent, visible focus for keyboard users. */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid var(--color-ember-500);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+/* Subtle topographic-style texture for the hero — pure CSS, no image request. */
+.hero-grid {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse at 30% 20%, black 30%, transparent 75%);
+}
+
+@utility tap {
+  min-height: 48px;
+  min-width: 48px;
+}
