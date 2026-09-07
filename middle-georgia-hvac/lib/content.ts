@@ -10,6 +10,9 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+/** Base path for static exports (e.g. "/hvac-demo" on GitHub Pages); empty on Vercel. */
+const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export type IconName =
   | "snowflake"
   | "flame"
@@ -123,7 +126,7 @@ export const hero = {
   ownerCard: {
     // PLACEHOLDER IMAGE — swap /public/placeholders/owner.svg for a real photo of
     // Jessie (jpg/webp, ~800×1000). No stock faces per the brief.
-    imageSrc: "/placeholders/owner.svg",
+    imageSrc: `${base}/placeholders/owner.svg`,
     imageAlt: `Placeholder for a photo of ${company.ownerFullName}, owner of ${company.shortName}`,
     swapNote: "SWAP: real photo of Jessie",
     name: company.ownerFullName,
@@ -224,7 +227,7 @@ export const securityCages = {
   // PLACEHOLDER IMAGE — swap /public/placeholders/security-cage.svg for a real
   // photo of an installed cage (jpg/webp, ~1200×900). Then remove the
   // `unoptimized` prop in SecurityCages.tsx so next/image optimizes it.
-  imageSrc: "/placeholders/security-cage.svg",
+  imageSrc: `${base}/placeholders/security-cage.svg`,
   imageAlt: "Placeholder for a photo of an iron security cage installed over an outdoor AC condenser",
   swapNote: "SWAP: photo of an installed cage",
 };

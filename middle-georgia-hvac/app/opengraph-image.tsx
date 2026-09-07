@@ -3,6 +3,7 @@ import { company, hero } from "@/lib/content";
 
 // Generated at build time — no image asset to maintain. Swap for a real
 // 1200×630 photo by dropping `opengraph-image.jpg` in /app and deleting this file.
+export const dynamic = "force-static";
 export const alt = `${company.shortName} — ${hero.headline}`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
