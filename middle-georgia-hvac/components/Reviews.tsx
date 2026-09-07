@@ -1,4 +1,4 @@
-import { Quote, Star } from "lucide-react";
+import { BadgeCheck, Quote } from "lucide-react";
 import { reviews } from "@/lib/content";
 import Reveal from "./Reveal";
 import SectionHeading from "./SectionHeading";
@@ -6,7 +6,7 @@ import SectionHeading from "./SectionHeading";
 /**
  * SAMPLE REVIEWS — replace with real Google reviews before launch.
  * The quotes in lib/content.ts are illustrative and clearly labeled "Sample".
- * The rating line (4.1 ★ / 79 reviews / BBB A+) IS real public data from the brief.
+ * The stats line (79 reviews / BBB A+ / 37 years) IS real public data from the brief.
  */
 export default function Reviews() {
   return (
@@ -14,7 +14,7 @@ export default function Reviews() {
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
         <SectionHeading id="reviews-heading" eyebrow={reviews.eyebrow} heading={reviews.heading} />
         <p className="mt-4 flex items-center justify-center gap-2 text-center font-semibold text-navy-800">
-          <Star className="h-5 w-5 fill-brass-400 text-brass-400" aria-hidden="true" />
+          <BadgeCheck className="h-5 w-5 text-ember-500" aria-hidden="true" />
           {reviews.ratingLine}
         </p>
         <p className="mx-auto mt-3 max-w-md rounded-md border border-dashed border-brass-400 bg-white px-3 py-1.5 text-center text-xs font-medium text-navy-700">

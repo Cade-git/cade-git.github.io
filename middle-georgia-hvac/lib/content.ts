@@ -52,7 +52,7 @@ export const company = {
     number: "CU 400146",
   },
   bbbRating: "A+",
-  /** Real public Google rating per the brief. Displayed as text only — see JsonLd.tsx note. */
+  /** Real public Google rating per the brief. Kept for reference; intentionally not displayed. */
   googleRating: 4.1,
   googleReviewCount: 79,
   phone: {
@@ -207,7 +207,7 @@ export const services = {
 };
 
 export const securityCages = {
-  eyebrow: "Only from Middle Georgia Heating & Air",
+  eyebrow: "A Middle Georgia specialty",
   heading: "Iron security cages for your outdoor unit",
   pitch:
     "Copper thieves can strip an outdoor unit in minutes and turn a repair bill into a replacement bill. Our iron security cages install over your condenser so the only person who can get to it is your technician.",
@@ -255,8 +255,12 @@ export const serviceArea = {
 export const reviews = {
   eyebrow: "What customers say",
   heading: "Honest work. Same-day service.",
-  /** Real public figures from the brief, displayed as plain text. */
-  ratingLine: `${company.googleRating} ★ on Google · ${company.googleReviewCount} reviews · BBB ${company.bbbRating}`,
+  /**
+   * Real public figures from the brief, displayed as plain text. The numeric
+   * Google rating is deliberately NOT shown — review count, BBB grade, and
+   * years in business are the strong numbers; the rating is the upsell pitch.
+   */
+  ratingLine: `${company.googleReviewCount} Google reviews · BBB ${company.bbbRating} · ${company.yearsInBusiness} years in business`,
   disclaimer:
     "Sample quotes for demo purposes — to be replaced with real Google reviews before launch.",
   /**

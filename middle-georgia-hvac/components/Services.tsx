@@ -9,19 +9,21 @@ export default function Services() {
     <section id="services" aria-labelledby="services-heading" className="bg-white">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
         <SectionHeading id="services-heading" eyebrow={services.eyebrow} heading={services.heading} intro={services.intro} />
-        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-10 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           {services.items.map((s, i) => (
             <Reveal
               as="li"
               key={s.title}
               delay={(i % 4) * 0.05}
-              className="group rounded-xl border border-navy-100 bg-white p-5 transition-colors hover:border-ember-400 hover:shadow-soft"
+              className="group flex items-start gap-4 rounded-xl border border-navy-100 bg-white p-4 transition-colors hover:border-ember-400 hover:shadow-soft sm:p-5 lg:block"
             >
-              <span className="grid h-12 w-12 place-items-center rounded-lg bg-navy-800 text-white transition-colors group-hover:bg-ember-500">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-navy-800 text-white transition-colors group-hover:bg-ember-500 lg:h-12 lg:w-12">
                 <Icon name={s.icon} className="h-6 w-6" />
               </span>
-              <h3 className="mt-4 text-lg font-bold text-navy-900">{s.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-navy-700">{s.text}</p>
+              <div>
+                <h3 className="text-base font-bold text-navy-900 sm:text-lg lg:mt-4">{s.title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-navy-700 lg:mt-1.5">{s.text}</p>
+              </div>
             </Reveal>
           ))}
         </ul>
